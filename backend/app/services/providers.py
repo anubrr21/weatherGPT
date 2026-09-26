@@ -1,5 +1,7 @@
 import asyncio
 import json
+import re
+import time
 from typing import Any, AsyncIterator, Protocol
 
 import httpx
@@ -14,7 +16,44 @@ RETRYABLE = (429, 500, 502, 503, 504)
 
 
 class ProviderError(Exception):
-    pass
+    def __init__(self, message: str, status: int | None = None, retry_after: float | None = None):
+        super().__init__(message)
+        self.status = status
+        self.retry_after = retry_after
+
+
+_cooldown: dict[str, float] = {}
+_strikes: dict[str, int] = {}
+
+
+def _retry_after(body: str) -> float | None:
+    match = re.search(r"(?:retry in|try again in)\s+(?:(\d+)m)?([\d.]+)s", body, re.I)
+    if not match:
+        return None
+    return int(match.group(1) or 0) * 60 + float(match.group(2))
+
+
+def bench(key: str, error: Exception) -> None:
+    strikes = _strikes.get(key, 0) + 1
+    _strikes[key] = strikes
+    if isinstance(error, ProviderError) and error.status == 429:
+        base = max(error.retry_after or 60, 60)
+        if "per day" in str(error).lower() or "perday" in str(error).lower():
+            base = 3600
+    elif isinstance(error, ProviderError) and error.status in (400, 401, 403, 404):
+        base = 3600
+    else:
+        base = 30
+    _cooldown[key] = time.monotonic() + min(base * 2 ** (strikes - 1), 3 * 3600)
+
+
+def succeeded(key: str) -> None:
+    _strikes.pop(key, None)
+    _cooldown.pop(key, None)
+
+
+def cooling(key: str) -> float:
+    return max(0.0, _cooldown.get(key, 0) - time.monotonic())
 
 
 class Call(dict):
@@ -37,20 +76,21 @@ class Provider(Protocol):
 
 
 def _history(history: list[dict[str, str]]) -> list[tuple[str, str]]:
-    return [(t.get("role", "user"), (t.get("text") or "").strip()) for t in history[-12:] if (t.get("text") or "").strip()]
+    return [(t.get("role", "user"), (t.get("text") or "").strip()[:1500]) for t in history[-10:] if (t.get("text") or "").strip()]
 
 
 async def _post_stream(url: str, headers: dict[str, str], payload: dict[str, Any], params: dict[str, str] | None, label: str, retries: list[float]) -> AsyncIterator[str]:
+    timeout = httpx.Timeout(60 if retries else 30, connect=10)
     for attempt in range(len(retries) + 1):
         try:
-            async with client().stream("POST", url, params=params, headers=headers, json=payload, timeout=httpx.Timeout(90, connect=15)) as response:
+            async with client().stream("POST", url, params=params, headers=headers, json=payload, timeout=timeout) as response:
                 if response.status_code in RETRYABLE and attempt < len(retries):
                     await response.aread()
                     await asyncio.sleep(retries[attempt])
                     continue
                 if response.status_code >= 400:
                     body = (await response.aread()).decode(errors="ignore")
-                    raise ProviderError(f"{label} error {response.status_code}: {body[:300]}")
+                    raise ProviderError(f"{label} error {response.status_code}: {body[:300]}", response.status_code, _retry_after(body))
                 async for line in response.aiter_lines():
                     if line.startswith("data:"):
                         chunk = line[5:].strip()
@@ -67,16 +107,16 @@ async def _post_stream(url: str, headers: dict[str, str], payload: dict[str, Any
 class Gemini:
     name = "gemini"
 
-    def __init__(self, system: str, history: list[dict[str, str]], message: str, retries: list[float]):
+    def __init__(self, model: str, system: str, history: list[dict[str, str]], message: str, retries: list[float]):
         settings = get_settings()
-        self.model = settings.gemini_model
+        self.model = model
         self.key = settings.gemini_api_key
         self.label = f"Gemini · {self.model}"
         self.retries = retries
         self.base = {
             "systemInstruction": {"parts": [{"text": system}]},
             "tools": [{"functionDeclarations": tools.TOOL_DECLARATIONS}],
-            "generationConfig": {"temperature": 0.4},
+            "generationConfig": {"temperature": 0.4, "thinkingConfig": {"thinkingLevel": "low"}},
         }
         self.contents = [{"role": "model" if role == "assistant" else "user", "parts": [{"text": text}]} for role, text in _history(history)]
         self.contents.append({"role": "user", "parts": [{"text": message}]})
@@ -117,9 +157,9 @@ OPENAI_TOOLS = [
 class Groq:
     name = "groq"
 
-    def __init__(self, system: str, history: list[dict[str, str]], message: str, retries: list[float]):
+    def __init__(self, model: str, system: str, history: list[dict[str, str]], message: str, retries: list[float]):
         settings = get_settings()
-        self.model = settings.groq_model
+        self.model = model
         self.key = settings.groq_api_key
         self.label = f"Groq · {self.model}"
         self.retries = retries
@@ -131,7 +171,9 @@ class Groq:
     async def turn(self) -> AsyncIterator[tuple[str, Any]]:
         text = ""
         slots: dict[int, dict[str, str]] = {}
-        payload = {"model": self.model, "messages": self.messages, "tools": OPENAI_TOOLS, "tool_choice": "auto", "temperature": 0.4, "stream": True}
+        payload: dict[str, Any] = {"model": self.model, "messages": self.messages, "tools": OPENAI_TOOLS, "tool_choice": "auto", "temperature": 0.4, "stream": True}
+        if "gpt-oss" in self.model:
+            payload["reasoning_effort"] = "low"
         async for chunk in _post_stream(GROQ_URL, {"Authorization": f"Bearer {self.key}"}, payload, None, "Groq", self.retries):
             data = json.loads(chunk)
             if data.get("error"):
@@ -169,11 +211,15 @@ class Groq:
             self.messages.append({"role": "tool", "tool_call_id": call_id, "content": json.dumps(result, ensure_ascii=False, default=str)})
 
 
-def available() -> list[type]:
+def chain() -> list[tuple[type, str]]:
     settings = get_settings()
-    chain: list[type] = []
-    if settings.gemini_api_key.strip():
-        chain.append(Gemini)
-    if settings.groq_api_key.strip():
-        chain.append(Groq)
-    return chain
+    return [(Gemini, m) for m in settings.gemini_models] + [(Groq, m) for m in settings.groq_models]
+
+
+def available() -> list[tuple[type, str]]:
+    return [(cls, model) for cls, model in chain() if not cooling(f"{cls.name}:{model}")]
+
+
+def soonest_free() -> float | None:
+    waits = [cooling(f"{cls.name}:{model}") for cls, model in chain()]
+    return min(waits) if waits else None

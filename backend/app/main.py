@@ -8,7 +8,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.config import get_settings
-from app.services import advisory, agent, alerts, weather
+from app.services import advisory, agent, alerts, providers, weather
 from app.services.http import close_client
 from app.services.tools import ChatContext
 
@@ -43,11 +43,13 @@ async def _guard(coro):
 @app.get("/api/health")
 async def health():
     settings = get_settings()
-    chain = [
-        {"name": "gemini", "model": settings.gemini_model, "enabled": bool(settings.gemini_api_key.strip())},
-        {"name": "groq", "model": settings.groq_model, "enabled": bool(settings.groq_api_key.strip())},
-    ]
-    return {"ok": True, "llm": settings.llm_enabled, "providers": [p for p in chain if p["enabled"]]}
+    return {
+        "ok": True,
+        "llm": settings.llm_enabled,
+        "providers": [
+            {"name": cls.name, "model": model, "cooling_s": round(providers.cooling(f"{cls.name}:{model}"))} for cls, model in providers.chain()
+        ],
+    }
 
 
 @app.get("/api/geocode")

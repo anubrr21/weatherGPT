@@ -5,7 +5,9 @@ import time
 
 import httpx
 
-API = sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8000"
+ARGS = [a for a in sys.argv[1:] if not a.startswith("--")]
+API = ARGS[0] if ARGS else "http://127.0.0.1:8000"
+PACE = next((float(a.split("=", 1)[1]) for a in sys.argv[1:] if a.startswith("--pace=")), 0.0)
 
 SCRIPTS = {
     "hi": (0x0900, 0x097F), "mr": (0x0900, 0x097F), "bn": (0x0980, 0x09FF), "as": (0x0980, 0x09FF),
@@ -84,7 +86,9 @@ async def main():
             print("LLM is not enabled: set GEMINI_API_KEY and/or GROQ_API_KEY in backend/.env and restart the API.")
             return
         results = []
-        for lang, question in CASES:
+        for i, (lang, question) in enumerate(CASES):
+            if i and PACE:
+                await asyncio.sleep(PACE)
             result = await run_case(client, lang, question)
             results.append(result)
             ok = result["tools"] and result["script_share"] >= 0.6 and not result["errors"]

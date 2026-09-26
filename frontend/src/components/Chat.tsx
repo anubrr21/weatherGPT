@@ -67,7 +67,7 @@ export default function Chat({ messages, busy, language, llm, onLanguage, onSend
             {llm === null
               ? 'connecting…'
               : llm.llm
-                ? `AI · ${llm.providers.map((p) => p.name).join(' → ')} · live data`
+                ? `AI · ${[...new Set(llm.providers.map((p) => p.name))].join(' → ')} · live data`
                 : 'offline intent mode'}
           </small>
         </div>

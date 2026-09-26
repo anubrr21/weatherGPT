@@ -82,12 +82,11 @@ def _compact_forecast(fc: dict[str, Any]) -> dict[str, Any]:
                 "rain_prob_pct": d["precipitation_probability_max"],
                 "gust_kmh": d["wind_gusts_10m_max"],
                 "uv_max": d["uv_index_max"],
-                "et0_mm": d["et0_fao_evapotranspiration"],
-                "sunrise": (d["sunrise"] or "")[11:],
-                "sunset": (d["sunset"] or "")[11:],
             }
             for d in fc["daily"][:7]
         ],
+        "sunrise": (fc["daily"][0]["sunrise"] or "")[11:],
+        "sunset": (fc["daily"][0]["sunset"] or "")[11:],
     }
 
 
@@ -120,9 +119,17 @@ async def get_alerts(ctx: ChatContext, location: str | None = None) -> dict[str,
     return {
         "place": _label(place),
         "official_imd_ndma_alerts": [
-            {k: a.get(k) for k in ("event", "severity", "urgency", "headline", "areas", "expires", "issuer", "instruction", "match")}
-            for a in official[:8]
+            {
+                "event": a.get("event"),
+                "severity": a.get("severity"),
+                "headline": (a.get("headline") or "")[:220],
+                "areas": a.get("areas", [])[:4],
+                "expires": a.get("expires"),
+                "match": a.get("match"),
+            }
+            for a in official[:5]
         ],
+        "more_official_alerts": max(0, len(official) - 5),
         "model_derived_advisories": derived,
     }
 

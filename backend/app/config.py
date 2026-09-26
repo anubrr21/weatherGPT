@@ -11,12 +11,20 @@ class Settings(BaseSettings):
     )
 
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.5-flash"
+    gemini_model: str = "gemini-3.8-flash,gemini-3.7-flash,gemini-3.5-flash-lite"
     groq_api_key: str = ""
-    groq_model: str = "openai/gpt-oss-120b"
+    groq_model: str = "openai/gpt-oss-120b,openai/gpt-oss-20b"
     cors_origins: str = "*"
     alert_feed_url: str = "https://sachet.ndma.gov.in/cap_public_website/rss/rss_india.xml"
     http_timeout_s: float = 20.0
+
+    @property
+    def gemini_models(self) -> list[str]:
+        return [m.strip() for m in self.gemini_model.split(",") if m.strip()] if self.gemini_api_key.strip() else []
+
+    @property
+    def groq_models(self) -> list[str]:
+        return [m.strip() for m in self.groq_model.split(",") if m.strip()] if self.groq_api_key.strip() else []
 
     @property
     def llm_enabled(self) -> bool:

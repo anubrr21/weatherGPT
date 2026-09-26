@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import re
 from datetime import datetime
 from typing import Any, AsyncIterator
@@ -7,6 +8,9 @@ from typing import Any, AsyncIterator
 from app.services import advisory, providers, tools
 
 MAX_TOOL_ROUNDS = 5
+MAX_CAPACITY_WAIT_S = 20
+
+log = logging.getLogger("weathergpt.agent")
 
 LANGUAGES = {
     "en": "English", "hi": "Hindi", "bn": "Bengali", "te": "Telugu", "ta": "Tamil", "mr": "Marathi",
@@ -63,7 +67,9 @@ Rules:
 - Be concise and actionable: lead with the direct answer, then key numbers, then practical advice. Short paragraphs or tight bullet points; no tables (the app renders rich cards from tool data next to your reply).
 - Tailor advice to the user's role and crops. Use the sector tools: get_farm_advisory for farmers (give concrete spray windows with times, irrigate/hold with mm, harvest/drying days), get_fishing_advisory for fishermen (lead with GO / CAUTION / NO-GO), get_aviation for pilots (decoded briefing: flight category, wind, visibility, cloud, hazards, trend), get_city_advisory for urban users (heat index, waterlogging, commute), get_alerts for disaster managers (severity, timing, affected areas, actions).
 - When the user states a lasting fact about themselves (their job, crops and stage, village, boat), call update_profile as well, then answer. Do not announce that you saved it unless asked.
-- Each forecast day carries a model-agreement confidence. Mention it when the answer depends on uncertain rain or days beyond tomorrow.
+- Each forecast day carries a confidence label with a 0–100 score (not a percentage of agreement) and how many of the 3 models expect ≥2.5 mm rain. Mention it when the answer depends on uncertain rain or days beyond tomorrow.
+- Answer rain questions calibrated to the numbers: say rain is likely only when the day's rain is ≥2.5 mm or the chance is ≥60%; for under 1 mm or a chance under 40%, say rain is unlikely or only a brief trace is possible. Never say "yes, it will rain" for trace amounts.
+- Tool data contains English condition labels such as "Light drizzle"; translate them into the reply language.
 - For safety questions, prioritise official IMD/NDMA warnings and clearly distinguish them from model-derived advisories. Include specific protective actions.
 - Express uncertainty honestly: forecasts beyond 3 days are less reliable; mention model disagreement when relevant.
 - Temperatures in °C, rain in mm, wind in km/h (knots for aviation)."""
@@ -220,11 +226,16 @@ async def run_offline(message: str, ctx: tools.ChatContext, note: bool = True) -
 
 async def chat(message: str, history: list[dict[str, str]], ctx: tools.ChatContext) -> AsyncIterator[dict[str, Any]]:
     chain = providers.available()
+    wait = providers.soonest_free()
+    if not chain and wait is not None and wait <= MAX_CAPACITY_WAIT_S:
+        yield _event("status", text=f"Waiting {wait:.0f}s for AI capacity", tool="fallback", args={})
+        await asyncio.sleep(wait + 0.5)
+        chain = providers.available()
     system = system_prompt(ctx)
     failures: list[str] = []
-    for index, provider_cls in enumerate(chain):
+    for index, (provider_cls, model) in enumerate(chain):
         backup_exists = index < len(chain) - 1
-        provider = provider_cls(system, history, message, retries=[1.5] if backup_exists else [1.5, 3.0, 6.0])
+        provider = provider_cls(model, system, history, message, retries=[] if backup_exists else [1.5, 3.0])
         emitted = False
         try:
             async for event in run_provider(provider, ctx):
@@ -232,15 +243,20 @@ async def chat(message: str, history: list[dict[str, str]], ctx: tools.ChatConte
                     emitted = True
                     yield _event("provider", name=provider.name, label=provider.label, fallback=index > 0)
                 yield event
+            providers.succeeded(f"{provider.name}:{model}")
             yield _event("done")
             return
         except Exception as exc:
             failures.append(f"{provider.label}: {exc}")
+            providers.bench(f"{provider.name}:{model}", exc)
+            log.warning("provider failed: %s: %s", provider.label, str(exc)[:160])
             if emitted:
                 yield _event("reset")
             ctx.cards.clear()
             if backup_exists:
-                yield _event("status", text=f"{provider.label} unavailable, switching to backup", tool="fallback", args={})
+                yield _event("status", text=f"{provider.label} busy, switching model", tool="fallback", args={})
+    if not chain and providers.chain():
+        failures.append("all models cooling down after rate limits")
     try:
         if failures:
             yield _event("provider", name="offline", label="Offline intent mode", fallback=True)
