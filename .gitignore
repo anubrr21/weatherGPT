@@ -8,3 +8,4 @@ __pycache__/
 eval_languages_results.json
 backend/models/
 backend/knowledge/raw/
+backend/data/

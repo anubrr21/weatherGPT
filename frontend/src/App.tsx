@@ -5,6 +5,7 @@ import Chat from './components/Chat'
 import DayStrip from './components/DayStrip'
 import Hud from './components/Hud'
 import InsightStrip from './components/InsightStrip'
+import { AlertToasts, LiveBell } from './components/LiveAlerts'
 import Logo, { LogoMark, Wordmark } from './components/Logo'
 import LocationSearch from './components/LocationSearch'
 import ProfileSheet from './components/ProfileSheet'
@@ -15,6 +16,7 @@ import { api, streamChat, type Health } from './lib/api'
 import { placeLabel } from './lib/format'
 import { PlaceContext } from './lib/placeContext'
 import { applyPatch, loadProfile, saveProfile } from './lib/profile'
+import { notify, syncSubscriptions, useLiveAlerts, type LiveAlert } from './lib/live'
 import { unlockAudio } from './lib/voice'
 import { momentAt, skyFor } from './lib/sky'
 import type { AlertsBundle, ChatEvent, Forecast, Insight, Message, Place, Profile } from './lib/types'
@@ -73,6 +75,9 @@ export default function App() {
   const [profile, setProfileState] = useState<Profile>(loadProfile)
   const [profileOpen, setProfileOpen] = useState(false)
   const [insights, setInsights] = useState<Insight[] | null>(null)
+  const [inbox, setInbox] = useState<LiveAlert[]>([])
+  const [toasts, setToasts] = useState<LiveAlert[]>([])
+  const [unread, setUnread] = useState(0)
   const abortRef = useRef<AbortController | null>(null)
 
   const locate = useCallback(() => {
@@ -145,6 +150,27 @@ export default function App() {
     if (!place || !fc) return
     api.insights(place.lat, place.lon, profile).then(setInsights).catch(() => setInsights(null))
   }, [place?.lat, place?.lon, fc?.current.time, insightKey])
+
+  const liveState = useLiveAlerts((incoming) => {
+    setInbox((all) => (all.some((a) => a.alert.id === incoming.alert.id) ? all : [incoming, ...all].slice(0, 50)))
+    setToasts((all) => (all.some((a) => a.alert.id === incoming.alert.id) ? all : [incoming, ...all]))
+    setUnread((n) => n + 1)
+    notify(incoming)
+    if (place && Math.abs(incoming.place.lat - place.lat) < 0.05 && Math.abs(incoming.place.lon - place.lon) < 0.05) {
+      api.alerts(place.lat, place.lon).then(setAlerts).catch(() => undefined)
+    }
+  })
+
+  const placesKey = JSON.stringify([place, ...profile.places].filter(Boolean).map((p) => [p!.lat.toFixed(3), p!.lon.toFixed(3)]))
+  useEffect(() => {
+    const places = [place, ...profile.places].filter((p): p is Place => Boolean(p) && (p as Place).name !== 'Locating…')
+    if (!places.length) return
+    const id = setTimeout(() => syncSubscriptions(places).catch(() => undefined), 800)
+    return () => clearTimeout(id)
+  }, [placesKey, liveState === 'live'])
+
+  const askAboutAlert = (a: LiveAlert) =>
+    send(`IMD has issued "${a.alert.event}" (${a.alert.severity}) for ${a.place.name}: ${a.alert.headline} What exactly should I do?`)
 
   const moment = fc ? momentAt(fc, hour) : null
   const sky = fc && moment ? skyFor(fc, moment) : null
@@ -228,6 +254,7 @@ export default function App() {
             <button className="icon-btn glass" onClick={refresh} aria-label="Refresh">
               <RefreshCw size={16} />
             </button>
+            <LiveBell state={liveState} inbox={inbox} unread={unread} onOpen={() => setUnread(0)} onAsk={askAboutAlert} />
             <button className={`icon-btn glass ${profile.role !== 'general' ? 'active' : ''}`} onClick={() => setProfileOpen(true)} aria-label="Your profile">
               <UserRound size={17} />
             </button>
@@ -281,6 +308,11 @@ export default function App() {
             onCollapse={() => setChatOpen(false)}
           />
         </aside>
+
+        <AlertToasts toasts={toasts} onDismiss={(id) => setToasts((all) => all.filter((t) => t.alert.id !== id))} onAsk={(a) => {
+          setToasts((all) => all.filter((t) => t.alert.id !== a.alert.id))
+          askAboutAlert(a)
+        }} />
 
         {profileOpen && (
           <ProfileSheet

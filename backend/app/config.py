@@ -27,6 +27,11 @@ class Settings(BaseSettings):
     spread_load: bool = True
     answer_cache_s: int = 600
     cors_origins: str = "*"
+    database_url: str = ""
+    alert_poll_s: int = 120
+    observation_poll_s: int = 900
+    warm_poll_s: int = 1800
+    workers_enabled: bool = True
     alert_feed_url: str = "https://sachet.ndma.gov.in/cap_public_website/rss/rss_india.xml"
     http_timeout_s: float = 20.0
 

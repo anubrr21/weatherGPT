@@ -9,19 +9,25 @@ from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.config import get_settings
-from app.services import advisory, agent, alerts, knowledge, local_tts, providers, voice, weather
+from app.db import init_db
+from app.routes_live import router as live_router
+from app.services import advisory, agent, alerts, ingest, knowledge, local_tts, providers, voice, weather
 from app.services.http import close_client
 from app.services.tools import ChatContext
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    await init_db()
+    ingest.start()
     asyncio.get_running_loop().run_in_executor(None, local_tts.warm, ["hi", "en"])
     yield
+    await ingest.stop()
     await close_client()
 
 
 app = FastAPI(title="WeatherGPT API", version="0.1.0", lifespan=lifespan)
+app.include_router(live_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in get_settings().cors_origins.split(",")],

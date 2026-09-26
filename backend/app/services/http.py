@@ -47,6 +47,9 @@ class TTLCache:
         self._store: dict[str, tuple[float, Any]] = {}
         self._locks: dict[str, asyncio.Lock] = {}
 
+    def put(self, key: str, value: Any) -> None:
+        self._store[key] = (time.monotonic() + self.ttl_s, value)
+
     async def get_or_set(self, key: str, factory: Callable[[], Awaitable[Any]]) -> Any:
         hit = self._store.get(key)
         if hit and hit[0] > time.monotonic():

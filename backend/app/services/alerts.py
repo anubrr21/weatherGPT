@@ -75,28 +75,33 @@ async def _fetch_cap(link: str, guid: str, fallback_title: str, author: str | No
     return await _cap_cache.get_or_set(guid, load)
 
 
-async def official_alerts() -> list[dict[str, Any]]:
-    async def load() -> list[dict[str, Any]]:
-        response = await client().get(get_settings().alert_feed_url, timeout=20)
-        response.raise_for_status()
-        channel = ET.fromstring(response.content).find("channel")
-        items = channel.findall("item") if channel is not None else []
-        tasks = []
-        for item in items:
-            link = (item.findtext("link") or "").strip()
-            guid = (item.findtext("guid") or link).strip()
-            if not link:
-                continue
-            tasks.append(_fetch_cap(link, guid, (item.findtext("title") or "").strip(), item.findtext("author")))
-        parsed = [a for a in await asyncio.gather(*tasks) if a]
-        now = datetime.now(timezone.utc)
-        live = [a for a in parsed if (_parse_time(a["expires"]) or now) >= now]
-        live.sort(key=lambda a: a["sent"] or "", reverse=True)
-        live.sort(key=lambda a: -SEVERITY_RANK.get(a["severity"], 0))
-        return live
+async def _load_feed() -> list[dict[str, Any]]:
+    response = await client().get(get_settings().alert_feed_url, timeout=20)
+    response.raise_for_status()
+    channel = ET.fromstring(response.content).find("channel")
+    items = channel.findall("item") if channel is not None else []
+    tasks = []
+    for item in items:
+        link = (item.findtext("link") or "").strip()
+        guid = (item.findtext("guid") or link).strip()
+        if not link:
+            continue
+        tasks.append(_fetch_cap(link, guid, (item.findtext("title") or "").strip(), item.findtext("author")))
+    parsed = [a for a in await asyncio.gather(*tasks) if a]
+    now = datetime.now(timezone.utc)
+    live = [a for a in parsed if (_parse_time(a["expires"]) or now) >= now]
+    live.sort(key=lambda a: a["sent"] or "", reverse=True)
+    live.sort(key=lambda a: -SEVERITY_RANK.get(a["severity"], 0))
+    return live
 
+
+async def official_alerts(fresh: bool = False) -> list[dict[str, Any]]:
+    if fresh:
+        live = await _load_feed()
+        _feed_cache.put("feed", live)
+        return live
     try:
-        return await _feed_cache.get_or_set("feed", load)
+        return await _feed_cache.get_or_set("feed", _load_feed)
     except Exception:
         return []
 

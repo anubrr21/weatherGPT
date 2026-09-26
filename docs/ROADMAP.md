@@ -32,9 +32,17 @@ Still open:
 - Free-tier capacity is the real constraint (gemini-3.8-flash allows ~20 requests on this key). Before a demo, don't run evals; consider a paid tier or more Groq models
 - CAP polygon geometry (the SACHET polygon endpoint returns 403 today)
 
-## Phase 2 — Real-time ingestion and scale
+## Phase 2 — Real-time ingestion and scale (in progress, 2026-09-27)
 
-- Background ingestion workers for the CAP feed and model runs, with push when a new warning hits a saved place
+Phase 2a done:
+- Database layer (SQLAlchemy async): SQLite by default, PostgreSQL via `DATABASE_URL` (asyncpg). Tables for alerts (full history with first/last seen), subscriptions, deliveries (no duplicate notifications), station observations, ingest runs
+- Background workers in the API process: IMD/NDMA CAP feed every 2 min (new-alert detection, verified: 32 stored, second run 0 new), METAR observations across India every 15 min (30-day history), forecast warm-up for subscribed places every 30 min; each run logged with status
+- WebSocket `/ws` live push: new alerts matched to a client's saved places are pushed instantly, missed ones are delivered on reconnect, each alert delivered once per client
+- API: `PUT /api/subscriptions`, `GET /api/alerts/history`, `GET /api/observations/nearby`, `GET /api/system/status`
+- Frontend: live bell with connection state, unread badge and inbox; alert banners; desktop notifications (permission on request); tapping an alert asks the assistant what to do. Verified in the browser with real IMD alerts for Jaipur
+
+Still in Phase 2:
+- Background ingestion workers for the CAP feed and model runs, with push when a new warning hits a saved place — done (above)
 - Explore MQTT / WIS 2.0 subscriptions for WMO real-time data
 - PostgreSQL + PostGIS for places, alert polygons and history; Redis cache
 - WebSocket channel for live alert push
