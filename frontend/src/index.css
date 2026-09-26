@@ -2219,3 +2219,8 @@ button:disabled {
   color: var(--ink-3);
   letter-spacing: 0.04em;
 }
+
+.voice-error.inline {
+  margin: 0;
+  font-size: 12px;
+}

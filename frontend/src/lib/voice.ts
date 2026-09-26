@@ -45,6 +45,29 @@ export function speakableFromMarkdown(markdown: string) {
 }
 
 let current: { stop: () => void } | null = null
+let audioCtx: AudioContext | null = null
+let unlocked = false
+
+export function unlockAudio() {
+  if (unlocked) return
+  unlocked = true
+  try {
+    audioCtx = audioCtx ?? new AudioContext()
+    if (audioCtx.state === 'suspended') void audioCtx.resume()
+    const silent = audioCtx.createBuffer(1, 1, 22050)
+    const source = audioCtx.createBufferSource()
+    source.buffer = silent
+    source.connect(audioCtx.destination)
+    source.start()
+  } catch {
+    unlocked = false
+  }
+  if ('speechSynthesis' in window) {
+    const warm = new SpeechSynthesisUtterance(' ')
+    warm.volume = 0
+    window.speechSynthesis.speak(warm)
+  }
+}
 
 export function stopSpeaking() {
   current?.stop()
@@ -55,48 +78,82 @@ export function stopSpeaking() {
 function pickVoice(lang: string) {
   const voices = window.speechSynthesis.getVoices()
   const base = lang.split('-')[0]
-  const matches = voices.filter((v) => v.lang === lang || v.lang.startsWith(base))
+  const matches = voices.filter((v) => v.lang === lang || v.lang.replace('_', '-').startsWith(`${base}-`) || v.lang === base)
   const score = (v: SpeechSynthesisVoice) =>
     (/natural|neural/i.test(v.name) ? 4 : 0) + (/online/i.test(v.name) ? 2 : 0) + (/google/i.test(v.name) ? 2 : 0) + (v.lang === lang ? 1 : 0)
   return matches.sort((a, b) => score(b) - score(a))[0] ?? null
 }
 
-function browserSpeak(text: string, lang: string, onEnd: () => void) {
-  if (!('speechSynthesis' in window)) {
-    onEnd()
-    return
-  }
-  window.speechSynthesis.cancel()
-  const chunks = text.match(/[^.!?।॥]+[.!?।॥]?/g)?.map((c) => c.trim()).filter(Boolean) ?? [text]
-  const voice = pickVoice(lang)
-  chunks.forEach((chunk, i) => {
-    const u = new SpeechSynthesisUtterance(chunk)
-    u.lang = lang
-    u.voice = voice
-    u.rate = 0.98
-    if (i === chunks.length - 1) {
-      u.onend = onEnd
-      u.onerror = onEnd
-    }
-    window.speechSynthesis.speak(u)
-  })
+export function hasBrowserVoice(lang: string) {
+  return 'speechSynthesis' in window && pickVoice(lang) !== null
 }
 
-export async function speak(text: string, lang: string, code: string, neural: boolean, onStart: () => void, onEnd: () => void) {
+function browserSpeak(text: string, lang: string, onEnd: () => void) {
+  const synth = window.speechSynthesis
+  synth.cancel()
+  const chunks = text.match(/[^.!?।॥]+[.!?।॥]?/g)?.map((c) => c.trim()).filter(Boolean) ?? [text]
+  const voice = pickVoice(lang)
+  window.setTimeout(() => {
+    chunks.forEach((chunk, i) => {
+      const u = new SpeechSynthesisUtterance(chunk)
+      u.lang = lang
+      u.voice = voice
+      u.rate = 0.98
+      if (i === chunks.length - 1) {
+        u.onend = onEnd
+        u.onerror = onEnd
+      }
+      synth.speak(u)
+    })
+  }, 60)
+}
+
+async function playWav(data: ArrayBuffer, onStart: () => void, onEnd: () => void) {
+  audioCtx = audioCtx ?? new AudioContext()
+  if (audioCtx.state === 'suspended') await audioCtx.resume()
+  const buffer = await audioCtx.decodeAudioData(data)
+  const source = audioCtx.createBufferSource()
+  source.buffer = buffer
+  source.connect(audioCtx.destination)
+  source.onended = onEnd
+  onStart()
+  source.start()
+  return () => {
+    source.onended = null
+    try {
+      source.stop()
+    } catch {
+      return
+    }
+  }
+}
+
+export interface SpeakCallbacks {
+  onStart: () => void
+  onEnd: () => void
+  onError: (message: string) => void
+}
+
+export async function speak(text: string, lang: string, code: string, neural: boolean, cb: SpeakCallbacks) {
   stopSpeaking()
   let cancelled = false
+  let stopAudio: (() => void) | null = null
   const controller = new AbortController()
-  let audio: HTMLAudioElement | null = null
   const handle = {
     stop: () => {
       cancelled = true
       controller.abort()
-      audio?.pause()
+      stopAudio?.()
       window.speechSynthesis?.cancel()
-      onEnd()
+      cb.onEnd()
     },
   }
   current = handle
+  const finish = () => {
+    if (current === handle) current = null
+    cb.onEnd()
+  }
+  let neuralProblem = ''
   if (neural) {
     try {
       const response = await fetch(`${BASE}/api/tts`, {
@@ -105,27 +162,27 @@ export async function speak(text: string, lang: string, code: string, neural: bo
         body: JSON.stringify({ text, language: code }),
         signal: controller.signal,
       })
-      if (!response.ok) throw new Error(String(response.status))
-      const url = URL.createObjectURL(await response.blob())
+      if (!response.ok) throw new Error((await response.json().catch(() => ({}))).detail ?? `voice server error ${response.status}`)
+      const data = await response.arrayBuffer()
       if (cancelled) return
-      audio = new Audio(url)
-      audio.onended = () => {
-        URL.revokeObjectURL(url)
-        if (current === handle) current = null
-        onEnd()
-      }
-      onStart()
-      await audio.play()
+      stopAudio = await playWav(data, cb.onStart, finish)
       return
-    } catch {
+    } catch (err) {
       if (cancelled) return
+      neuralProblem = (err as Error).message
     }
   }
-  onStart()
-  browserSpeak(text, lang, () => {
+  if (!hasBrowserVoice(lang)) {
     if (current === handle) current = null
-    onEnd()
-  })
+    cb.onError(
+      neuralProblem
+        ? `Voice unavailable: ${neuralProblem.includes('quota') || neuralProblem.includes('429') ? 'the free neural-voice limit is used up for today' : neuralProblem}. This browser has no ${lang} voice to fall back on.`
+        : `This browser has no ${lang} voice installed.`,
+    )
+    return
+  }
+  cb.onStart()
+  browserSpeak(text, lang, finish)
 }
 
 interface RecognitionResult {

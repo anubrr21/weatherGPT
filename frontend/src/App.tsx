@@ -11,6 +11,7 @@ import SkyCanvas from './components/SkyCanvas'
 import TimeDial from './components/TimeDial'
 import { api, streamChat, type Health } from './lib/api'
 import { applyPatch, loadProfile, saveProfile } from './lib/profile'
+import { unlockAudio } from './lib/voice'
 import { momentAt, skyFor } from './lib/sky'
 import type { AlertsBundle, ChatEvent, Forecast, Insight, Message, Place, Profile } from './lib/types'
 
@@ -91,6 +92,16 @@ export default function App() {
       () => setPlace((p) => p ?? FALLBACK),
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 },
     )
+  }, [])
+
+  useEffect(() => {
+    const unlock = () => unlockAudio()
+    window.addEventListener('pointerdown', unlock, { once: true })
+    window.addEventListener('keydown', unlock, { once: true })
+    return () => {
+      window.removeEventListener('pointerdown', unlock)
+      window.removeEventListener('keydown', unlock)
+    }
   }, [])
 
   useEffect(() => {

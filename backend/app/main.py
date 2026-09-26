@@ -46,7 +46,8 @@ async def health():
     return {
         "ok": True,
         "llm": settings.llm_enabled,
-        "neural_voice": bool(settings.gemini_api_key.strip()),
+        "neural_voice": bool(settings.gemini_api_key.strip() or settings.azure_speech_key.strip()),
+        "voice_engine": "azure" if settings.azure_speech_key.strip() else "gemini" if settings.gemini_api_key.strip() else "browser",
         "server_stt": bool(settings.groq_api_key.strip()),
         "providers": [
             {"name": cls.name, "model": model, "cooling_s": round(providers.cooling(f"{cls.name}:{model}"))} for cls, model in providers.chain()

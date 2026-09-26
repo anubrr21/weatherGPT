@@ -19,7 +19,9 @@ class Settings(BaseSettings):
     http_timeout_s: float = 20.0
 
     model_order: str = "gemini:0,groq:0,gemini:1,groq:1,gemini:2"
-    tts_model: str = "gemini-3.8-flash-tts,gemini-3.8-flash-lite-tts"
+    tts_model: str = "gemini-3.8-flash-tts,gemini-3.8-flash-lite-tts,gemini-3.1-flash-tts-preview"
+    azure_speech_key: str = ""
+    azure_speech_region: str = "centralindia"
     stt_model: str = "whisper-large-v3-turbo"
 
     @property

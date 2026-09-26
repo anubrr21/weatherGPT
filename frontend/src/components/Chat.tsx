@@ -24,6 +24,7 @@ export default function Chat({ messages, busy, language, llm, onLanguage, onSend
   const [draft, setDraft] = useState('')
   const [autoSpeak, setAutoSpeak] = useState(false)
   const [speaking, setSpeaking] = useState<Speaking>(null)
+  const [voiceError, setVoiceError] = useState<{ id: string; text: string } | null>(null)
   const lang = languageByCode(language)
   const listRef = useRef<HTMLDivElement>(null)
   const voiceTurn = useRef(false)
@@ -41,14 +42,15 @@ export default function Chat({ messages, busy, language, llm, onLanguage, onSend
   const say = (id: string, text: string) => {
     if (!text.trim()) return
     setSpeaking({ id, phase: 'loading' })
-    speak(
-      text,
-      lang.speech,
-      lang.code,
-      neural,
-      () => setSpeaking({ id, phase: 'playing' }),
-      () => setSpeaking((s) => (s?.id === id ? null : s)),
-    )
+    setVoiceError(null)
+    speak(text, lang.speech, lang.code, neural, {
+      onStart: () => setSpeaking({ id, phase: 'playing' }),
+      onEnd: () => setSpeaking((s) => (s?.id === id ? null : s)),
+      onError: (message) => {
+        setSpeaking((s) => (s?.id === id ? null : s))
+        setVoiceError({ id, text: message })
+      },
+    })
   }
 
   const spokenText = (m: Message) => {
@@ -174,6 +176,7 @@ export default function Chat({ messages, busy, language, llm, onLanguage, onSend
                   {mine?.phase === 'loading' ? 'Preparing voice…' : mine ? 'Stop' : 'Listen'}
                 </button>
               )}
+              {voiceError?.id === m.id && <p className="voice-error inline">{voiceError.text}</p>}
             </article>
           )
         })}
