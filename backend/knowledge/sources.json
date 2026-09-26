@@ -1,0 +1,194 @@
+[
+  {
+    "id": "ndma-heat-wave-dos-donts",
+    "title": "Heat Wave: Do's & Don'ts",
+    "publisher": "NDMA",
+    "url": "https://ndma.gov.in/heat-wave-dos-donts",
+    "file": "ndma_heat-wave-dos-donts.html",
+    "type": "html"
+  },
+  {
+    "id": "ndma-heat-wave",
+    "title": "Heat Wave",
+    "publisher": "NDMA",
+    "url": "https://ndma.gov.in/heat-wave",
+    "file": "ndma_heat-wave.html",
+    "type": "html"
+  },
+  {
+    "id": "ndma-heatwave",
+    "title": "Heat Wave (overview)",
+    "publisher": "NDMA",
+    "url": "https://ndma.gov.in/heatwave",
+    "file": "ndma_heatwave.html",
+    "type": "html"
+  },
+  {
+    "id": "ndma-cyclone-dos-donts",
+    "title": "Cyclone: Do's & Don'ts",
+    "publisher": "NDMA",
+    "url": "https://ndma.gov.in/cyclone-dos-donts",
+    "file": "ndma_cyclone-dos-donts.html",
+    "type": "html"
+  },
+  {
+    "id": "ndma-cyclone",
+    "title": "Cyclone",
+    "publisher": "NDMA",
+    "url": "https://ndma.gov.in/cyclone",
+    "file": "ndma_cyclone.html",
+    "type": "html"
+  },
+  {
+    "id": "ndma-floods-dos-donts",
+    "title": "Floods: Do's & Don'ts",
+    "publisher": "NDMA",
+    "url": "https://ndma.gov.in/floods-dos-donts",
+    "file": "ndma_floods-dos-donts.html",
+    "type": "html"
+  },
+  {
+    "id": "ndma-floods",
+    "title": "Floods",
+    "publisher": "NDMA",
+    "url": "https://ndma.gov.in/floods",
+    "file": "ndma_floods.html",
+    "type": "html"
+  },
+  {
+    "id": "ndma-urban-floods",
+    "title": "Urban Floods",
+    "publisher": "NDMA",
+    "url": "https://ndma.gov.in/urban-floods",
+    "file": "ndma_urban-floods.html",
+    "type": "html"
+  },
+  {
+    "id": "ndma-urban-flood",
+    "title": "Urban Flood",
+    "publisher": "NDMA",
+    "url": "https://ndma.gov.in/urban-flood",
+    "file": "ndma_urban-flood.html",
+    "type": "html"
+  },
+  {
+    "id": "ndma-lightning",
+    "title": "Lightning",
+    "publisher": "NDMA",
+    "url": "https://ndma.gov.in/lightning",
+    "file": "ndma_lightning.html",
+    "type": "html"
+  },
+  {
+    "id": "ndma-cold-wave",
+    "title": "Cold Wave",
+    "publisher": "NDMA",
+    "url": "https://ndma.gov.in/cold-wave",
+    "file": "ndma_cold-wave.html",
+    "type": "html"
+  },
+  {
+    "id": "ndma-winter-cold-wave",
+    "title": "Winter Cold Wave",
+    "publisher": "NDMA",
+    "url": "https://ndma.gov.in/winter-cold-wave",
+    "file": "ndma_winter-cold-wave.html",
+    "type": "html"
+  },
+  {
+    "id": "ndma-landslide-dos-donts",
+    "title": "Landslide: Do's & Don'ts",
+    "publisher": "NDMA",
+    "url": "https://ndma.gov.in/landslide-dos-donts",
+    "file": "ndma_landslide-dos-donts.html",
+    "type": "html"
+  },
+  {
+    "id": "ndma-tsunami-dos-donts",
+    "title": "Tsunami: Do's & Don'ts",
+    "publisher": "NDMA",
+    "url": "https://ndma.gov.in/tsunami-dos-donts",
+    "file": "ndma_tsunami-dos-donts.html",
+    "type": "html"
+  },
+  {
+    "id": "imd-forecasting-sop",
+    "title": "Standard Operating Procedure: Weather Forecasting and Warning Services",
+    "publisher": "IMD",
+    "url": "https://mausam.imd.gov.in/imd_latest/contents/pdf/forecasting_sop.pdf",
+    "file": "imd_forecasting_sop.pdf",
+    "type": "pdf"
+  },
+  {
+    "id": "imd-cyclone-sop",
+    "title": "Standard Operating Procedure: Cyclone Warning Services",
+    "publisher": "IMD",
+    "url": "https://mausam.imd.gov.in/imd_latest/contents/pdf/cyclone_sop.pdf",
+    "file": "imd_cyclone_sop.pdf",
+    "type": "pdf"
+  },
+  {
+    "id": "imd-gkms-sop",
+    "title": "Standard Operating Procedure: Agrometeorological Advisory Services (GKMS)",
+    "publisher": "IMD",
+    "url": "https://mausam.imd.gov.in/imd_latest/contents/pdf/gkms_sop.pdf",
+    "file": "imd_gkms_sop.pdf",
+    "type": "pdf"
+  },
+  {
+    "id": "imd-aviation-sop",
+    "title": "Standard Operating Procedure: Aviation Meteorological Services",
+    "publisher": "IMD",
+    "url": "https://mausam.imd.gov.in/imd_latest/contents/pdf/aviation_sop.pdf",
+    "file": "imd_aviation_sop.pdf",
+    "type": "pdf"
+  },
+  {
+    "id": "imd-health-bulletin",
+    "title": "Climate and Health Bulletin",
+    "publisher": "IMD Pune",
+    "url": "https://imdpune.gov.in/caui/health.pdf",
+    "file": "imd_health.pdf",
+    "type": "pdf"
+  },
+  {
+    "id": "rsmc-terminology",
+    "title": "Terminology on Cyclonic Disturbances over the North Indian Ocean",
+    "publisher": "IMD RSMC New Delhi",
+    "url": "https://rsmcnewdelhi.imd.gov.in/images/pdf/terminology.pdf",
+    "file": "rsmc_terminology.pdf",
+    "type": "pdf"
+  },
+  {
+    "id": "imd-cyclone-info",
+    "title": "Cyclone Information",
+    "publisher": "IMD",
+    "url": "https://mausam.imd.gov.in/responsive/cycloneinformation.php",
+    "file": "imd_cyclone_info.html",
+    "type": "html"
+  },
+  {
+    "id": "imd-monsoon-info",
+    "title": "Monsoon Information",
+    "publisher": "IMD",
+    "url": "https://mausam.imd.gov.in/responsive/monsooninformation.php",
+    "file": "imd_monsoon_info.html",
+    "type": "html"
+  },
+  {
+    "id": "ndma-tsl-guidelines",
+    "title": "Guidelines on Thunderstorm & Lightning, Squall, Dust, Hailstorm and Strong Winds",
+    "publisher": "NDMA",
+    "url": "https://ndma.gov.in/sites/default/files/PDF/Guidelines/Guidelines-on-TSL-HSW.pdf",
+    "file": "ndma_tsl_guidelines.pdf",
+    "type": "pdf"
+  },
+  {
+    "id": "sachet-dos-donts",
+    "title": "Do's and Don'ts (National Disaster Alert Portal)",
+    "publisher": "NDMA SACHET",
+    "url": "https://sachet.ndma.gov.in/DosDont",
+    "file": "sachet_dosdont.html",
+    "type": "html"
+  }
+]

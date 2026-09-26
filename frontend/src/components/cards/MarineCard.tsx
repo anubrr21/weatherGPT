@@ -12,7 +12,7 @@ function seaState(h: number) {
 export default function MarineCard({ place, data }: { place: Place; data: MarineData }) {
   if (!data.available || !data.current) {
     return (
-      <CardShell title={`Sea · ${placeLabel(place)}`}>
+      <CardShell place={place} title={`Sea · ${placeLabel(place)}`}>
         <p className="card-note">{data.reason ?? 'No marine data.'}</p>
       </CardShell>
     )
@@ -21,7 +21,7 @@ export default function MarineCard({ place, data }: { place: Place; data: Marine
   const state = seaState(c.wave_height)
   const max = Math.max(...(data.daily ?? []).map((d) => d.wave_height_max), 1)
   return (
-    <CardShell title={`Sea · ${placeLabel(place)}`} meta="Open-Meteo marine" tone={state.tone}>
+    <CardShell place={place} title={`Sea · ${placeLabel(place)}`} meta="Open-Meteo marine" tone={state.tone}>
       <div className="stats">
         <div><b>{round(c.wave_height, 1)}m</b><span>waves</span></div>
         <div><b>{round(c.wave_period, 1)}s</b><span>period</span></div>

@@ -18,7 +18,7 @@ export default function ClimateCard({ place, data }: { place: Place; data: Clima
   const normal = data.month_normal_1991_2020
   const trend = data.annual_temp_trend_c_per_decade ?? 0
   return (
-    <CardShell title={`Climate · ${placeLabel(place)}`} meta={`${data.period} · ERA5`}>
+    <CardShell place={place} title={`Climate · ${placeLabel(place)}`} meta={`${data.period} · ERA5`}>
       <div className="stripes" role="img" aria-label="Warming stripes, one bar per year">
         {data.annual.map((a) => (
           <span key={a.year} style={{ background: stripe(a.mean_temp - mean, range) }} title={`${a.year}: ${a.mean_temp.toFixed(2)} °C`} />

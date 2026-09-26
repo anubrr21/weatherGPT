@@ -7,9 +7,12 @@ import Hud from './components/Hud'
 import InsightStrip from './components/InsightStrip'
 import LocationSearch from './components/LocationSearch'
 import ProfileSheet from './components/ProfileSheet'
+import RadarMap from './components/RadarMap'
 import SkyCanvas from './components/SkyCanvas'
 import TimeDial from './components/TimeDial'
 import { api, streamChat, type Health } from './lib/api'
+import { placeLabel } from './lib/format'
+import { PlaceContext } from './lib/placeContext'
 import { applyPatch, loadProfile, saveProfile } from './lib/profile'
 import { unlockAudio } from './lib/voice'
 import { momentAt, skyFor } from './lib/sky'
@@ -41,15 +44,15 @@ function save(patch: Saved) {
 
 const uid = () => Math.random().toString(36).slice(2, 10)
 
-const INSIGHT_QUESTIONS: Record<string, string> = {
-  spray: 'When can I safely spray pesticide in the next two days?',
-  irrigation: 'Should I irrigate my crop this week, and how much?',
-  dry: 'Is there a dry spell coming for harvesting and drying my produce?',
-  sea: 'Is it safe to take the boat out today and this week?',
-  heat: 'How hot will it feel today and how do I stay safe?',
-  flood: 'Is there any risk of waterlogging in my area?',
-  commute: 'What will the weather be like for my commute?',
-  day: 'What is the weather today and tomorrow?',
+const INSIGHT_QUESTIONS: Record<string, (where: string) => string> = {
+  spray: (where) => `When can I safely spray pesticide in ${where} in the next two days?`,
+  irrigation: (where) => `Should I irrigate my crop in ${where} this week, and how much?`,
+  dry: (where) => `Is there a dry spell coming in ${where} for harvesting and drying my produce?`,
+  sea: (where) => `Is it safe to take the boat out from ${where} today and this week?`,
+  heat: (where) => `How hot will it feel in ${where} today and how do I stay safe?`,
+  flood: (where) => `Is there any risk of waterlogging in ${where}?`,
+  commute: (where) => `What will the weather be like for my commute in ${where} today?`,
+  day: (where) => `What is the weather in ${where} today and tomorrow?`,
 }
 
 export default function App() {
@@ -178,6 +181,7 @@ export default function App() {
             lat: place?.lat,
             lon: place?.lon,
             place_name: place?.name,
+            place_label: place ? placeLabel(place) : undefined,
             language,
             profile,
           },
@@ -198,100 +202,110 @@ export default function App() {
     ? [place.district !== place.name ? place.district : null, place.state].filter(Boolean).join(', ') || (usingDevice ? 'Current location' : '')
     : ''
 
+  const focusPlace = useCallback((p: Place) => {
+    setPlace(p)
+    setUsingDevice(false)
+    save({ place: p })
+  }, [])
+  const placeControl = useMemo(() => ({ current: place, focus: focusPlace }), [place, focusPlace])
+
   return (
-    <div className={`app ${chatOpen ? 'chat-open' : ''}`}>
-      <SkyCanvas target={sky} />
+    <PlaceContext.Provider value={placeControl}>
+      <div className={`app ${chatOpen ? 'chat-open' : ''}`}>
+        <SkyCanvas target={sky} />
 
-      <main className="stage">
-        <header className="topbar">
-          <button className="place" onClick={() => setSearchOpen(true)}>
-            <MapPin size={16} />
-            <span>
-              <b>{place?.name ?? 'Locating…'}</b>
-              <small>{subtitle}</small>
-            </span>
-          </button>
-          <button className="icon-btn glass" onClick={refresh} aria-label="Refresh">
-            <RefreshCw size={16} />
-          </button>
-          <button className={`icon-btn glass ${profile.role !== 'general' ? 'active' : ''}`} onClick={() => setProfileOpen(true)} aria-label="Your profile">
-            <UserRound size={17} />
-          </button>
-        </header>
+        <main className="stage">
+          <header className="topbar">
+            <button className="place" onClick={() => setSearchOpen(true)}>
+              <MapPin size={16} />
+              <span>
+                <b>{place?.name ?? 'Locating…'}</b>
+                <small>{subtitle}</small>
+              </span>
+            </button>
+            <button className="icon-btn glass" onClick={refresh} aria-label="Refresh">
+              <RefreshCw size={16} />
+            </button>
+            <button className={`icon-btn glass ${profile.role !== 'general' ? 'active' : ''}`} onClick={() => setProfileOpen(true)} aria-label="Your profile">
+              <UserRound size={17} />
+            </button>
+          </header>
 
-        {loadError && (
-          <div className="ribbon severe">
-            <span>Could not load forecast: {loadError}. Is the backend running on port 8000?</span>
-          </div>
-        )}
-
-        {fc && moment ? (
-          <>
-            <Hud fc={fc} m={moment} />
-            <AlertRibbon bundle={alerts} onAsk={send} />
-            <InsightStrip items={insights} onAsk={(kind) => send(INSIGHT_QUESTIONS[kind] ?? INSIGHT_QUESTIONS.day)} />
-            <TimeDial hours={fc.hourly} selected={hour} onSelect={setHour} />
-            <DayStrip days={fc.daily} />
-          </>
-        ) : (
-          !loadError && (
-            <div className="boot">
-              <span className="boot-orb" />
-              Reading the atmosphere…
+          {loadError && (
+            <div className="ribbon severe">
+              <span>Could not load forecast: {loadError}. Is the backend running on port 8000?</span>
             </div>
-          )
+          )}
+
+          {fc && moment ? (
+            <>
+              <Hud fc={fc} m={moment} />
+              <AlertRibbon bundle={alerts} onAsk={() => send(`What weather warnings are active for ${placeLabel(place ?? FALLBACK)} right now, and what should I do?`)} />
+              <InsightStrip items={insights} onAsk={(kind) => send((INSIGHT_QUESTIONS[kind] ?? INSIGHT_QUESTIONS.day)(placeLabel(place ?? FALLBACK)))} />
+              <TimeDial hours={fc.hourly} selected={hour} onSelect={setHour} />
+              <DayStrip days={fc.daily} />
+              {place && <RadarMap place={place} />}
+            </>
+          ) : (
+            !loadError && (
+              <div className="boot">
+                <span className="boot-orb" />
+                Reading the atmosphere…
+              </div>
+            )
+          )}
+
+          <button className="ask-fab" onClick={() => setChatOpen(true)}>
+            <MessageSquareText size={18} />
+            Ask WeatherGPT
+          </button>
+        </main>
+
+        <aside className="chat-dock">
+          <Chat
+            messages={messages}
+            busy={busy}
+            language={language}
+            llm={llm}
+            onLanguage={(code) => {
+              setLanguage(code)
+              save({ language: code })
+            }}
+            onSend={(t) => send(t)}
+            onStop={() => abortRef.current?.abort()}
+            onCollapse={() => setChatOpen(false)}
+          />
+        </aside>
+
+        {profileOpen && (
+          <ProfileSheet
+            profile={profile}
+            current={place}
+            onChange={setProfile}
+            onClose={() => setProfileOpen(false)}
+            onPickPlace={(p) => {
+              setPlace(p)
+              setUsingDevice(false)
+              save({ place: p })
+              setProfileOpen(false)
+            }}
+          />
         )}
 
-        <button className="ask-fab" onClick={() => setChatOpen(true)}>
-          <MessageSquareText size={18} />
-          Ask WeatherGPT
-        </button>
-      </main>
-
-      <aside className="chat-dock">
-        <Chat
-          messages={messages}
-          busy={busy}
-          language={language}
-          llm={llm}
-          onLanguage={(code) => {
-            setLanguage(code)
-            save({ language: code })
-          }}
-          onSend={(t) => send(t)}
-          onStop={() => abortRef.current?.abort()}
-          onCollapse={() => setChatOpen(false)}
-        />
-      </aside>
-
-      {profileOpen && (
-        <ProfileSheet
-          profile={profile}
-          current={place}
-          onChange={setProfile}
-          onClose={() => setProfileOpen(false)}
-          onPickPlace={(p) => {
-            setPlace(p)
-            setUsingDevice(false)
-            save({ place: p })
-            setProfileOpen(false)
-          }}
-        />
-      )}
-
-      {searchOpen && (
-        <LocationSearch
-          saved={profile.places}
-          onClose={() => setSearchOpen(false)}
-          onLocate={locate}
-          onPick={(p) => {
-            setPlace(p)
-            setUsingDevice(false)
-            save({ place: p })
-            setSearchOpen(false)
-          }}
-        />
-      )}
-    </div>
+        {searchOpen && (
+          <LocationSearch
+            saved={profile.places}
+            onClose={() => setSearchOpen(false)}
+            onLocate={locate}
+            onPick={(p) => {
+              setPlace(p)
+              setUsingDevice(false)
+              save({ place: p })
+              setSearchOpen(false)
+            }}
+          />
+        )}
+      </div>
+    </PlaceContext.Provider>
   )
 }

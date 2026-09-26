@@ -10,7 +10,7 @@ export default function AlertsCard({ place, data }: { place: Place; data: Alerts
   const [open, setOpen] = useState<string | null>(null)
   const empty = !data.official.length && !data.derived.length
   return (
-    <CardShell title={`Warnings · ${placeLabel(place)}`} meta="IMD / NDMA CAP + model" tone={empty ? 'calm' : undefined}>
+    <CardShell place={place} title={`Warnings · ${placeLabel(place)}`} meta="IMD / NDMA CAP + model" tone={empty ? 'calm' : undefined}>
       {empty && <p className="card-note">No active official warnings or model-flagged hazards for the next 5 days.</p>}
       {data.official.slice(0, 6).map((a) => (
         <article key={a.id} className={`alert-row ${SEVERITY_TONE[a.severity] ?? 'minor'}`}>

@@ -9,7 +9,7 @@ from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.config import get_settings
-from app.services import advisory, agent, alerts, local_tts, providers, voice, weather
+from app.services import advisory, agent, alerts, knowledge, local_tts, providers, voice, weather
 from app.services.http import close_client
 from app.services.tools import ChatContext
 
@@ -48,6 +48,7 @@ async def health():
     return {
         "ok": True,
         "llm": settings.llm_enabled,
+        "knowledge": knowledge.stats(),
         "neural_voice": bool(local_tts.available_languages() or settings.gemini_api_key.strip() or settings.azure_speech_key.strip()),
         "local_voices": local_tts.available_languages(),
         "voice_engines": [name for name, on in (
@@ -155,13 +156,14 @@ class ChatRequest(BaseModel):
     lat: float | None = None
     lon: float | None = None
     place_name: str | None = None
+    place_label: str | None = None
     language: str = "en"
     profile: dict[str, Any] = {}
 
 
 @app.post("/api/chat")
 async def chat(req: ChatRequest):
-    ctx = ChatContext(lat=req.lat, lon=req.lon, place_name=req.place_name, language=req.language, profile=req.profile)
+    ctx = ChatContext(lat=req.lat, lon=req.lon, place_name=req.place_name, place_label=req.place_label, language=req.language, profile=req.profile)
 
     async def stream():
         async for event in agent.chat(req.message, [t.model_dump() for t in req.history], ctx):

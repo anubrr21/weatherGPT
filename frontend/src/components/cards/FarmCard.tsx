@@ -20,7 +20,7 @@ export default function FarmCard({ place, data }: { place: Place; data: FarmData
   const w = data.spray.windows
 
   return (
-    <CardShell title={`Farm · ${placeLabel(place)}`} meta={irr.crop ? `${irr.crop}${irr.stage ? ` · ${irr.stage}` : ''}` : 'agro-met'}>
+    <CardShell place={place} title={`Farm · ${placeLabel(place)}`} meta={irr.crop ? `${irr.crop}${irr.stage ? ` · ${irr.stage}` : ''}` : 'agro-met'}>
       <h4 className="card-sub first">Spray windows · next 48 h</h4>
       <div className="spray-strip" role="img" aria-label="Hours suitable for spraying">
         {hours.map((h) => (

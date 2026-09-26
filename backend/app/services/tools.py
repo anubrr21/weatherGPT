@@ -2,7 +2,7 @@ import asyncio
 from dataclasses import dataclass, field
 from typing import Any
 
-from app.services import advisory
+from app.services import advisory, knowledge
 from app.services import alerts as alert_service
 from app.services import weather
 
@@ -12,6 +12,7 @@ class ChatContext:
     lat: float | None = None
     lon: float | None = None
     place_name: str | None = None
+    place_label: str | None = None
     language: str = "en"
     profile: dict[str, Any] = field(default_factory=dict)
     cards: list[dict[str, Any]] = field(default_factory=list)
@@ -22,9 +23,22 @@ class ToolError(Exception):
     pass
 
 
+def _is_screen_place(location: str, ctx: ChatContext) -> bool:
+    wanted = location.strip().lower()
+    names = {n.strip().lower() for n in (ctx.place_name, ctx.place_label) if n}
+    return ctx.lat is not None and bool(names) and (wanted in names or wanted.split(",")[0].strip() in {n.split(",")[0] for n in names})
+
+
 async def resolve_place(location: str | None, ctx: ChatContext) -> dict[str, Any]:
-    if location and location.strip():
-        results = await weather.geocode(location.strip(), count=5)
+    if location and location.strip() and not _is_screen_place(location, ctx):
+        query = location.strip()
+        results = await weather.geocode(query, count=5)
+        if not results and "," in query:
+            head, _, rest = query.partition(",")
+            results = await weather.geocode(head.strip(), count=10)
+            region = rest.strip().lower()
+            regional = [r for r in results if region and any(region.split(",")[-1].strip() in (r.get(k) or "").lower() for k in ("state", "district"))]
+            results = regional or results
         if not results:
             raise ToolError(f"Could not find a place called '{location}'.")
         return results[0]
@@ -229,6 +243,23 @@ async def get_city_advisory(ctx: ChatContext, location: str | None = None) -> di
 ROLES = ["general", "farmer", "fisher", "aviation", "urban", "disaster_manager", "researcher"]
 
 
+async def search_knowledge(ctx: ChatContext, query: str) -> dict[str, Any]:
+    hits = await knowledge.search(query, k=5)
+    if not hits:
+        return {"results": [], "note": "No matching passage in the official document library."}
+    ctx.cards.append({
+        "kind": "sources",
+        "place": {"name": "Official documents"},
+        "data": {"query": query, "results": [{k: h[k] for k in ("title", "publisher", "url", "page", "text")} for h in hits]},
+    })
+    return {
+        "results": [
+            {"source": f"{h['publisher']} — {h['title']}" + (f", p.{h['page']}" if h["page"] else ""), "url": h["url"], "passage": h["text"][:900]}
+            for h in hits
+        ]
+    }
+
+
 async def update_profile(
     ctx: ChatContext,
     role: str | None = None,
@@ -269,6 +300,7 @@ TOOL_FUNCTIONS = {
     "get_fishing_advisory": get_fishing_advisory,
     "get_city_advisory": get_city_advisory,
     "update_profile": update_profile,
+    "search_knowledge": search_knowledge,
 }
 
 _LOCATION = {
@@ -377,4 +409,14 @@ TOOL_DECLARATIONS = [
             },
         },
     },
+    {
+        "name": "search_knowledge",
+        "description": "Search the official document library: IMD Standard Operating Procedures (forecasting & warning services, cyclone warnings, agromet advisories/GKMS, aviation met services), IMD RSMC cyclone terminology, IMD climate-health bulletin, and NDMA hazard guidance and Do's & Don'ts (heat wave, cold wave, cyclone, floods, urban floods, lightning, landslide, tsunami). Use it for definitions, official criteria and thresholds, what warnings and colour codes mean, how IMD services work, and safety/preparedness advice. Always write the query in English keywords.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {"query": {"type": "STRING", "description": "Specific English keyword query in the vocabulary of IMD/NDMA documents, e.g. 'criteria for heat wave plains departure from normal', 'colour coding hazardous conditions green yellow orange red level', 'lightning safety crouch shelter 30/30 rule', 'warnings for fisheries criteria wind speed'."}},
+            "required": ["query"],
+        },
+    },
 ]
+

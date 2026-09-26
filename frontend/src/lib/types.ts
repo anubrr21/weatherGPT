@@ -252,6 +252,11 @@ export interface UrbanData {
   commutes: { slot: string; rain_prob: number; rain_mm: number; heat_index: number }[]
 }
 
+export interface SourcesData {
+  query: string
+  results: { title: string; publisher: string; url: string; page: number | null; text: string }[]
+}
+
 export interface Insight {
   kind: string
   title: string
@@ -292,6 +297,7 @@ export type Card =
   | { kind: 'farm'; place: Place; data: FarmData }
   | { kind: 'fishing'; place: Place; data: FishingData }
   | { kind: 'urban'; place: Place; data: UrbanData }
+  | { kind: 'sources'; place: Place; data: SourcesData }
 
 export type ChatEvent =
   | { type: 'status'; text: string; tool: string; args: Record<string, unknown> }

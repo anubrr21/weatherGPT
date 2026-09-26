@@ -22,7 +22,7 @@ export default function ForecastCard({ place, data }: { place: Place; data: Fore
   const c = data.current
 
   return (
-    <CardShell title={placeLabel(place)} meta={`${data.model_name} · 48 h`}>
+    <CardShell place={place} title={placeLabel(place)} meta={`${data.model_name} · 48 h`}>
       <div className="fc-now">
         <SkyGlyph sky={c.condition.sky} size={30} />
         <span className="fc-temp">{round(c.temperature_2m)}°</span>

@@ -38,6 +38,7 @@ export interface ChatPayload {
   lat?: number
   lon?: number
   place_name?: string
+  place_label?: string
   language: string
   profile: Profile
 }

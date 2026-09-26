@@ -33,6 +33,7 @@ TOOL_STATUS = {
     "get_fishing_advisory": "Assessing sea for small boats",
     "get_city_advisory": "Computing heat index & waterlogging",
     "update_profile": "Remembering that",
+    "search_knowledge": "Searching IMD & NDMA documents",
 }
 
 
@@ -59,13 +60,19 @@ def system_prompt(ctx: tools.ChatContext) -> str:
         if ctx.lat is not None and ctx.lon is not None
         else "The user's device location is unknown"
     )
-    return f"""You are WeatherGPT, a meteorological assistant for India built on live data: NWP models (GFS, ECMWF, ICON), official IMD/NDMA CAP warnings, ERA5 climate reanalysis, CPCB-style AQI, marine and METAR data.
+    screen = ctx.place_label or ctx.place_name or "the device location"
+    return f"""You are WeatherGPT, a meteorological assistant for India built on live data: NWP models (GFS, ECMWF, ICON), official IMD/NDMA CAP warnings, real station observations (METAR), ERA5 climate reanalysis, CPCB-style AQI, marine data, and a library of official IMD and NDMA documents.
+
+SCOPE (strict): you only help with weather, climate, meteorology, air quality, oceans/sea state, weather-related disasters and safety, and weather-dependent decisions (farming, fishing, aviation, travel, health, events, urban life). If the user asks for anything else (programming or code, maths homework, general knowledge, politics, entertainment, personal advice unrelated to weather, jokes, writing essays), do not answer it and do not write code. Briefly and politely say you are a weather assistant and suggest one or two weather questions you can help with, in the user's language. Weather-related code or data requests are also out of scope; offer to explain the data instead.
+
+LOCATION: the place currently shown on the user's screen is {screen}. When a question does not name a place, answer for the screen place, even if an earlier message in the conversation was about a different place. Only continue with an earlier place when the user clearly refers back to it (e.g. "and there tomorrow?").
 
 Current local date-time: {datetime.now().strftime('%A %d %B %Y, %H:%M')}. {where}.
 What you know about this user: {_profile_text(ctx.profile)}.
 
 Rules:
 - Always call tools for real data. Never invent numbers. If a tool fails, say so plainly.
+- Use search_knowledge whenever the answer depends on official definitions, criteria, thresholds, warning colour codes, procedures or safety advice, and base those parts only on the passages it returns. Write specific, keyword-rich English queries using the vocabulary an IMD/NDMA document would use (e.g. 'colour coding hazardous conditions green yellow orange red level', 'warnings for fisheries criteria wind speed'). If the returned passages do not actually contain the answer, search once more with different wording before answering. End such answers with a short "Sources:" line naming the documents (publisher + title, page if given). Never cite a document you did not retrieve. If the library has nothing relevant, say so instead of guessing.
 - Reply in {language} unless the user clearly writes in another language; then reply in that language. Use the native script. Keep place names recognisable.
 - Be concise and actionable: lead with the direct answer, then key numbers, then practical advice. Short paragraphs or tight bullet points; no tables (the app renders rich cards from tool data next to your reply).
 - Tailor advice to the user's role and crops. Use the sector tools: get_farm_advisory for farmers (give concrete spray windows with times, irrigate/hold with mm, harvest/drying days), get_fishing_advisory for fishermen (lead with GO / CAUTION / NO-GO), get_aviation for pilots (decoded briefing: flight category, wind, visibility, cloud, hazards, trend), get_city_advisory for urban users (heat index, waterlogging, commute), get_alerts for disaster managers (severity, timing, affected areas, actions).
@@ -126,6 +133,29 @@ async def run_provider(provider: providers.Provider, ctx: tools.ChatContext) -> 
     yield _event("delta", text="\n\n(Stopped after too many data lookups.)")
 
 
+OFF_TOPIC = re.compile(
+    r"\b(python|javascript|typescript|java|c\+\+|c#|golang|rust|kotlin|html|css|sql|react|node\.?js|django|flask|leetcode|algorithm|"
+    r"write (a |an |some |the )?(code|program|script|function|essay|poem|story|song)|source code|debug|compile|"
+    r"कोड लिख|प्रोग्राम लिख)\b",
+    re.I,
+)
+
+SCOPE_REPLY = {
+    "en": "I'm WeatherGPT, so I can only help with weather, climate, air quality, the sea and weather-related safety. Try asking me something like \"Will it rain here tomorrow?\" or \"Is it safe to spray my crop today?\"",
+    "hi": "मैं WeatherGPT हूँ, इसलिए मैं केवल मौसम, जलवायु, वायु गुणवत्ता, समुद्र और मौसम से जुड़ी सुरक्षा में मदद कर सकता हूँ। आप पूछ सकते हैं: \"कल यहाँ बारिश होगी क्या?\" या \"आज फसल पर छिड़काव करना ठीक है?\"",
+}
+
+
+OFF_TOPIC_INDIC = re.compile(r"(पायथन|जावास्क्रिप्ट|कोड लिख|कोडिंग|प्रोग्राम लिख|ప్రోగ్రామ్|కోడ్ రాయ|பைதான்|நிரல் எழுது|কোড লিখ|পাইথন)")
+
+
+def off_topic(message: str) -> bool:
+    return bool(OFF_TOPIC.search(message) or OFF_TOPIC_INDIC.search(message))
+
+
+KNOWLEDGE_HINT = re.compile(r"\b(what is|what are|meaning|means|criteria|definition|define|do'?s|dont'?s|safety|precaution|what should i do|colou?r code|alert level)\b", re.I)
+
+
 INTENTS = [
     ("get_farm_advisory", r"spray|pesticide|fertili|irrigat|crop|farm|sow|harvest|paddy|wheat|cotton|kisan|khet|छिड़क|सिंचाई|फसल|किसान|धान|పంట|పిచికారీ|பயிர்|ফসল"),
     ("get_fishing_advisory", r"fisher|fishing|boat|venture|मछु|नाव|మత్స్య|పడవ|மீன்|படகு|মাছ"),
@@ -177,6 +207,12 @@ def _offline_speech(name: str, result: dict[str, Any]) -> str | None:
         if result["model_derived_advisories"]:
             return f"There are no official warnings for {place}, but the forecast flags {result['model_derived_advisories'][0]['event'].lower()} in the coming days."
         return f"Good news, there are no weather warnings for {place} right now."
+    if name == "search_knowledge":
+        results = result.get("results") or []
+        if not results:
+            return result.get("note", "Nothing relevant found in the official documents.")
+        top = results[0]
+        return f"From **{top['source']}**:\n\n{top['passage'][:700]}…\n\nSources: " + "; ".join(r["source"] for r in results)
     if name == "get_farm_advisory":
         w = result["spray"]["windows"]
         irr = result["irrigation"]
@@ -241,6 +277,12 @@ def _offline_summary(name: str, result: dict[str, Any]) -> str:
         bits = [d.get("wind"), f"visibility {d['visibility']}" if d.get("visibility") else None, ", ".join(d.get("weather") or []) or None,
                 "; ".join(d.get("clouds") or []) or None]
         return f"**{result['station']}** {result.get('flight_category') or ''} — " + " · ".join(b for b in bits if b) + f"\n\n`{result['raw_metar']}`"
+    if name == "search_knowledge":
+        results = result.get("results") or []
+        if not results:
+            return result.get("note", "Nothing relevant found in the official documents.")
+        top = results[0]
+        return f"From **{top['source']}**:\n\n{top['passage'][:700]}…\n\nSources: " + "; ".join(r["source"] for r in results)
     if name == "get_farm_advisory":
         w = result["spray"]["windows"]
         irr = result["irrigation"]
@@ -265,6 +307,8 @@ async def run_offline(message: str, ctx: tools.ChatContext, note: bool = True) -
     icao = re.search(r"\b(V[A-Z]{3})\b", message)
     if icao:
         name, args = "get_aviation", {"icao": icao.group(1)}
+    elif KNOWLEDGE_HINT.search(message):
+        name, args = "search_knowledge", {"query": message}
     else:
         name = next((tool for tool, pattern in INTENTS if re.search(pattern, message, re.I)), "get_forecast")
         location = _extract_location(message)
@@ -304,6 +348,12 @@ def _cache_key(message: str, history: list[dict[str, str]], ctx: tools.ChatConte
 
 
 async def chat(message: str, history: list[dict[str, str]], ctx: tools.ChatContext) -> AsyncIterator[dict[str, Any]]:
+    if off_topic(message):
+        reply = SCOPE_REPLY.get(ctx.language, SCOPE_REPLY["en"])
+        yield _event("provider", name="scope", label="Out of scope", fallback=False)
+        yield _event("delta", text=f"<speak>{reply}</speak>{reply}")
+        yield _event("done")
+        return
     ttl = get_settings().answer_cache_s
     key = _cache_key(message, history, ctx)
     hit = _answers.get(key)

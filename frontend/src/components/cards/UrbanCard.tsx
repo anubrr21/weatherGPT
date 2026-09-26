@@ -17,7 +17,7 @@ export default function UrbanCard({ place, data }: { place: Place; data: UrbanDa
   const peak = data.heat_index_peak
 
   return (
-    <CardShell title={`City · ${placeLabel(place)}`} meta="heat index · rain intensity">
+    <CardShell place={place} title={`City · ${placeLabel(place)}`} meta="heat index · rain intensity">
       <div className="fc-now">
         <span className="fc-temp" style={{ color: tempColor(peak.heat_index) }}>{round(peak.heat_index)}°</span>
         <span className="fc-desc">

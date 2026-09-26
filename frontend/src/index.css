@@ -2249,3 +2249,144 @@ button:disabled {
   box-shadow: 0 0 8px var(--accent-2);
   align-self: center;
 }
+
+.card-focus {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--accent-2);
+  background: rgba(143, 211, 255, 0.1);
+  border: 1px solid rgba(143, 211, 255, 0.25);
+}
+
+.card-focus:hover {
+  background: rgba(143, 211, 255, 0.18);
+}
+
+.sources {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.source-head {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.source-head svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--accent);
+}
+
+.source-head b {
+  color: var(--ink);
+}
+
+.source-head em {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.source-body {
+  padding: 8px 10px 4px 32px;
+  font-size: 12px;
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+
+.source-body p {
+  margin: 0 0 6px;
+}
+
+.source-body a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent-2);
+  font-size: 12px;
+}
+
+.radar {
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--glass);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.radar-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 14px;
+}
+
+.radar-head span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.radar-head span svg {
+  color: var(--calm);
+}
+
+.radar-head small {
+  flex: 1;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.radar-map {
+  height: 300px;
+  background: #0b1220;
+}
+
+.radar-scrub {
+  width: 100%;
+  margin: 0;
+  display: block;
+  accent-color: var(--accent);
+  background: transparent;
+}
+
+.radar .leaflet-control-attribution {
+  background: rgba(8, 12, 24, 0.7);
+  color: var(--ink-3);
+  font-size: 9px;
+}
+
+.radar .leaflet-control-attribution a {
+  color: var(--ink-2);
+}
+
+.radar .leaflet-bar a {
+  background: rgba(8, 12, 24, 0.85);
+  color: var(--ink);
+  border-color: var(--line);
+}

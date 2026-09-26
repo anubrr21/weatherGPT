@@ -26,7 +26,7 @@ export default function AirCard({ place, data }: { place: Place; data: AirData }
     ['CO', 'carbon_monoxide', 'µg/m³'],
   ]
   return (
-    <CardShell title={`Air · ${placeLabel(place)}`} meta="India NAQI (CPCB method)">
+    <CardShell place={place} title={`Air · ${placeLabel(place)}`} meta="India NAQI (CPCB method)">
       <div className="aqi">
         <svg viewBox="0 0 110 64" className="aqi-gauge" role="img" aria-label={`AQI ${aqi}`}>
           <path d="M 11 58 A 44 44 0 0 1 99 58" stroke="rgba(255,255,255,0.12)" strokeWidth={10} fill="none" strokeLinecap="round" />

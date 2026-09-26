@@ -24,7 +24,7 @@ export default function ModelsCard({ place, data }: { place: Place; data: ModelC
   const worst = data.days.reduce((a, d) => ((d.spread_tmax ?? 0) > (a.spread_tmax ?? 0) ? d : a), data.days[0])
 
   return (
-    <CardShell title={`Model spread · ${placeLabel(place)}`} meta="Max temp, 7 days">
+    <CardShell place={place} title={`Model spread · ${placeLabel(place)}`} meta="Max temp, 7 days">
       <svg viewBox={`0 0 ${W} ${H}`} className="chart" role="img" aria-label="Maximum temperature by model">
         {data.days.map((d, i) => {
           const spread = models.map((m) => cell(d, m).tmax).filter((v): v is number => v !== null)

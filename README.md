@@ -18,6 +18,9 @@ Ask about the weather by voice or text in 13 Indian languages. Answers are groun
 | Aviation | Live **METAR/TAF** from aviationweather.gov |
 | Conversational AI | Function-calling agent over the tools above, streamed (SSE). Provider chain: **Gemini → Groq (gpt-oss-120b) → offline intent engine**; a provider failing mid-answer is discarded and the next one answers cleanly |
 | Voice | Web Speech API speech-to-text and text-to-speech in the selected language |
+| Knowledge (RAG) | 24 official documents — IMD SOPs (forecasting & warnings, cyclone, agromet GKMS, aviation), RSMC cyclone terminology, IMD health bulletin, NDMA hazard guidance and Do's & Don'ts, NDMA thunderstorm/lightning guidelines — 1,259 cited passages, hybrid keyword (BM25) + multilingual semantic search (Mistral embeddings) with rank fusion |
+| Observations | Nearest real station report (METAR) shown next to the model forecast |
+| Radar | Live 2-hour precipitation radar loop (RainViewer) |
 
 ## Run it
 
@@ -74,3 +77,14 @@ frontend/src/
 ```
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the phased plan.
+
+## Knowledge base
+
+The assistant answers definitions, criteria, colour codes and safety advice only from official documents, and cites them.
+
+```bash
+backend/.venv/Scripts/python backend/scripts/build_knowledge.py
+backend/.venv/Scripts/python backend/scripts/embed_knowledge.py mistral
+```
+
+`backend/knowledge/sources.json` lists every document with its official URL. Raw downloads stay in `backend/knowledge/raw/` (gitignored); `chunks.jsonl` and the embeddings are committed so the app works without rebuilding.

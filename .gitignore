@@ -7,3 +7,4 @@ __pycache__/
 .DS_Store
 eval_languages_results.json
 backend/models/
+backend/knowledge/raw/

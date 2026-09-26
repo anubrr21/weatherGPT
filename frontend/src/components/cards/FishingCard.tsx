@@ -7,7 +7,7 @@ const TONE: Record<Verdict, string> = { GO: 'calm', CAUTION: 'moderate', 'NO-GO'
 
 export default function FishingCard({ place, data }: { place: Place; data: FishingData }) {
   return (
-    <CardShell title={`Fishing · ${placeLabel(place)}`} meta="waves · gusts · IMD" tone={TONE[data.now]}>
+    <CardShell place={place} title={`Fishing · ${placeLabel(place)}`} meta="waves · gusts · IMD" tone={TONE[data.now]}>
       <div className={`verdict ${TONE[data.now]}`}>
         <Anchor size={22} />
         <b>{data.now}</b>
