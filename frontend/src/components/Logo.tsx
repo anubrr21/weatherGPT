@@ -138,7 +138,7 @@ export function LogoMark({ size = 40, animated = true }: MarkProps) {
 export function Wordmark({ size = 32 }: { size?: number }) {
   return (
     <span className="wordmark" style={{ fontSize: size }}>
-      <span className="wordmark-script">weather</span>
+      <span className="wordmark-script">Weather</span>
       <span className="wordmark-gpt" data-t="GPT">
         <span data-t="GPT">GPT</span>
       </span>

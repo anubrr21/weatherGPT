@@ -2649,7 +2649,6 @@ button:disabled {
   font-size: 1.55em;
   color: var(--ink);
   text-shadow: 0 0.02em 0.18em rgba(255, 230, 190, 0.12);
-  padding-right: 0.05em;
 }
 
 .wordmark-gpt {
@@ -2659,7 +2658,7 @@ button:disabled {
   font-weight: 900;
   font-size: 1em;
   letter-spacing: 0.015em;
-  margin-left: 0.08em;
+  margin-left: -0.06em;
   transform: translateY(0.05em);
   animation: gpt-tint 20s linear infinite;
 }
@@ -2668,24 +2667,24 @@ button:disabled {
   content: attr(data-t);
   position: absolute;
   inset: 0;
-  color: #34508f;
+  color: #9fb6ea;
   text-shadow:
-    0 0.014em 0 #7d9ce6,
-    0 0.028em 0 #7493de,
-    0 0.042em 0 #6a89d4,
-    0 0.056em 0 #6180ca,
-    0 0.07em 0 #5776bf,
-    0 0.084em 0 #4e6cb3,
-    0 0.098em 0 #4462a6,
-    0 0.112em 0 #3b5898,
-    0 0.14em 0.09em rgba(0, 0, 0, 0.35),
-    0 0.22em 0.3em rgba(0, 0, 0, 0.5);
+    0 0.014em 0 #d3e1fb,
+    0 0.028em 0 #c9d9f8,
+    0 0.042em 0 #bfd1f5,
+    0 0.056em 0 #b5c9f2,
+    0 0.07em 0 #abc1ee,
+    0 0.084em 0 #a1b9ea,
+    0 0.098em 0 #97b1e6,
+    0 0.112em 0 #8da9e1,
+    0 0.14em 0.09em rgba(0, 0, 0, 0.18),
+    0 0.22em 0.3em rgba(0, 0, 0, 0.28);
 }
 
 .wordmark-gpt > span {
   position: relative;
   display: inline-block;
-  background: linear-gradient(180deg, #ffffff 0%, #e6f5ff 20%, #b9ddff 46%, #93bfff 50%, #a4caff 70%, #c6ddff 92%, #deebff 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #f5fbff 22%, #e2f1ff 46%, #cfe4ff 50%, #dbeaff 72%, #edf5ff 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
