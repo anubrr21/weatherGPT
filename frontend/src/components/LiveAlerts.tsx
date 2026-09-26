@@ -2,6 +2,7 @@ import { Bell, BellRing, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { SEVERITY_TONE } from '../lib/format'
 import type { LiveAlert, LiveState } from '../lib/live'
+import { isNative, notificationPermission, requestNotificationPermission, type Permission } from '../lib/native'
 
 const when = (ms: number) => new Date(ms).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
 const until = (iso?: string | null) =>
@@ -17,9 +18,11 @@ interface Props {
 
 export function LiveBell({ state, inbox, unread, onOpen, onAsk }: Props) {
   const [open, setOpen] = useState(false)
-  const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>(() =>
-    'Notification' in window ? Notification.permission : 'unsupported',
-  )
+  const [permission, setPermission] = useState<Permission>('unsupported')
+
+  useEffect(() => {
+    notificationPermission().then(setPermission).catch(() => setPermission('unsupported'))
+  }, [open])
 
   return (
     <div className="bell-wrap">
@@ -50,10 +53,16 @@ export function LiveBell({ state, inbox, unread, onOpen, onAsk }: Props) {
           {permission !== 'granted' && permission !== 'unsupported' && (
             <button
               className="bell-enable"
-              onClick={async () => setPermission(await Notification.requestPermission())}
+              onClick={async () => setPermission(await requestNotificationPermission())}
               disabled={permission === 'denied'}
             >
-              {permission === 'denied' ? 'Desktop notifications are blocked in browser settings' : 'Turn on desktop notifications'}
+              {permission === 'denied'
+                ? isNative
+                  ? 'Notifications are off for WeatherGPT in Android settings'
+                  : 'Desktop notifications are blocked in browser settings'
+                : isNative
+                  ? 'Turn on warning notifications'
+                  : 'Turn on desktop notifications'}
             </button>
           )}
           {inbox.length === 0 ? (

@@ -117,6 +117,29 @@ class IngestRun(Base):
     detail: Mapped[str | None] = mapped_column(Text)
 
 
+class Device(Base):
+    __tablename__ = "devices"
+
+    token: Mapped[str] = mapped_column(String(512), primary_key=True)
+    client_id: Mapped[str] = mapped_column(String(64), index=True)
+    platform: Mapped[str] = mapped_column(String(16), default="android")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class PushDelivery(Base):
+    __tablename__ = "push_deliveries"
+    __table_args__ = (UniqueConstraint("alert_id", "token", name="uq_push_delivery"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    alert_id: Mapped[str] = mapped_column(ForeignKey("alerts.id"), index=True)
+    token: Mapped[str] = mapped_column(String(512), index=True)
+    client_id: Mapped[str] = mapped_column(String(64))
+    sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    ok: Mapped[bool] = mapped_column(default=True)
+    detail: Mapped[str | None] = mapped_column(Text)
+
+
 def database_url() -> str:
     url = get_settings().database_url.strip()
     if url:

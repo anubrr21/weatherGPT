@@ -43,6 +43,17 @@ kubectl apply -k deploy/k8s
 
 CI (`.github/workflows/ci.yml`) runs the backend tests and the frontend build on every push. On `main` it builds both images and publishes them to GHCR. `deploy/k8s/kustomization.yaml` points at those images.
 
+## Android app and push
+
+```bash
+cd frontend
+npm run android:run -- --api https://weathergpt.example.in
+```
+
+- Without `--api` the app talks to `http://localhost:8000` through `adb reverse`, which is enough for a phone on USB.
+- Push needs a Firebase project. Put `google-services.json` (Android app `in.weathergpt.app`) in `frontend/android/app/`. Give the backend the service account via `FCM_SERVICE_ACCOUNT`, either a path relative to `backend/` (for example `secrets/firebase-service-account.json`, which is git-ignored) or the JSON itself (for a Kubernetes secret).
+- Only the worker sends pushes, when it stores a new warning. `POST /api/devices/test {client_id}` sends a test notification to a client's phones.
+
 ## Load test
 
 ```bash

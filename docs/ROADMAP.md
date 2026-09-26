@@ -63,9 +63,19 @@ Phase 2c done (details in [DEPLOYMENT.md](DEPLOYMENT.md)):
 
 Deferred: PostGIS alert polygons (SACHET CAP areas are matched by district name today).
 
-## Phase 3 — Mobile app and rural voice
+## Phase 3 — Mobile app and rural voice (in progress, 2026-09-27)
 
-- Package as an Android app (Capacitor), with push notifications for warnings
+Phase 3a done:
+- Android app with Capacitor 8 (`in.weathergpt.app`). The same React app runs in a native shell, with the Disha compass as the adaptive launcher icon and splash screen, a dark status bar, edge-to-edge safe areas, and location, microphone and notification permissions
+- The Android back button closes the search, profile and chat panels in turn, then minimises the app instead of quitting
+- Push notifications through Firebase Cloud Messaging HTTP v1. The worker signs its own OAuth assertion with the service account (RS256, no Firebase SDK on the server). It pushes a new IMD/NDMA warning only to phones whose saved places match, at high priority for Severe/Extreme, with a TTL until the warning expires. Re-issued duplicates are collapsed and tokens of uninstalled apps are dropped. Verified on a real phone with the app process killed
+- While the app is open, live WebSocket alerts become native notifications on a "Weather warnings" channel. Tapping any notification opens that place and asks the assistant what to do about the warning. Verified on the phone
+- Notification permission is requested after the first forecast loads. Android shows one permission dialog at a time, so asking together with location dropped the request
+- `npm run android` / `npm run android:run` builds the web app for the device, syncs, builds the APK and, with a phone on USB, installs and launches it. The API is reached through `adb reverse`. Push switches on automatically when `android/app/google-services.json` exists
+- API: `POST /api/devices`, `POST /api/devices/unregister`, `POST /api/devices/test`; push status in `/api/system/status`
+- Field note: on the campus WPA2-Enterprise Wi-Fi, FCM token registration failed with `SERVICE_NOT_AVAILABLE`, but it succeeded at once on mobile data. Register the demo phone on mobile data; the token persists
+
+Still in Phase 3:
 - Server-side neural STT/TTS for Indian languages (reuse iTantra's IndicConformer / Piper work) so voice works on low-end phones and without Google speech
 - Low-bandwidth mode, offline last-known forecast, SMS/IVR fallback for feature phones
 

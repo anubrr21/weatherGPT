@@ -1,4 +1,4 @@
-import type { AlertsBundle, ChatEvent, Forecast, Insight, Place, Profile } from './types'
+import type { AlertsBundle, ChatEvent, Forecast, Insight, OfficialAlert, Place, Profile } from './types'
 
 const BASE = import.meta.env.VITE_API_BASE ?? ''
 
@@ -21,6 +21,8 @@ export const api = {
   health: () => fetch(`${BASE}/api/health`).then((r) => r.json() as Promise<Health>),
   forecast: (lat: number, lon: number) => get<Forecast>('/api/weather', { lat, lon }),
   reverse: (lat: number, lon: number) => get<Place>('/api/reverse', { lat, lon }),
+  alertHistory: (lat: number, lon: number) =>
+    get<{ place: Place; alerts: OfficialAlert[] }>('/api/alerts/history', { lat, lon, days: 7 }),
   geocode: (q: string) => get<Place[]>('/api/geocode', { q }),
   alerts: (lat: number, lon: number) => get<AlertsBundle>('/api/alerts', { lat, lon }),
   insights: (lat: number, lon: number, profile: Profile) =>

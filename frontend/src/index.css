@@ -2839,6 +2839,16 @@ button:disabled {
   padding: 6px;
 }
 
+@media (max-width: 560px) {
+  .bell-panel {
+    position: fixed;
+    top: calc(max(14px, env(safe-area-inset-top)) + 64px);
+    left: 12px;
+    right: 12px;
+    width: auto;
+  }
+}
+
 .bell-panel header {
   display: flex;
   justify-content: space-between;

@@ -15,6 +15,7 @@ from app.services import alerts as alert_service
 from app.services import weather
 from app.services.http import get_retry
 from app.services.fanout import fanout
+from app.services.push import push
 from app.services.realtime import hub
 
 log = logging.getLogger("weathergpt.ingest")
@@ -145,9 +146,11 @@ async def ingest_alerts() -> tuple[int, int, str | None]:
                 s.add(Alert(id=a["id"], first_seen_at=now, **values))
                 new_alerts.append(a)
         await s.commit()
-    if new_alerts:
-        await fanout.publish()
-    return len(feed), len(new_alerts), f"{len(new_alerts)} new alerts fanned out" if new_alerts else None
+    if not new_alerts:
+        return len(feed), 0, None
+    await fanout.publish()
+    pushed = await push.notify_new_alerts(new_alerts)
+    return len(feed), len(new_alerts), f"{len(new_alerts)} new alerts fanned out, {pushed} phone notifications sent"
 
 
 async def ingest_observations() -> tuple[int, int, str | None]:

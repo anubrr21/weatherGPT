@@ -94,17 +94,3 @@ export function useLiveAlerts(onAlert: (alert: LiveAlert) => void) {
 
   return state
 }
-
-export function notify(alert: LiveAlert) {
-  if (!('Notification' in window) || Notification.permission !== 'granted') return
-  try {
-    const n = new Notification(`${alert.alert.severity} · ${alert.alert.event ?? 'Weather alert'} — ${alert.place.name}`, {
-      body: alert.alert.headline,
-      icon: '/favicon.svg',
-      tag: alert.alert.id,
-    })
-    n.onclick = () => window.focus()
-  } catch {
-    return
-  }
-}

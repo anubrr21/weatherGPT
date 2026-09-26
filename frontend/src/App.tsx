@@ -16,7 +16,8 @@ import { api, streamChat, type Health } from './lib/api'
 import { placeLabel } from './lib/format'
 import { PlaceContext } from './lib/placeContext'
 import { addPlace, applyPatch, loadProfile, removePlace, saveProfile } from './lib/profile'
-import { notify, syncSubscriptions, useLiveAlerts, type LiveAlert } from './lib/live'
+import { syncSubscriptions, useLiveAlerts, type LiveAlert } from './lib/live'
+import { initNative, notifyAlert, promptNotificationsOnce, type AlertTap } from './lib/native'
 import { unlockAudio } from './lib/voice'
 import { momentAt, skyFor } from './lib/sky'
 import type { AlertsBundle, ChatEvent, Forecast, Insight, Message, Place, Profile } from './lib/types'
@@ -155,7 +156,7 @@ export default function App() {
     setInbox((all) => (all.some((a) => a.alert.id === incoming.alert.id) ? all : [incoming, ...all].slice(0, 50)))
     setToasts((all) => (all.some((a) => a.alert.id === incoming.alert.id) ? all : [incoming, ...all]))
     setUnread((n) => n + 1)
-    notify(incoming)
+    notifyAlert(incoming)
     if (place && Math.abs(incoming.place.lat - place.lat) < 0.05 && Math.abs(incoming.place.lon - place.lon) < 0.05) {
       api.alerts(place.lat, place.lon).then(setAlerts).catch(() => undefined)
     }
@@ -171,6 +172,37 @@ export default function App() {
 
   const askAboutAlert = (a: LiveAlert) =>
     send(`IMD has issued "${a.alert.event}" (${a.alert.severity}) for ${a.place.name}: ${a.alert.headline} What exactly should I do?`)
+
+  const nativeRef = useRef<{ back: () => boolean; tap: (tap: AlertTap) => void | Promise<void> }>({ back: () => false, tap: () => undefined })
+  nativeRef.current.back = () => {
+    if (searchOpen) setSearchOpen(false)
+    else if (profileOpen) setProfileOpen(false)
+    else if (chatOpen) setChatOpen(false)
+    else return false
+    return true
+  }
+  nativeRef.current.tap = async (tap: AlertTap) => {
+    try {
+      const history = await api.alertHistory(tap.lat, tap.lon)
+      const alert = history.alerts.find((a) => a.id === tap.alertId)
+      setPlace(history.place)
+      setUsingDevice(false)
+      save({ place: history.place })
+      setSearchOpen(false)
+      setProfileOpen(false)
+      if (alert) askAboutAlert({ receivedAt: Date.now(), place: { ...history.place, name: tap.place || history.place.name }, match: alert.match ?? 'district', alert })
+    } catch {
+      setPlace({ name: tap.place, lat: tap.lat, lon: tap.lon })
+    }
+  }
+
+  useEffect(() => initNative({ onBack: () => nativeRef.current.back(), onAlertTap: (t) => nativeRef.current.tap(t) }), [])
+
+  useEffect(() => {
+    if (!fc) return
+    const id = window.setTimeout(() => void promptNotificationsOnce(), 1200)
+    return () => clearTimeout(id)
+  }, [Boolean(fc)])
 
   const moment = fc ? momentAt(fc, hour) : null
   const sky = fc && moment ? skyFor(fc, moment) : null

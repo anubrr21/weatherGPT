@@ -9,3 +9,10 @@ eval_languages_results.json
 backend/models/
 backend/knowledge/raw/
 backend/data/
+google-services.json
+backend/secrets/
+*-firebase-adminsdk-*.json
+frontend/android/app/release/
+*.keystore
+*.jks
+dist-android/

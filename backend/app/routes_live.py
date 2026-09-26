@@ -8,11 +8,12 @@ from pydantic import BaseModel, Field
 from sqlalchemy import delete, select
 
 from app.config import get_settings
-from app.db import Alert, Observation, Session, Subscription, utcnow
+from app.db import Alert, Device, Observation, Session, Subscription, utcnow
 from app.services import alerts as alert_service
 from app.services import ingest, weather, wis2
 from app.services.fanout import fanout
 from app.services.http import TTLCache, coord_key
+from app.services.push import push
 from app.services.realtime import hub
 
 router = APIRouter()
@@ -41,6 +42,47 @@ async def put_subscriptions(body: SubscriptionIn):
         await s.commit()
     await fanout.publish([body.client_id])
     return {"subscribed": len(unique)}
+
+
+class DeviceIn(BaseModel):
+    client_id: str = Field(..., min_length=8, max_length=64)
+    token: str = Field(..., min_length=20, max_length=512)
+    platform: str = Field("android", pattern="^(android|ios|web)$")
+
+
+class DeviceOut(BaseModel):
+    token: str = Field(..., min_length=20, max_length=512)
+
+
+class ClientIn(BaseModel):
+    client_id: str = Field(..., min_length=8, max_length=64)
+
+
+@router.post("/api/devices")
+async def register_device(body: DeviceIn):
+    async with Session() as s:
+        device = await s.get(Device, body.token)
+        if device is None:
+            s.add(Device(token=body.token, client_id=body.client_id, platform=body.platform))
+        else:
+            device.client_id = body.client_id
+            device.platform = body.platform
+            device.last_seen_at = utcnow()
+        await s.commit()
+    return {"registered": True, "push": push.enabled}
+
+
+@router.post("/api/devices/unregister")
+async def unregister_device(body: DeviceOut):
+    async with Session() as s:
+        await s.execute(delete(Device).where(Device.token == body.token))
+        await s.commit()
+    return {"registered": False}
+
+
+@router.post("/api/devices/test")
+async def test_push(body: ClientIn):
+    return await push.test(body.client_id)
 
 
 @router.get("/api/alerts/history")
@@ -101,6 +143,7 @@ async def system_status():
         "role": get_settings().role,
         **await ingest.status(),
         "fanout": fanout.status(),
+        "push": push.status(),
         "realtime": hub.stats(),
         "wis2": await wis2.subscriber.status(),
     }
