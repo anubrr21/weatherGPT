@@ -10,7 +10,7 @@ interface Frame {
 }
 
 const FRAMES_URL = 'https://api.rainviewer.com/public/weather-maps.json'
-const BASEMAP = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+const BASEMAP = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
 
 export default function RadarMap({ place }: { place: Place }) {
   const holder = useRef<HTMLDivElement>(null)
@@ -27,8 +27,9 @@ export default function RadarMap({ place }: { place: Place }) {
     if (!holder.current || mapRef.current) return
     const map = L.map(holder.current, { zoomControl: false, attributionControl: true, minZoom: 3, maxZoom: 9 }).setView([place.lat, place.lon], 6)
     L.tileLayer(BASEMAP, {
-      subdomains: 'abcd',
-      attribution: '© OpenStreetMap © CARTO · Radar © RainViewer',
+      maxZoom: 9,
+      className: 'radar-basemap',
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · Radar © <a href="https://www.rainviewer.com">RainViewer</a>',
     }).addTo(map)
     L.control.zoom({ position: 'bottomright' }).addTo(map)
     mapRef.current = map
@@ -115,6 +116,7 @@ export default function RadarMap({ place }: { place: Place }) {
           aria-label="Radar time"
         />
       )}
+      <p className="radar-note">Radar coverage over India is partial — an empty area does not always mean no rain. Check the alerts and forecast too.</p>
     </section>
   )
 }

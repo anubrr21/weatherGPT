@@ -2390,3 +2390,14 @@ button:disabled {
   color: var(--ink);
   border-color: var(--line);
 }
+
+.radar-basemap {
+  filter: invert(1) hue-rotate(200deg) brightness(0.85) saturate(0.35) contrast(0.95);
+}
+
+.radar-note {
+  margin: 0;
+  padding: 6px 14px 9px;
+  font-size: 11px;
+  color: var(--ink-3);
+}
