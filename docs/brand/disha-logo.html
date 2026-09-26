@@ -54,6 +54,10 @@
   @keyframes bend { 0%,100% { transform: skewX(-4deg); } 50% { transform: skewX(5deg); } }
   @keyframes shimmer { 50% { opacity: .25; transform: translateY(-1px); } }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+  .gpt { font-weight: 800; animation: gpt-tint 24s ease-in-out infinite; color: #bcd8ff; margin-left: -.06em; }
+  .gpt::before, .gpt span::after { display: none; }
+  .gpt span { background: none !important; color: inherit !important; filter: none !important; -webkit-text-fill-color: currentColor; }
+  @keyframes gpt-tint { 0%,100% { color: #bcd8ff } 20% { color: #b8f0e0 } 40% { color: #ffe3a8 } 60% { color: #ffc9d9 } 80% { color: #d9c8ff } }
 </style>
 </head>
 <body>

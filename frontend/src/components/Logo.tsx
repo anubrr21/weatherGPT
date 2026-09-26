@@ -139,9 +139,7 @@ export function Wordmark({ size = 32 }: { size?: number }) {
   return (
     <span className="wordmark" style={{ fontSize: size }}>
       <span className="wordmark-script">Weather</span>
-      <span className="wordmark-gpt" data-t="GPT">
-        <span data-t="GPT">GPT</span>
-      </span>
+      <span className="wordmark-gpt">GPT</span>
     </span>
   )
 }
