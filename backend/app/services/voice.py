@@ -208,7 +208,7 @@ async def synthesize(text: str, voice: str = "Kore", language: str | None = None
     settings = get_settings()
     language = detect_language(text, language)
     local = language in local_tts.available_languages()
-    if not local and not settings.gemini_api_key.strip() and not settings.azure_speech_key.strip() and not settings.sarvam_api_key.strip():
+    if not local and language not in local_tts.last_resort_languages() and not settings.gemini_api_key.strip() and not settings.azure_speech_key.strip() and not settings.sarvam_api_key.strip():
         raise VoiceError("No voice available for this language")
     text = text.strip()[:1200]
     if not text:
@@ -271,6 +271,10 @@ async def synthesize(text: str, voice: str = "Kore", language: str | None = None
                 continue
             providers.succeeded(bench_key)
             return audio
+        if language in local_tts.last_resort_languages():
+            rough = await local_tts.synthesize(language, text, allow_low_quality=True)
+            if rough:
+                return _trim_silence(rough)
         raise VoiceError(f"Neural voice unavailable ({last})")
 
     return await _tts_cache.get_or_set(key, load)

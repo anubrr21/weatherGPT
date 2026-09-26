@@ -64,6 +64,32 @@ def convert(lang: str, stem: str) -> None:
     print(f"{lang}: {stem.split('/')[-1]} ready ({meta['voice']}, {meta['sample_rate']} Hz)")
 
 
+LAST_RESORT = {
+    "gu": ("https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-mimic3-gu_IN-cmu-indic_low.tar.bz2", "gu_IN-cmu-indic_low.onnx", 1),
+}
+
+
+def install_last_resort(lang: str) -> None:
+    url, onnx_name, speaker = LAST_RESORT[lang]
+    folder = ROOT / lang
+    if (folder / "model.onnx").exists():
+        print(f"{lang}: already present")
+        return
+    archive = ROOT / f"{lang}.tar.bz2"
+    download(url, archive)
+    with tarfile.open(archive, "r:bz2") as tar:
+        tar.extractall(ROOT / f"_{lang}", filter="data")
+    archive.unlink()
+    extracted = next((ROOT / f"_{lang}").iterdir())
+    folder.mkdir(parents=True, exist_ok=True)
+    shutil.copy(extracted / onnx_name, folder / "model.onnx")
+    shutil.copy(extracted / "tokens.txt", folder / "tokens.txt")
+    (folder / "quality.txt").write_text("low\n", encoding="utf-8")
+    (folder / "speaker.txt").write_text(f"{speaker}\n", encoding="utf-8")
+    shutil.rmtree(ROOT / f"_{lang}")
+    print(f"{lang}: low-quality last-resort voice ready")
+
+
 def main() -> None:
     ROOT.mkdir(parents=True, exist_ok=True)
     espeak = ROOT / "espeak-ng-data"
@@ -74,8 +100,11 @@ def main() -> None:
         with tarfile.open(archive, "r:bz2") as tar:
             tar.extractall(ROOT, filter="data")
         archive.unlink()
-    wanted = sys.argv[1:] or list(VOICES)
+    wanted = sys.argv[1:] or list(VOICES) + list(LAST_RESORT)
     for lang in wanted:
+        if lang in LAST_RESORT:
+            install_last_resort(lang)
+            continue
         if (ROOT / lang / "model.onnx").exists():
             print(f"{lang}: already present")
             continue

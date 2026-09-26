@@ -43,7 +43,7 @@ def bench(key: str, error: Exception) -> None:
         base = max(error.retry_after or 60, 60)
         if "per day" in str(error).lower() or "perday" in str(error).lower():
             base = 3600
-    elif isinstance(error, ProviderError) and error.status in (400, 401, 403, 404):
+    elif isinstance(error, ProviderError) and error.status in (400, 401, 402, 403, 404):
         base = 3600
     else:
         base = 30
@@ -275,10 +275,13 @@ def available() -> list[tuple[type, str]]:
     ready = [(cls, model) for cls, model in chain() if not cooling(f"{cls.name}:{model}")]
     if not get_settings().spread_load or len(ready) < 2:
         return ready
+    fast = {n.strip() for n in get_settings().spread_providers.split(",") if n.strip()}
     leaders = []
     for cls, model in ready:
-        if all(c.name != cls.name for c, _ in leaders):
+        if cls.name in fast and all(c.name != cls.name for c, _ in leaders):
             leaders.append((cls, model))
+    if not leaders:
+        return ready
     _rotation = (_rotation + 1) % len(leaders)
     first = leaders[_rotation]
     return [first] + [item for item in ready if item != first]

@@ -17,9 +17,9 @@ class Settings(BaseSettings):
     cerebras_api_key: str = ""
     cerebras_model: str = "gpt-oss-120b,qwen-3.8-27b"
     mistral_api_key: str = ""
-    mistral_model: str = "mistral-medium-latest,mistral-small-latest"
+    mistral_model: str = "ministral-8b-latest,ministral-14b-latest"
     openrouter_api_key: str = ""
-    openrouter_model: str = "openai/gpt-oss-120b:free"
+    openrouter_model: str = "nvidia/nemotron-3-super-120b-a12b:free,nvidia/nemotron-3-ultra-550b-a55b:free"
     sarvam_api_key: str = ""
     sarvam_tts_model: str = "bulbul:v3"
     sarvam_speaker: str = ""
@@ -30,7 +30,8 @@ class Settings(BaseSettings):
     alert_feed_url: str = "https://sachet.ndma.gov.in/cap_public_website/rss/rss_india.xml"
     http_timeout_s: float = 20.0
 
-    model_order: str = "auto"
+    model_order: str = "cerebras:0,groq:0,gemini:0,cerebras:1,groq:1,gemini:1,mistral:0,openrouter:0,mistral:1,openrouter:1,gemini:2"
+    spread_providers: str = "cerebras,groq,gemini"
     tts_model: str = "gemini-3.8-flash-tts,gemini-3.8-flash-lite-tts,gemini-3.1-flash-tts-preview"
     azure_speech_key: str = ""
     azure_speech_region: str = "centralindia"
