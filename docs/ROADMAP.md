@@ -32,7 +32,7 @@ Still open:
 - Free-tier capacity is the real constraint (gemini-3.8-flash allows ~20 requests on this key). Before a demo, don't run evals; consider a paid tier or more Groq models
 - CAP polygon geometry (the SACHET polygon endpoint returns 403 today)
 
-## Phase 2 — Real-time ingestion and scale (in progress, 2026-09-27)
+## Phase 2 — Real-time ingestion and scale (done, 2026-09-27)
 
 Phase 2a done:
 - Database layer (SQLAlchemy async): SQLite by default, PostgreSQL via `DATABASE_URL` (asyncpg). Tables for alerts (full history with first/last seen), subscriptions, deliveries (no duplicate notifications), station observations, ingest runs
@@ -51,9 +51,17 @@ Phase 2b done:
 - `GET /api/wis2/status` reports broker state, message rate, per-centre counts and decode stats
 - Tests: SYNOP decoding, topic parsing, BUFR decoding on a real IMD Nashik file, alert dedup
 
-Still in Phase 2:
-- PostGIS for alert polygons; Redis cache
-- Docker Compose, then Kubernetes manifests; load test for latency targets
+Phase 2c done (details in [DEPLOYMENT.md](DEPLOYMENT.md)):
+- The API and the ingestion worker split into roles (`ROLE=api|worker|all`). API pods are stateless and scale out; one worker pod does ingestion and WIS2
+- Alerts fan out across replicas with PostgreSQL LISTEN/NOTIFY: a warning found by the worker is pushed from whichever API pod holds the user's socket. Verified with two live processes. No Redis needed
+- Fixed a Phase 2a bug: alerts that arrived while a client was offline were marked as handled and never sent. They are now delivered on reconnect (verified)
+- Docker images: the API image (Python 3.14, non-root, optional baked Piper voices, healthcheck) and the web image (unprivileged nginx proxying API, SSE and WebSocket traffic, with security headers). Docker Compose runs Postgres, the worker, 2 API replicas and the web front
+- Kubernetes (kustomize): the API with HPA 2–10, PDB, zero-downtime rolling updates and startup/readiness/liveness probes (`/api/ready` checks the database); a singleton worker; web; Postgres StatefulSet; TLS ingress tuned for WebSockets and streaming; restricted security contexts throughout
+- CI: tests and frontend build on every push; images built and pushed to GHCR from `main`
+- Load test (`backend/loadtest`): multi-process generator with p50/p95/p99, throughput and WebSocket hold. One API process: 525 req/s at p95 148 ms with 200 live sockets and 0 errors. It saturates at about 500 req/s without errors
+- Performance fixes found by the load test: cached knowledge and voice stats (8 ms per health check before), direct JSON encoding for large replies, and a bounding-box query plus a 60 s cache for nearby observations (p50 293 ms to 63 ms). httptools on every platform, uvloop on Linux
+
+Deferred: PostGIS alert polygons (SACHET CAP areas are matched by district name today).
 
 ## Phase 3 — Mobile app and rural voice
 

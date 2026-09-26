@@ -1,4 +1,5 @@
 import json
+import time
 import logging
 import math
 import re
@@ -207,8 +208,16 @@ def semantic_ready() -> bool:
     return vectors() is not None
 
 
+_stats: tuple[float, dict[str, Any]] | None = None
+
+
 def stats() -> dict[str, Any]:
+    global _stats
+    if _stats and time.monotonic() - _stats[0] < 300:
+        return _stats[1]
     idx = index()
-    if not idx:
-        return {"chunks": 0, "sources": 0, "semantic": False}
-    return {"chunks": len(idx.rows), "sources": len({r["source_id"] for r in idx.rows}), "semantic": semantic_ready()}
+    value = {"chunks": 0, "sources": 0, "semantic": False} if not idx else {
+        "chunks": len(idx.rows), "sources": len({r["source_id"] for r in idx.rows}), "semantic": semantic_ready(),
+    }
+    _stats = (time.monotonic(), value)
+    return value

@@ -7,9 +7,12 @@ from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 from sqlalchemy import delete, select
 
+from app.config import get_settings
 from app.db import Alert, Observation, Session, Subscription, utcnow
 from app.services import alerts as alert_service
 from app.services import ingest, weather, wis2
+from app.services.fanout import fanout
+from app.services.http import TTLCache, coord_key
 from app.services.realtime import hub
 
 router = APIRouter()
@@ -36,8 +39,8 @@ async def put_subscriptions(body: SubscriptionIn):
         for (lat, lon), p in unique.items():
             s.add(Subscription(client_id=body.client_id, name=p.name, district=p.district, state=p.state, lat=lat, lon=lon))
         await s.commit()
-    pushed = await ingest.notify_client(body.client_id) if hub.online(body.client_id) else 0
-    return {"subscribed": len(unique), "pushed": pushed}
+    await fanout.publish([body.client_id])
+    return {"subscribed": len(unique)}
 
 
 @router.get("/api/alerts/history")
@@ -54,32 +57,53 @@ async def alert_history(lat: float = Query(..., ge=-90, le=90), lon: float = Que
     return {"place": place, "days": days, "count": len(matched), "alerts": matched}
 
 
+_nearby_cache = TTLCache(ttl_s=60)
+OBS_COLUMNS = (Observation.station, Observation.name, Observation.lat, Observation.lon, Observation.observed_at, Observation.temp_c, Observation.wind_kmh, Observation.weather)
+
+
 @router.get("/api/observations/nearby")
 async def observations_nearby(lat: float = Query(..., ge=-90, le=90), lon: float = Query(..., ge=-180, le=180), hours: int = Query(24, ge=1, le=168)):
-    since = utcnow() - timedelta(hours=hours)
-    async with Session() as s:
-        rows = (await s.scalars(select(Observation).where(Observation.observed_at >= since))).all()
-    if not rows:
-        return {"station": None, "series": []}
+    async def load() -> dict:
+        since = utcnow() - timedelta(hours=hours)
+        rows = []
+        async with Session() as s:
+            for span in (1.5, 4, 12):
+                rows = (await s.execute(select(*OBS_COLUMNS).where(
+                    Observation.observed_at >= since,
+                    Observation.lat.between(lat - span, lat + span),
+                    Observation.lon.between(lon - span, lon + span),
+                ))).all()
+                if rows:
+                    break
+        if not rows:
+            return {"station": None, "series": []}
 
-    def km(o: Observation) -> float:
-        p1, p2 = math.radians(lat), math.radians(o.lat)
-        a = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(math.radians(o.lon - lon) / 2) ** 2
-        return 6371 * 2 * math.asin(math.sqrt(a))
+        def km(o) -> float:
+            p1, p2 = math.radians(lat), math.radians(o.lat)
+            a = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(math.radians(o.lon - lon) / 2) ** 2
+            return 6371 * 2 * math.asin(math.sqrt(a))
 
-    nearest = min(rows, key=km)
-    series = sorted((o for o in rows if o.station == nearest.station), key=lambda o: o.observed_at)
-    return {
-        "station": nearest.station,
-        "name": nearest.name,
-        "distance_km": round(km(nearest)),
-        "series": [{"time": ingest.iso(o.observed_at), "temp_c": o.temp_c, "wind_kmh": o.wind_kmh, "weather": o.weather} for o in series],
-    }
+        nearest = min(rows, key=km)
+        series = sorted((o for o in rows if o.station == nearest.station), key=lambda o: o.observed_at)
+        return {
+            "station": nearest.station,
+            "name": nearest.name,
+            "distance_km": round(km(nearest)),
+            "series": [{"time": ingest.iso(o.observed_at), "temp_c": o.temp_c, "wind_kmh": o.wind_kmh, "weather": o.weather} for o in series],
+        }
+
+    return await _nearby_cache.get_or_set(coord_key(lat, lon, "nearby", hours), load)
 
 
 @router.get("/api/system/status")
 async def system_status():
-    return {**await ingest.status(), "wis2": await wis2.subscriber.status()}
+    return {
+        "role": get_settings().role,
+        **await ingest.status(),
+        "fanout": fanout.status(),
+        "realtime": hub.stats(),
+        "wis2": await wis2.subscriber.status(),
+    }
 
 
 @router.get("/api/wis2/status")

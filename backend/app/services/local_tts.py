@@ -2,6 +2,7 @@ import array
 import asyncio
 import io
 import threading
+import time
 import wave
 from pathlib import Path
 
@@ -11,10 +12,18 @@ _engines: dict[str, object] = {}
 _lock = threading.Lock()
 
 
+_scan: tuple[float, list[Path]] | None = None
+
+
 def _installed() -> list[Path]:
-    if not (ROOT / "espeak-ng-data").exists():
-        return []
-    return [p for p in ROOT.iterdir() if (p / "model.onnx").exists() and (p / "tokens.txt").exists()]
+    global _scan
+    if _scan and time.monotonic() - _scan[0] < 300:
+        return _scan[1]
+    found = [] if not (ROOT / "espeak-ng-data").exists() else [
+        p for p in ROOT.iterdir() if (p / "model.onnx").exists() and (p / "tokens.txt").exists()
+    ]
+    _scan = (time.monotonic(), found)
+    return found
 
 
 def _low_quality(folder: Path) -> bool:

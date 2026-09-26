@@ -1,0 +1,12 @@
+.venv
+**/__pycache__
+**/*.pyc
+.env
+data
+models
+knowledge/raw
+tests
+eval_languages.py
+eval_languages_results.json
+smoke_test.py
+requirements-dev.txt

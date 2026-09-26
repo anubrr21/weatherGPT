@@ -1,0 +1,81 @@
+{
+  "overall": {
+    "requests": 9959,
+    "rps": 475.8,
+    "error_rate": 0.0,
+    "p50": 228.6,
+    "p95": 461.0,
+    "p99": 1239.3,
+    "mean": 287.6
+  },
+  "endpoints": [
+    {
+      "endpoint": "weather",
+      "ok": 4038,
+      "errors": 0,
+      "p50": 351.7,
+      "p95": 491.9,
+      "p99": 548.2,
+      "max": 4742.9
+    },
+    {
+      "endpoint": "alerts",
+      "ok": 1936,
+      "errors": 0,
+      "p50": 190.7,
+      "p95": 273.4,
+      "p99": 347.8,
+      "max": 4099.9
+    },
+    {
+      "endpoint": "observations",
+      "ok": 1499,
+      "errors": 0,
+      "p50": 195.4,
+      "p95": 942.3,
+      "p99": 1608.1,
+      "max": 4296.8
+    },
+    {
+      "endpoint": "geocode",
+      "ok": 1000,
+      "errors": 0,
+      "p50": 190.7,
+      "p95": 268.2,
+      "p99": 349.6,
+      "max": 4044.6
+    },
+    {
+      "endpoint": "reverse",
+      "ok": 985,
+      "errors": 0,
+      "p50": 191.6,
+      "p95": 268.6,
+      "p99": 582.1,
+      "max": 4522.4
+    },
+    {
+      "endpoint": "health",
+      "ok": 501,
+      "errors": 0,
+      "p50": 190.5,
+      "p95": 269.6,
+      "p99": 684.6,
+      "max": 4400.8
+    }
+  ],
+  "websockets": null,
+  "target_p95_ms": 300,
+  "passed": false,
+  "load_generator_cpu_pct": 273.9,
+  "config": {
+    "base": "http://127.0.0.1:8001",
+    "duration": 20.0,
+    "concurrency": 150,
+    "ws": 0,
+    "think_ms": 0,
+    "target_p95": 300,
+    "no_warm": true,
+    "procs": 8
+  }
+}

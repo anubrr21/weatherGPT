@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import random
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any, Awaitable, Callable
 
@@ -13,12 +14,14 @@ from app.db import Alert, Delivery, IngestRun, Observation, Session, Subscriptio
 from app.services import alerts as alert_service
 from app.services import weather
 from app.services.http import get_retry
+from app.services.fanout import fanout
 from app.services.realtime import hub
 
 log = logging.getLogger("weathergpt.ingest")
 
 INDIA_BBOX = "6,68,37.5,98"
 _tasks: list[asyncio.Task] = []
+_client_locks: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 
 
 def _insert(model):
@@ -88,7 +91,9 @@ def _content_key(alert: dict[str, Any]) -> tuple[str, str | None]:
 
 
 async def notify_client(client_id: str, alerts: list[dict[str, Any]] | None = None) -> int:
-    async with Session() as s:
+    if not hub.online(client_id):
+        return 0
+    async with _client_locks[client_id], Session() as s:
         subs = (await s.scalars(select(Subscription).where(Subscription.client_id == client_id))).all()
         if not subs:
             return 0
@@ -96,15 +101,19 @@ async def notify_client(client_id: str, alerts: list[dict[str, Any]] | None = No
         rows = (await s.scalars(select(Alert).where((Alert.expires.is_(None)) | (Alert.expires >= now)))).all()
         active = [alert_payload(r) for r in rows]
         candidates = active if alerts is None else alerts
-        already = set((await s.scalars(select(Delivery.alert_id).where(Delivery.client_id == client_id))).all())
-        seen = {_content_key(a) for a in active if a["id"] in already}
+        existing = {d.alert_id: d for d in (await s.scalars(select(Delivery).where(Delivery.client_id == client_id))).all()}
+        done = {alert_id for alert_id, d in existing.items() if d.delivered_at is not None}
+        seen = {_content_key(a) for a in active if a["id"] in done}
         sent = 0
         for sub in subs:
-            for alert in alert_service.alerts_for_place([a for a in candidates if a["id"] not in already], _place(sub)):
-                already.add(alert["id"])
-                delivery = Delivery(alert_id=alert["id"], client_id=client_id, place_name=sub.name, match=alert["match"])
-                s.add(delivery)
+            for alert in alert_service.alerts_for_place([a for a in candidates if a["id"] not in done], _place(sub)):
+                done.add(alert["id"])
+                delivery = existing.get(alert["id"])
+                if delivery is None:
+                    delivery = Delivery(alert_id=alert["id"], client_id=client_id, place_name=sub.name, match=alert["match"])
+                    s.add(delivery)
                 if _content_key(alert) in seen:
+                    delivery.delivered_at = utcnow()
                     continue
                 seen.add(_content_key(alert))
                 if await hub.send(client_id, {"type": "alert", "place": _place(sub), "match": alert["match"], "alert": alert}):
@@ -136,12 +145,9 @@ async def ingest_alerts() -> tuple[int, int, str | None]:
                 s.add(Alert(id=a["id"], first_seen_at=now, **values))
                 new_alerts.append(a)
         await s.commit()
-        clients = (await s.scalars(select(Subscription.client_id).distinct())).all()
-    pushed = 0
     if new_alerts:
-        for client_id in clients:
-            pushed += await notify_client(client_id, new_alerts)
-    return len(feed), len(new_alerts), f"pushed {pushed} notifications to {len(clients)} subscribed clients"
+        await fanout.publish()
+    return len(feed), len(new_alerts), f"{len(new_alerts)} new alerts fanned out" if new_alerts else None
 
 
 async def ingest_observations() -> tuple[int, int, str | None]:

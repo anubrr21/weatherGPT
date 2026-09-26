@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: weathergpt-config
+data:
+  CORS_ORIGINS: "https://weathergpt.example.in"
+  ALERT_POLL_S: "120"
+  OBSERVATION_POLL_S: "900"
+  WARM_POLL_S: "1800"
+  WIS2_ENABLED: "true"
+  WIS2_BROKER: "globalbroker.meteo.fr"
+  WIS2_TOPIC: "origin/a/wis2/#"

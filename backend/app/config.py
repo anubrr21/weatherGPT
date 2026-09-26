@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     alert_poll_s: int = 120
     observation_poll_s: int = 900
     warm_poll_s: int = 1800
+    role: str = "all"
     workers_enabled: bool = True
     wis2_enabled: bool = True
     wis2_broker: str = "globalbroker.meteo.fr"

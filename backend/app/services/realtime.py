@@ -27,6 +27,9 @@ class Hub:
     def online(self, client_id: str) -> bool:
         return bool(self._clients.get(client_id))
 
+    def client_ids(self) -> list[str]:
+        return list(self._clients)
+
     def stats(self) -> dict[str, int]:
         return {"clients": len(self._clients), "sockets": sum(len(s) for s in self._clients.values())}
 

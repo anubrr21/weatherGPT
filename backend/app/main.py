@@ -7,22 +7,29 @@ from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
+from sqlalchemy import text
 
 from app.config import get_settings
-from app.db import init_db
+from app.db import Session, backend_name, init_db
 from app.routes_live import router as live_router
 from app.services import advisory, agent, alerts, ingest, knowledge, local_tts, providers, voice, weather, wis2
+from app.services.fanout import fanout
 from app.services.http import close_client
 from app.services.tools import ChatContext
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    role = get_settings().role
     await init_db()
-    ingest.start()
-    wis2.subscriber.start()
-    asyncio.get_running_loop().run_in_executor(None, local_tts.warm, ["hi", "en"])
+    if role in ("all", "worker"):
+        ingest.start()
+        wis2.subscriber.start()
+    if role in ("all", "api"):
+        fanout.start()
+        asyncio.get_running_loop().run_in_executor(None, local_tts.warm, ["hi", "en"])
     yield
+    await fanout.stop()
     await wis2.subscriber.stop()
     await ingest.stop()
     await close_client()
@@ -39,6 +46,10 @@ app.add_middleware(
 
 Lat = Query(..., ge=-90, le=90)
 Lon = Query(..., ge=-180, le=180)
+
+
+def fast_json(data: Any) -> Response:
+    return Response(json.dumps(data, ensure_ascii=False, default=str, separators=(",", ":")), media_type="application/json")
 
 
 async def _guard(coro):
@@ -72,6 +83,16 @@ async def health():
     }
 
 
+@app.get("/api/ready")
+async def ready():
+    try:
+        async with Session() as s:
+            await s.execute(text("SELECT 1"))
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"database unavailable: {type(exc).__name__}") from exc
+    return {"ready": True, "role": get_settings().role, "database": backend_name()}
+
+
 @app.get("/api/geocode")
 async def geocode(q: str = Query(..., min_length=2)):
     return await _guard(weather.geocode(q))
@@ -85,39 +106,39 @@ async def reverse(lat: float = Lat, lon: float = Lon):
 @app.get("/api/weather")
 async def forecast(lat: float = Lat, lon: float = Lon, model: str = "best_match"):
     fc, observed = await asyncio.gather(_guard(weather.forecast(lat, lon, model=model)), weather.nearest_observation(lat, lon))
-    return {**fc, "observed": observed}
+    return fast_json({**fc, "observed": observed})
 
 
 @app.get("/api/models")
 async def models(lat: float = Lat, lon: float = Lon):
-    return await _guard(weather.compare_models(lat, lon))
+    return fast_json(await _guard(weather.compare_models(lat, lon)))
 
 
 @app.get("/api/air")
 async def air(lat: float = Lat, lon: float = Lon):
-    return await _guard(weather.air_quality(lat, lon))
+    return fast_json(await _guard(weather.air_quality(lat, lon)))
 
 
 @app.get("/api/climate")
 async def climate(lat: float = Lat, lon: float = Lon, month: int | None = Query(None, ge=1, le=12)):
-    return await _guard(weather.climate(lat, lon, month=month))
+    return fast_json(await _guard(weather.climate(lat, lon, month=month)))
 
 
 @app.get("/api/alerts")
 async def location_alerts(lat: float = Lat, lon: float = Lon):
     place = await weather.reverse_geocode(lat, lon)
     fc = await _guard(weather.forecast(lat, lon))
-    return {
+    return fast_json({
         "place": place,
         "official": alerts.alerts_for_place(await alerts.official_alerts(), place),
         "derived": alerts.derived_advisories(fc),
-    }
+    })
 
 
 @app.get("/api/insights")
 async def insights(lat: float = Lat, lon: float = Lon, role: str = "general", crop: str | None = None, stage: str | None = None):
     fc = await _guard(weather.forecast(lat, lon))
-    return advisory.home_insights(role, fc, crop, stage)
+    return fast_json(advisory.home_insights(role, fc, crop, stage))
 
 
 @app.get("/api/satellite/rain")
