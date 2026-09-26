@@ -6,7 +6,7 @@
 <title>weatherGPT — Disha identity</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Poppins:wght@800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@800&family=Poppins:wght@800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
   :root { --rice: #f7f0e3; color-scheme: dark; }
   body { margin: 0; min-height: 100vh; color: var(--rice); font-family: Inter, system-ui, sans-serif; background: radial-gradient(110% 80% at 50% 0%, #1b1f4a 0%, #0b0d22 60%, #07081a 100%); }
@@ -58,6 +58,14 @@
   .gpt::before, .gpt span::after { display: none; }
   .gpt span { background: none !important; color: inherit !important; filter: none !important; -webkit-text-fill-color: currentColor; }
   @keyframes gpt-tint { 0%,100% { color: #bcd8ff } 20% { color: #b8f0e0 } 40% { color: #ffe3a8 } 60% { color: #ffc9d9 } 80% { color: #d9c8ff } }
+  .word { font-family: 'Baloo 2', Poppins, sans-serif; font-weight: 800; letter-spacing: -.015em; display: inline-flex; align-items: baseline; filter: drop-shadow(0 .04em 0 rgba(0,0,0,.55)) drop-shadow(0 .1em .18em rgba(0,0,0,.35)); }
+  .word .script, .word .gpt { font-family: inherit; font-weight: 800; font-size: 96px; transform: none; animation: none; margin: 0; text-shadow: none; color: transparent; -webkit-background-clip: text; background-clip: text; padding-top: .08em; }
+  .word.small .script, .word.small .gpt { font-size: 40px; }
+  .word .script { background-image: linear-gradient(100deg, #ff9933 0%, #ffb866 16%, #fff 30%, #fff 38%, #8fe0a4 50%, #2bb24c 62%, #8fe0a4 72%, #fff 82%, #ffc98a 92%, #ff9933 100%); background-size: 220% 100%; animation: tiranga-flow 14s linear infinite; }
+  .word .gpt { margin-left: .02em; background-image: linear-gradient(180deg, #ff9933 0%, #ff9933 30%, #fff 38%, #fff 62%, #2bb24c 70%, #2bb24c 100%); }
+  .word .gpt::before, .word .gpt span::after { display: none; }
+  .word .gpt span { background: none !important; color: transparent !important; -webkit-text-fill-color: transparent; filter: none !important; }
+  @keyframes tiranga-flow { from { background-position: 0% 50% } to { background-position: -220% 50% } }
 </style>
 </head>
 <body>

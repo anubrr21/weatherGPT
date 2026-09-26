@@ -15,7 +15,7 @@ import TimeDial from './components/TimeDial'
 import { api, streamChat, type Health } from './lib/api'
 import { placeLabel } from './lib/format'
 import { PlaceContext } from './lib/placeContext'
-import { applyPatch, loadProfile, saveProfile } from './lib/profile'
+import { addPlace, applyPatch, loadProfile, removePlace, saveProfile } from './lib/profile'
 import { notify, syncSubscriptions, useLiveAlerts, type LiveAlert } from './lib/live'
 import { unlockAudio } from './lib/voice'
 import { momentAt, skyFor } from './lib/sky'
@@ -332,6 +332,12 @@ export default function App() {
         {searchOpen && (
           <LocationSearch
             saved={profile.places}
+            current={place && place.name !== 'Locating…' ? place : null}
+            onToggleSave={(p) =>
+              setProfile((prev) =>
+                prev.places.some((x) => Math.abs(x.lat - p.lat) < 0.01 && Math.abs(x.lon - p.lon) < 0.01) ? removePlace(prev, p) : addPlace(prev, p),
+              )
+            }
             onClose={() => setSearchOpen(false)}
             onLocate={locate}
             onPick={(p) => {

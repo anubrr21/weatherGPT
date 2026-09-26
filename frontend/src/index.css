@@ -1661,8 +1661,40 @@ button:disabled {
   padding: 12px;
 }
 
+.search-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.search-label {
+  padding: 10px 10px 4px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.search-results .search-save {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  justify-content: center;
+  padding: 0;
+  color: var(--ink-3);
+}
+
+.search-results .search-save.on {
+  color: #ffb45c;
+}
+
+.search-results .search-pick {
+  flex: 1;
+  min-width: 0;
+}
+
 .search-results button {
-  width: 100%;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -2638,48 +2670,72 @@ button:disabled {
 }
 
 .wordmark {
+  --saffron: #ff9933;
+  --flag-white: #ffffff;
+  --flag-green: #2bb24c;
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
   line-height: 1;
   white-space: nowrap;
+  font-family: 'Baloo 2', 'Poppins', var(--sans);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  filter: drop-shadow(0 0.04em 0 rgba(0, 0, 0, 0.55)) drop-shadow(0 0.1em 0.18em rgba(0, 0, 0, 0.35));
+}
+
+.wordmark-script,
+.wordmark-gpt {
+  font-size: 1.28em;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  padding-top: 0.08em;
 }
 
 .wordmark-script {
-  font-family: 'Pinyon Script', cursive;
-  font-size: 1.55em;
-  color: var(--ink);
-  text-shadow: 0 0.02em 0.18em rgba(255, 230, 190, 0.12);
+  background-image: linear-gradient(
+    100deg,
+    var(--saffron) 0%,
+    #ffb866 16%,
+    var(--flag-white) 30%,
+    var(--flag-white) 38%,
+    #8fe0a4 50%,
+    var(--flag-green) 62%,
+    #8fe0a4 72%,
+    var(--flag-white) 82%,
+    #ffc98a 92%,
+    var(--saffron) 100%
+  );
+  background-size: 220% 100%;
+  animation: tiranga-flow 14s linear infinite;
 }
 
 .wordmark-gpt {
-  display: inline-block;
-  font-family: 'Poppins', var(--sans);
-  font-weight: 800;
-  font-size: 1em;
-  letter-spacing: 0.01em;
-  margin-left: -0.06em;
-  transform: translateY(0.05em) scaleY(1.3);
-  transform-origin: 50% 78%;
-  color: #bcd8ff;
-  animation: gpt-tint 24s ease-in-out infinite;
+  margin-left: 0.02em;
+  background-image: linear-gradient(
+    180deg,
+    var(--saffron) 0%,
+    var(--saffron) 30%,
+    var(--flag-white) 38%,
+    var(--flag-white) 62%,
+    var(--flag-green) 70%,
+    var(--flag-green) 100%
+  );
+  background-size: 100% 100%;
 }
 
-@keyframes gpt-tint {
-  0%,
-  100% {
-    color: #bcd8ff;
+@keyframes tiranga-flow {
+  from {
+    background-position: 0% 50%;
   }
-  20% {
-    color: #b8f0e0;
+  to {
+    background-position: -220% 50%;
   }
-  40% {
-    color: #ffe3a8;
-  }
-  60% {
-    color: #ffc9d9;
-  }
-  80% {
-    color: #d9c8ff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wordmark-script {
+    animation: none;
   }
 }
 
