@@ -1,4 +1,5 @@
 import math
+import re
 from datetime import date, datetime, timedelta, timezone
 from statistics import mean
 from typing import Any
@@ -462,3 +463,31 @@ async def nearest_observation(lat: float, lon: float, max_km: float = 120) -> di
         return await _obs_cache.get_or_set(coord_key(lat, lon, "obs"), load)
     except Exception:
         return None
+
+
+GIBS_CAPABILITIES = "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/1.0.0/WMTSCapabilities.xml"
+GIBS_LAYER = "IMERG_Precipitation_Rate_30min"
+GIBS_TILES = "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/{layer}/default/{time}/GoogleMapsCompatible_Level6/{{z}}/{{y}}/{{x}}.png"
+_gibs_cache = TTLCache(ttl_s=1800, max_items=2)
+
+
+async def satellite_rain_frames(count: int = 8) -> dict[str, Any]:
+    async def load() -> dict[str, Any]:
+        response = await get_retry(GIBS_CAPABILITIES, timeout=90)
+        response.raise_for_status()
+        text = response.text
+        start = text.find(f"<ows:Identifier>{GIBS_LAYER}</ows:Identifier>")
+        if start == -1:
+            raise RuntimeError("IMERG layer not found in GIBS capabilities")
+        block = text[text.rfind("<Layer>", 0, start):text.find("</Layer>", start)]
+        latest = re.search(r"<Default>([^<]+)</Default>", block).group(1)
+        end = datetime.fromisoformat(latest.replace("Z", "+00:00"))
+        times = [(end - timedelta(minutes=30 * i)).strftime("%Y-%m-%dT%H:%M:%SZ") for i in reversed(range(count))]
+        return {
+            "source": "NASA GPM IMERG (Early run) via NASA GIBS",
+            "layer": GIBS_LAYER,
+            "max_zoom": 6,
+            "frames": [{"time": t, "url": GIBS_TILES.format(layer=GIBS_LAYER, time=t)} for t in times],
+        }
+
+    return await _gibs_cache.get_or_set("imerg", load)

@@ -112,6 +112,11 @@ async def insights(lat: float = Lat, lon: float = Lon, role: str = "general", cr
     return advisory.home_insights(role, fc, crop, stage)
 
 
+@app.get("/api/satellite/rain")
+async def satellite_rain():
+    return await _guard(weather.satellite_rain_frames())
+
+
 @app.get("/api/alerts/india")
 async def india_alerts():
     return await alerts.official_alerts()

@@ -2395,9 +2395,76 @@ button:disabled {
   filter: invert(1) hue-rotate(200deg) brightness(0.85) saturate(0.35) contrast(0.95);
 }
 
+.radar-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 14px 9px;
+}
+
 .radar-note {
   margin: 0;
-  padding: 6px 14px 9px;
   font-size: 11px;
   color: var(--ink-3);
+}
+
+.rain-legend {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: auto auto;
+  column-gap: 34px;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink-3);
+}
+
+.rain-legend i {
+  grid-column: 1 / -1;
+  height: 6px;
+  border-radius: 99px;
+  margin-bottom: 2px;
+}
+
+.rain-legend.radar i {
+  background: linear-gradient(90deg, #88ddee, #0099cc, #0077aa, #ffee00, #ffaa00, #ff4400, #c10000);
+}
+
+.rain-legend.satellite i {
+  background: linear-gradient(90deg, #00971f, #68cb00, #b8e100, #efed00, #ff9011, #ff2a00, #d8000f);
+}
+
+.rain-legend em {
+  font-style: normal;
+}
+
+.rain-legend em:last-child {
+  text-align: right;
+}
+
+.radar-modes {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.radar-modes button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.radar-modes button.on {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--ink);
+}
+
+.radar-modes button.on svg {
+  color: var(--calm);
 }
