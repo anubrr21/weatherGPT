@@ -14,11 +14,23 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-3.5-flash-lite,gemini-3.7-flash,gemini-3.8-flash"
     groq_api_key: str = ""
     groq_model: str = "openai/gpt-oss-120b,openai/gpt-oss-20b"
+    cerebras_api_key: str = ""
+    cerebras_model: str = "gpt-oss-120b,qwen-3.8-27b"
+    mistral_api_key: str = ""
+    mistral_model: str = "mistral-medium-latest,mistral-small-latest"
+    openrouter_api_key: str = ""
+    openrouter_model: str = "openai/gpt-oss-120b:free"
+    sarvam_api_key: str = ""
+    sarvam_tts_model: str = "bulbul:v3"
+    sarvam_speaker: str = ""
+    sarvam_for_all: bool = False
+    spread_load: bool = True
+    answer_cache_s: int = 600
     cors_origins: str = "*"
     alert_feed_url: str = "https://sachet.ndma.gov.in/cap_public_website/rss/rss_india.xml"
     http_timeout_s: float = 20.0
 
-    model_order: str = "gemini:0,groq:0,gemini:1,groq:1,gemini:2"
+    model_order: str = "auto"
     tts_model: str = "gemini-3.8-flash-tts,gemini-3.8-flash-lite-tts,gemini-3.1-flash-tts-preview"
     azure_speech_key: str = ""
     azure_speech_region: str = "centralindia"
@@ -32,13 +44,18 @@ class Settings(BaseSettings):
     def gemini_models(self) -> list[str]:
         return [m.strip() for m in self.gemini_model.split(",") if m.strip()] if self.gemini_api_key.strip() else []
 
+    def models_for(self, provider: str) -> list[str]:
+        key = getattr(self, f"{provider}_api_key", "").strip()
+        models = getattr(self, f"{provider}_model", "")
+        return [m.strip() for m in models.split(",") if m.strip()] if key else []
+
     @property
     def groq_models(self) -> list[str]:
-        return [m.strip() for m in self.groq_model.split(",") if m.strip()] if self.groq_api_key.strip() else []
+        return self.models_for("groq")
 
     @property
     def llm_enabled(self) -> bool:
-        return bool(self.gemini_api_key.strip() or self.groq_api_key.strip())
+        return any(self.models_for(p) for p in ("gemini", "groq", "cerebras", "mistral", "openrouter"))
 
 
 @lru_cache

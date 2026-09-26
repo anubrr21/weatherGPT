@@ -147,6 +147,40 @@ def _ssml(text: str, language: str | None) -> str:
     )
 
 
+SARVAM_URL = "https://api.sarvam.ai/text-to-speech"
+SARVAM_LANGS = {"bn", "en", "gu", "hi", "kn", "ml", "mr", "or", "pa", "ta", "te"}
+
+
+async def _sarvam(text: str, language: str | None) -> bytes | None:
+    settings = get_settings()
+    lang = language or "en"
+    if not settings.sarvam_api_key.strip() or lang not in SARVAM_LANGS or providers.cooling("tts:sarvam"):
+        return None
+    body = {
+        "text": text,
+        "language_code": f"{'od' if lang == 'or' else lang}-IN",
+        "model": settings.sarvam_tts_model,
+        "output_audio_codec": "wav",
+        "speech_sample_rate": 24000,
+    }
+    if settings.sarvam_speaker.strip():
+        body["speaker"] = settings.sarvam_speaker.strip()
+    response = await client().post(SARVAM_URL, headers={"api-subscription-key": settings.sarvam_api_key.strip()}, json=body, timeout=30)
+    if response.status_code >= 400:
+        providers.bench("tts:sarvam", providers.ProviderError(response.text[:200], response.status_code, providers.parse_retry_after(response.text)))
+        log.warning("sarvam tts failed %s %s", response.status_code, response.text[:200])
+        return None
+    try:
+        audio = base64.b64decode(response.json()["audios"][0])
+    except (KeyError, IndexError, ValueError):
+        log.warning("sarvam tts returned no audio")
+        return None
+    if not audio.startswith(b"RIFF"):
+        audio = _pcm_to_wav(audio, "audio/l16; rate=24000; channels=1")
+    providers.succeeded("tts:sarvam")
+    return _trim_silence(audio)
+
+
 async def _azure(text: str, language: str | None) -> bytes | None:
     settings = get_settings()
     if not settings.azure_speech_key.strip() or providers.cooling("tts:azure"):
@@ -174,7 +208,7 @@ async def synthesize(text: str, voice: str = "Kore", language: str | None = None
     settings = get_settings()
     language = detect_language(text, language)
     local = language in local_tts.available_languages()
-    if not local and not settings.gemini_api_key.strip() and not settings.azure_speech_key.strip():
+    if not local and not settings.gemini_api_key.strip() and not settings.azure_speech_key.strip() and not settings.sarvam_api_key.strip():
         raise VoiceError("No voice available for this language")
     text = text.strip()[:1200]
     if not text:
@@ -182,6 +216,10 @@ async def synthesize(text: str, voice: str = "Kore", language: str | None = None
     key = hashlib.sha1(f"{voice}|{language}|{text}".encode()).hexdigest()
 
     async def load() -> bytes:
+        if settings.sarvam_for_all or not local:
+            sarvam = await _sarvam(text, language)
+            if sarvam:
+                return sarvam
         if local:
             try:
                 audio = await local_tts.synthesize(language or "en", text)

@@ -157,30 +157,37 @@ OPENAI_TOOLS = [
 ]
 
 
-class Groq:
-    name = "groq"
+class OpenAICompatible:
+    name = "openai"
+    title = "OpenAI-compatible"
+    url = ""
 
     def __init__(self, model: str, system: str, history: list[dict[str, str]], message: str, retries: list[float]):
-        settings = get_settings()
         self.model = model
-        self.key = settings.groq_api_key
-        self.label = f"Groq · {self.model}"
+        self.key = getattr(get_settings(), f"{self.name}_api_key")
+        self.label = f"{self.title} · {self.model}"
         self.retries = retries
         self.messages: list[dict[str, Any]] = [{"role": "system", "content": system}]
         self.messages += [{"role": "assistant" if role == "assistant" else "user", "content": text} for role, text in _history(history)]
         self.messages.append({"role": "user", "content": message})
         self.pending_ids: list[str] = []
 
+    def payload(self) -> dict[str, Any]:
+        body: dict[str, Any] = {"model": self.model, "messages": self.messages, "tools": OPENAI_TOOLS, "tool_choice": "auto", "temperature": 0.4, "stream": True}
+        if "gpt-oss" in self.model and self.name in ("groq", "cerebras"):
+            body["reasoning_effort"] = "low"
+        return body
+
+    def headers(self) -> dict[str, str]:
+        return {"Authorization": f"Bearer {self.key}"}
+
     async def turn(self) -> AsyncIterator[tuple[str, Any]]:
         text = ""
         slots: dict[int, dict[str, str]] = {}
-        payload: dict[str, Any] = {"model": self.model, "messages": self.messages, "tools": OPENAI_TOOLS, "tool_choice": "auto", "temperature": 0.4, "stream": True}
-        if "gpt-oss" in self.model:
-            payload["reasoning_effort"] = "low"
-        async for chunk in _post_stream(GROQ_URL, {"Authorization": f"Bearer {self.key}"}, payload, None, "Groq", self.retries):
+        async for chunk in _post_stream(self.url, self.headers(), self.payload(), None, self.title, self.retries):
             data = json.loads(chunk)
             if data.get("error"):
-                raise ProviderError(f"Groq error: {data['error']}")
+                raise ProviderError(f"{self.title} error: {data['error']}")
             for choice in data.get("choices", [])[:1]:
                 delta = choice.get("delta") or {}
                 if delta.get("content"):
@@ -214,22 +221,67 @@ class Groq:
             self.messages.append({"role": "tool", "tool_call_id": call_id, "content": json.dumps(result, ensure_ascii=False, default=str)})
 
 
+class Groq(OpenAICompatible):
+    name = "groq"
+    title = "Groq"
+    url = GROQ_URL
+
+
+class Cerebras(OpenAICompatible):
+    name = "cerebras"
+    title = "Cerebras"
+    url = "https://api.cerebras.ai/v1/chat/completions"
+
+
+class Mistral(OpenAICompatible):
+    name = "mistral"
+    title = "Mistral"
+    url = "https://api.mistral.ai/v1/chat/completions"
+
+
+class OpenRouter(OpenAICompatible):
+    name = "openrouter"
+    title = "OpenRouter"
+    url = "https://openrouter.ai/api/v1/chat/completions"
+
+    def headers(self) -> dict[str, str]:
+        return {**super().headers(), "HTTP-Referer": "http://localhost:5180", "X-Title": "WeatherGPT"}
+
+
+PROVIDERS: dict[str, type] = {"gemini": Gemini, "groq": Groq, "cerebras": Cerebras, "mistral": Mistral, "openrouter": OpenRouter}
+_rotation = 0
+
+
 def chain() -> list[tuple[type, str]]:
     settings = get_settings()
-    pools = {"gemini": (Gemini, settings.gemini_models), "groq": (Groq, settings.groq_models)}
+    pools = {name: (cls, settings.models_for(name)) for name, cls in PROVIDERS.items()}
     ordered: list[tuple[type, str]] = []
-    for slot in settings.model_order.split(","):
-        name, _, index = slot.strip().partition(":")
-        cls, models = pools.get(name, (None, []))
-        if cls and index.isdigit() and int(index) < len(models):
-            ordered.append((cls, models[int(index)]))
-    for cls, models in pools.values():
-        ordered += [(cls, m) for m in models if (cls, m) not in ordered]
+    if settings.model_order.strip().lower() != "auto":
+        for slot in settings.model_order.split(","):
+            name, _, index = slot.strip().partition(":")
+            cls, models = pools.get(name, (None, []))
+            if cls and index.isdigit() and int(index) < len(models) and (cls, models[int(index)]) not in ordered:
+                ordered.append((cls, models[int(index)]))
+    depth = max((len(models) for _, models in pools.values()), default=0)
+    for tier in range(depth):
+        for cls, models in pools.values():
+            if tier < len(models) and (cls, models[tier]) not in ordered:
+                ordered.append((cls, models[tier]))
     return ordered
 
 
 def available() -> list[tuple[type, str]]:
-    return [(cls, model) for cls, model in chain() if not cooling(f"{cls.name}:{model}")]
+    global _rotation
+    ready = [(cls, model) for cls, model in chain() if not cooling(f"{cls.name}:{model}")]
+    if not get_settings().spread_load or len(ready) < 2:
+        return ready
+    leaders = []
+    for cls, model in ready:
+        if all(c.name != cls.name for c, _ in leaders):
+            leaders.append((cls, model))
+    _rotation = (_rotation + 1) % len(leaders)
+    first = leaders[_rotation]
+    return [first] + [item for item in ready if item != first]
 
 
 def soonest_free() -> float | None:

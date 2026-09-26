@@ -31,7 +31,21 @@ cp .env.example .env
 .venv/Scripts/python -m uvicorn app.main:app --port 8000 --reload
 ```
 
-Put a Gemini API key (Google AI Studio) in `backend/.env` as `GEMINI_API_KEY=...` to turn on the full multilingual assistant. Add `GROQ_API_KEY=...` (console.groq.com) as an automatic backup when Gemini is rate-limited or down. Either key alone works.
+Keys go in `backend/.env` (all optional, any one enables the AI; more keys = more free capacity):
+
+| Key | Used for | Get it at |
+|---|---|---|
+| `GEMINI_API_KEY` | LLM + cloud voice for languages without a local voice | aistudio.google.com |
+| `GROQ_API_KEY` | LLM + Whisper speech-to-text | console.groq.com |
+| `CEREBRAS_API_KEY` | LLM (fast, OpenAI-compatible) | cloud.cerebras.ai |
+| `MISTRAL_API_KEY` | LLM (strong multilingual) | console.mistral.ai |
+| `OPENROUTER_API_KEY` | LLM (free `:free` models) | openrouter.ai |
+| `SARVAM_API_KEY` | Natural Indian voices incl. Tamil, Kannada, Gujarati, Punjabi, Odia | dashboard.sarvam.ai |
+| `AZURE_SPEECH_KEY` | Optional neural voices, all 13 languages | portal.azure.com |
+
+Requests rotate across every configured provider; a rate-limited model is benched for exactly the time the provider asks, and the same question from the same place within 10 minutes is served from cache.
+
+Offline voices (Hindi, Telugu, Malayalam, Marathi, Bengali, Urdu, English — unlimited, no key): `backend/.venv/Scripts/python backend/scripts/fetch_voices.py`
 
 Frontend:
 

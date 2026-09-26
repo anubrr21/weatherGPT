@@ -83,7 +83,23 @@ export interface Confidence {
   rain_agreement: string
 }
 
+export interface Observation {
+  station: string
+  name: string
+  distance_km: number
+  age_min: number | null
+  temp_c: number
+  dewpoint_c: number | null
+  humidity_pct: number | null
+  wind_kmh: number | null
+  wind_dir: number | string | null
+  weather: string | null
+  raw: string
+  source: string
+}
+
 export interface Forecast {
+  observed?: Observation | null
   confidence?: Confidence[]
   model: string
   model_name: string

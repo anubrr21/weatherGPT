@@ -1,10 +1,13 @@
 import asyncio
+import hashlib
 import json
 import logging
+import time
 import re
 from datetime import datetime
 from typing import Any, AsyncIterator
 
+from app.config import get_settings
 from app.services import advisory, providers, tools
 
 MAX_TOOL_ROUNDS = 5
@@ -67,6 +70,7 @@ Rules:
 - Be concise and actionable: lead with the direct answer, then key numbers, then practical advice. Short paragraphs or tight bullet points; no tables (the app renders rich cards from tool data next to your reply).
 - Tailor advice to the user's role and crops. Use the sector tools: get_farm_advisory for farmers (give concrete spray windows with times, irrigate/hold with mm, harvest/drying days), get_fishing_advisory for fishermen (lead with GO / CAUTION / NO-GO), get_aviation for pilots (decoded briefing: flight category, wind, visibility, cloud, hazards, trend), get_city_advisory for urban users (heat index, waterlogging, commute), get_alerts for disaster managers (severity, timing, affected areas, actions).
 - When the user states a lasting fact about themselves (their job, crops and stage, village, boat), call update_profile as well, then answer. Do not announce that you saved it unless asked.
+- For "right now" questions, prefer observed_now_at_nearest_station (a real measurement) when it is recent, and say where and how long ago it was measured; use the model values for everything else. If observation and model disagree a lot, trust the observation for the present.
 - Each forecast day carries a confidence label with a 0–100 score (not a percentage of agreement) and how many of the 3 models expect ≥2.5 mm rain. Mention it when the answer depends on uncertain rain or days beyond tomorrow.
 - Answer rain questions calibrated to the numbers: say rain is likely only when the day's rain is ≥2.5 mm or the chance is ≥60%; for under 1 mm or a chance under 40%, say rain is unlikely or only a brief trace is possible. Never say "yes, it will rain" for trace amounts.
 - Tool data contains English condition labels such as "Light drizzle"; translate them into the reply language.
@@ -281,7 +285,51 @@ async def run_offline(message: str, ctx: tools.ChatContext, note: bool = True) -
         yield _event("delta", text="\n\n_Offline mode: add a `GEMINI_API_KEY` or `GROQ_API_KEY` to `backend/.env` for full conversational answers in every language._")
 
 
+_answers: dict[str, tuple[float, list[dict[str, Any]]]] = {}
+
+
+def _cache_key(message: str, history: list[dict[str, str]], ctx: tools.ChatContext) -> str:
+    recent = [(t.get("role"), (t.get("text") or "")[:300]) for t in history[-2:]]
+    crops = [(c.get("name"), c.get("stage")) for c in ctx.profile.get("crops") or []]
+    parts = [
+        " ".join(message.lower().split()),
+        ctx.language,
+        f"{ctx.lat:.2f}" if ctx.lat is not None else "-",
+        f"{ctx.lon:.2f}" if ctx.lon is not None else "-",
+        str(ctx.profile.get("role")),
+        json.dumps(crops),
+        json.dumps(recent, ensure_ascii=False),
+    ]
+    return hashlib.sha1("|".join(parts).encode()).hexdigest()
+
+
 async def chat(message: str, history: list[dict[str, str]], ctx: tools.ChatContext) -> AsyncIterator[dict[str, Any]]:
+    ttl = get_settings().answer_cache_s
+    key = _cache_key(message, history, ctx)
+    hit = _answers.get(key)
+    if ttl and hit and time.monotonic() - hit[0] < ttl:
+        for event in hit[1]:
+            yield _event("provider", name="cache", label=f"Cached answer ({int((time.monotonic() - hit[0]) // 60)} min old)", fallback=False) if event["type"] == "provider" else event
+        return
+    recorded: list[dict[str, Any]] = []
+    clean = True
+    async for event in _chat_live(message, history, ctx):
+        if event["type"] == "reset":
+            recorded = []
+        elif event["type"] == "provider" and event.get("name") == "offline":
+            clean = False
+        elif event["type"] == "error":
+            clean = False
+        elif not (event["type"] == "status" and event.get("tool") == "fallback"):
+            recorded.append(event)
+        yield event
+    if ttl and clean and any(e["type"] == "delta" for e in recorded):
+        if len(_answers) > 300:
+            _answers.pop(min(_answers, key=lambda k: _answers[k][0]))
+        _answers[key] = (time.monotonic(), recorded)
+
+
+async def _chat_live(message: str, history: list[dict[str, str]], ctx: tools.ChatContext) -> AsyncIterator[dict[str, Any]]:
     chain = providers.available()
     wait = providers.soonest_free()
     if not chain and wait is not None and wait <= MAX_CAPACITY_WAIT_S:

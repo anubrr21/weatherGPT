@@ -1,4 +1,5 @@
-from datetime import date, timedelta
+import math
+from datetime import date, datetime, timedelta, timezone
 from statistics import mean
 from typing import Any
 
@@ -405,3 +406,59 @@ def confidence(compare: dict[str, Any]) -> list[dict[str, Any]]:
             "rain_agreement": f"{wet_votes}/{len(rains)} models expect ≥2.5 mm",
         })
     return out
+
+
+_obs_cache = TTLCache(ttl_s=300)
+
+
+def _km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dlat, dlon = p2 - p1, math.radians(lon2 - lon1)
+    a = math.sin(dlat / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dlon / 2) ** 2
+    return 6371 * 2 * math.asin(math.sqrt(a))
+
+
+async def nearest_observation(lat: float, lon: float, max_km: float = 120) -> dict[str, Any] | None:
+    async def load() -> dict[str, Any] | None:
+        box = f"{lat - 1.2:.2f},{lon - 1.2:.2f},{lat + 1.2:.2f},{lon + 1.2:.2f}"
+        response = await get_retry(METAR_URL, params={"bbox": box, "format": "json"})
+        if response.status_code != 200 or not response.content.strip():
+            return None
+        rows = [r for r in response.json() if r.get("lat") is not None and r.get("temp") is not None]
+        if not rows:
+            return None
+        best = min(rows, key=lambda r: _km(lat, lon, r["lat"], r["lon"]))
+        distance = _km(lat, lon, best["lat"], best["lon"])
+        if distance > max_km:
+            return None
+        observed = best.get("reportTime") or best.get("obsTime")
+        age_min = None
+        if isinstance(observed, str):
+            try:
+                age_min = round((datetime.now(timezone.utc) - datetime.fromisoformat(observed.replace("Z", "+00:00"))).total_seconds() / 60)
+            except ValueError:
+                age_min = None
+        dew = best.get("dewp")
+        temp = best["temp"]
+        rh = round(100 * math.exp(17.625 * dew / (243.04 + dew)) / math.exp(17.625 * temp / (243.04 + temp))) if dew is not None else None
+        return {
+            "station": best.get("icaoId"),
+            "name": best.get("name"),
+            "distance_km": round(distance),
+            "age_min": age_min,
+            "temp_c": temp,
+            "dewpoint_c": dew,
+            "humidity_pct": rh,
+            "wind_kmh": round(best["wspd"] * 1.852) if best.get("wspd") is not None else None,
+            "wind_dir": best.get("wdir"),
+            "visibility": best.get("visib"),
+            "pressure_hpa": best.get("altim"),
+            "weather": best.get("wxString"),
+            "raw": best.get("rawOb"),
+            "source": "METAR via aviationweather.gov (real station observation)",
+        }
+
+    try:
+        return await _obs_cache.get_or_set(coord_key(lat, lon, "obs"), load)
+    except Exception:
+        return None

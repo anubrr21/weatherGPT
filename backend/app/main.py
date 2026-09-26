@@ -50,7 +50,12 @@ async def health():
         "llm": settings.llm_enabled,
         "neural_voice": bool(local_tts.available_languages() or settings.gemini_api_key.strip() or settings.azure_speech_key.strip()),
         "local_voices": local_tts.available_languages(),
-        "voice_engine": "azure" if settings.azure_speech_key.strip() else "gemini" if settings.gemini_api_key.strip() else "browser",
+        "voice_engines": [name for name, on in (
+            ("local", bool(local_tts.available_languages())),
+            ("sarvam", bool(settings.sarvam_api_key.strip())),
+            ("azure", bool(settings.azure_speech_key.strip())),
+            ("gemini", bool(settings.gemini_api_key.strip())),
+        ) if on],
         "server_stt": bool(settings.groq_api_key.strip()),
         "providers": [
             {"name": cls.name, "model": model, "cooling_s": round(providers.cooling(f"{cls.name}:{model}"))} for cls, model in providers.chain()
@@ -70,7 +75,8 @@ async def reverse(lat: float = Lat, lon: float = Lon):
 
 @app.get("/api/weather")
 async def forecast(lat: float = Lat, lon: float = Lon, model: str = "best_match"):
-    return await _guard(weather.forecast(lat, lon, model=model))
+    fc, observed = await asyncio.gather(_guard(weather.forecast(lat, lon, model=model)), weather.nearest_observation(lat, lon))
+    return {**fc, "observed": observed}
 
 
 @app.get("/api/models")

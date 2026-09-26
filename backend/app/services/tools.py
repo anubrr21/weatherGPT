@@ -99,9 +99,15 @@ async def _confidence(lat: float, lon: float) -> list[dict[str, Any]]:
 
 async def get_forecast(ctx: ChatContext, location: str | None = None, model: str = "best_match") -> dict[str, Any]:
     place = await resolve_place(location, ctx)
-    fc, conf = await asyncio.gather(weather.forecast(place["lat"], place["lon"], model=model), _confidence(place["lat"], place["lon"]))
-    ctx.cards.append({"kind": "forecast", "place": place, "data": {**fc, "confidence": conf}})
+    fc, conf, observed = await asyncio.gather(
+        weather.forecast(place["lat"], place["lon"], model=model),
+        _confidence(place["lat"], place["lon"]),
+        weather.nearest_observation(place["lat"], place["lon"]),
+    )
+    ctx.cards.append({"kind": "forecast", "place": place, "data": {**fc, "confidence": conf, "observed": observed}})
     compact = _compact_forecast(fc)
+    if observed:
+        compact["observed_now_at_nearest_station"] = {k: observed[k] for k in ("station", "name", "distance_km", "age_min", "temp_c", "humidity_pct", "wind_kmh", "weather")}
     by_date = {c["date"]: c for c in conf}
     for day in compact["daily"]:
         c = by_date.get(day["date"])

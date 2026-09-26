@@ -2224,3 +2224,28 @@ button:disabled {
   margin: 0;
   font-size: 12px;
 }
+
+.observed {
+  margin: 10px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.observed small {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.observed-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-2);
+  box-shadow: 0 0 8px var(--accent-2);
+  align-self: center;
+}

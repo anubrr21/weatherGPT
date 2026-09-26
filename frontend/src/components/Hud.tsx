@@ -47,6 +47,18 @@ export default function Hud({ fc, m }: { fc: Forecast; m: Moment }) {
           <dd>{round(fc.current.pressure_msl)}<small>hPa</small></dd>
         </div>
       </dl>
+      {m.live && fc.observed && (
+        <p className="observed" title={fc.observed.raw}>
+          <span className="observed-dot" />
+          Measured {Math.round(fc.observed.temp_c)}°
+          {fc.observed.humidity_pct !== null ? ` · RH ${fc.observed.humidity_pct}%` : ''}
+          {fc.observed.wind_kmh === 0 ? ' · calm' : fc.observed.wind_kmh !== null ? ` · wind ${fc.observed.wind_kmh} km/h` : ''}
+          <small>
+            {fc.observed.name.split(',')[0]} ({fc.observed.station}) · {fc.observed.distance_km} km away
+            {fc.observed.age_min !== null ? ` · ${fc.observed.age_min} min ago` : ''}
+          </small>
+        </p>
+      )}
     </section>
   )
 }
