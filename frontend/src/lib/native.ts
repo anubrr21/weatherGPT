@@ -83,6 +83,7 @@ export async function notifyAlert(alert: LiveAlert) {
           body: alert.alert.headline,
           largeBody: alert.alert.headline,
           channelId: CHANNEL,
+          largeIcon: 'weathergpt_notification_large',
           extra: { alert_id: alert.alert.id, place: alert.place.name, lat: alert.place.lat, lon: alert.place.lon },
         },
       ],

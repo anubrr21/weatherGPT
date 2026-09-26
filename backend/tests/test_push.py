@@ -29,15 +29,15 @@ def test_assertion_is_signed_by_the_service_account_key():
     assert body["exp"] - body["iat"] == 3600
 
 
-def test_message_priority_and_data_are_fcm_compatible():
+def test_data_only_message_carries_everything_the_app_renders():
     alert = {"id": "1790434317019013", "severity": "Severe", "event": "Flood", "headline": "River above danger mark", "expires": "2099-01-01T00:00:00+05:30"}
     message = push_module.build_message("tok" * 10, alert, {"name": "Bahraich", "lat": 27.574, "lon": 81.595})["message"]
+    assert "notification" not in message
+    assert message["data"]["title"] == "Severe · Flood — Bahraich"
+    assert message["data"]["body"] == "River above danger mark"
     assert message["android"]["priority"] == "high"
-    assert message["android"]["notification"]["channel_id"] == "warnings"
     assert message["android"]["ttl"] == f"{28 * 86400}s"
     assert all(isinstance(v, str) for v in message["data"].values())
-    minor = push_module.build_message("tok" * 10, alert | {"severity": "Minor"}, {"name": "X", "lat": 0, "lon": 0})["message"]
-    assert minor["android"]["priority"] == "normal"
 
 
 def test_uninstalled_app_token_is_reported_gone(monkeypatch):

@@ -21,8 +21,6 @@ BACKEND_ROOT = Path(__file__).resolve().parent.parent.parent
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 SCOPE = "https://www.googleapis.com/auth/firebase.messaging"
 SEND_URL = "https://fcm.googleapis.com/v1/projects/{project}/messages:send"
-CHANNEL = "warnings"
-URGENT = {"Extreme", "Severe"}
 
 
 def _b64(data: bytes) -> str:
@@ -73,9 +71,10 @@ def build_message(token: str, alert: dict[str, Any], place: dict[str, Any]) -> d
     return {
         "message": {
             "token": token,
-            "notification": {"title": title[:120], "body": (alert.get("headline") or "")[:300]},
             "data": {
                 "kind": "alert",
+                "title": title[:120],
+                "body": (alert.get("headline") or "")[:600],
                 "alert_id": str(alert["id"]),
                 "place": place["name"],
                 "lat": f"{place['lat']:.4f}",
@@ -83,16 +82,9 @@ def build_message(token: str, alert: dict[str, Any], place: dict[str, Any]) -> d
                 "severity": severity,
             },
             "android": {
-                "priority": "high" if severity in URGENT else "normal",
+                "priority": "high",
                 "ttl": f"{_ttl_seconds(alert.get('expires'))}s",
                 "collapse_key": str(alert["id"])[:64],
-                "notification": {
-                    "channel_id": CHANNEL,
-                    "icon": "ic_stat_weathergpt",
-                    "tag": str(alert["id"])[:64],
-                    "color": "#ff9933",
-                    "notification_priority": "PRIORITY_MAX" if severity in URGENT else "PRIORITY_DEFAULT",
-                },
             },
         }
     }
