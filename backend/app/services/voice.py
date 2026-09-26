@@ -41,6 +41,45 @@ class VoiceError(Exception):
     pass
 
 
+SCRIPTS = [
+    ((0x0900, 0x097F), ("hi", "mr")),
+    ((0x0980, 0x09FF), ("bn", "as")),
+    ((0x0A00, 0x0A7F), ("pa",)),
+    ((0x0A80, 0x0AFF), ("gu",)),
+    ((0x0B00, 0x0B7F), ("or",)),
+    ((0x0B80, 0x0BFF), ("ta",)),
+    ((0x0C00, 0x0C7F), ("te",)),
+    ((0x0C80, 0x0CFF), ("kn",)),
+    ((0x0D00, 0x0D7F), ("ml",)),
+    ((0x0600, 0x06FF), ("ur",)),
+]
+
+
+def detect_language(text: str, hint: str | None = None) -> str:
+    counts: dict[tuple[str, ...], int] = {}
+    latin = 0
+    assamese_letters = 0
+    for ch in text:
+        code = ord(ch)
+        if ch.isascii() and ch.isalpha():
+            latin += 1
+            continue
+        if code in (0x09F0, 0x09F1):
+            assamese_letters += 1
+        for (lo, hi), langs in SCRIPTS:
+            if lo <= code <= hi:
+                counts[langs] = counts.get(langs, 0) + 1
+                break
+    if not counts or latin > max(counts.values()):
+        return "en"
+    langs = max(counts, key=lambda k: counts[k])
+    if hint in langs:
+        return hint
+    if langs == ("bn", "as") and assamese_letters:
+        return "as"
+    return langs[0]
+
+
 def _pcm_to_wav(pcm: bytes, mime: str) -> bytes:
     rate = int(m.group(1)) if (m := re.search(r"rate=(\d+)", mime)) else 24000
     channels = int(m.group(1)) if (m := re.search(r"channels=(\d+)", mime)) else 1
@@ -133,7 +172,8 @@ async def _azure(text: str, language: str | None) -> bytes | None:
 
 async def synthesize(text: str, voice: str = "Kore", language: str | None = None) -> bytes:
     settings = get_settings()
-    local = (language or "en") in local_tts.available_languages()
+    language = detect_language(text, language)
+    local = language in local_tts.available_languages()
     if not local and not settings.gemini_api_key.strip() and not settings.azure_speech_key.strip():
         raise VoiceError("No voice available for this language")
     text = text.strip()[:1200]

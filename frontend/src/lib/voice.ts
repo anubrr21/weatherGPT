@@ -134,7 +134,35 @@ export interface SpeakCallbacks {
   onError: (message: string) => void
 }
 
-export async function speak(text: string, lang: string, code: string, neural: boolean, cb: SpeakCallbacks) {
+const SCRIPT_LANGS: [number, number, string][] = [
+  [0x0900, 0x097f, 'hi-IN'],
+  [0x0980, 0x09ff, 'bn-IN'],
+  [0x0a00, 0x0a7f, 'pa-IN'],
+  [0x0a80, 0x0aff, 'gu-IN'],
+  [0x0b00, 0x0b7f, 'or-IN'],
+  [0x0b80, 0x0bff, 'ta-IN'],
+  [0x0c00, 0x0c7f, 'te-IN'],
+  [0x0c80, 0x0cff, 'kn-IN'],
+  [0x0d00, 0x0d7f, 'ml-IN'],
+  [0x0600, 0x06ff, 'ur-IN'],
+]
+
+function speechLangFor(text: string, fallback: string) {
+  const counts = new Map<string, number>()
+  let latin = 0
+  for (const ch of text) {
+    const code = ch.codePointAt(0) ?? 0
+    if (/[a-z]/i.test(ch)) latin++
+    const hit = SCRIPT_LANGS.find(([lo, hi]) => code >= lo && code <= hi)
+    if (hit) counts.set(hit[2], (counts.get(hit[2]) ?? 0) + 1)
+  }
+  const [best, n] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0] ?? ['', 0]
+  if (!best || latin > n) return fallback.startsWith('en') ? fallback : 'en-IN'
+  return fallback.split('-')[0] === best.split('-')[0] || (best === 'hi-IN' && fallback === 'mr-IN') || (best === 'bn-IN' && fallback === 'as-IN') ? fallback : best
+}
+
+export async function speak(text: string, menuLang: string, code: string, neural: boolean, cb: SpeakCallbacks) {
+  const lang = speechLangFor(text, menuLang)
   stopSpeaking()
   let cancelled = false
   let stopAudio: (() => void) | null = null
