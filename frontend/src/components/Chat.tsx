@@ -5,6 +5,7 @@ import { LANGUAGES, PROMPTS, languageByCode } from '../lib/languages'
 import type { Message } from '../lib/types'
 import { speak, speakableFromMarkdown, splitSpeak, stopSpeaking, useListen } from '../lib/voice'
 import DataCard from './cards'
+import Logo from './Logo'
 import Markdown from './Markdown'
 
 interface Props {
@@ -83,40 +84,42 @@ export default function Chat({ messages, busy, language, llm, onLanguage, onSend
   return (
     <section className="chat">
       <header className="chat-head">
-        {onCollapse && (
-          <button className="icon-btn" onClick={onCollapse} aria-label="Collapse chat">
-            <ChevronDown size={20} />
+        <div className="chat-head-row">
+          {onCollapse && (
+            <button className="icon-btn" onClick={onCollapse} aria-label="Collapse chat">
+              <ChevronDown size={20} />
+            </button>
+          )}
+          <Logo size={40} className="chat-logo" />
+          <button
+            className={`icon-btn chat-speak ${autoSpeak ? 'active' : ''}`}
+            onClick={() => {
+              if (autoSpeak) stopSpeaking()
+              setAutoSpeak(!autoSpeak)
+            }}
+            aria-label={autoSpeak ? 'Stop reading replies aloud' : 'Read replies aloud'}
+            title={autoSpeak ? 'Auto-speak on' : 'Auto-speak off'}
+          >
+            {autoSpeak ? <Volume2 size={18} /> : <VolumeX size={18} />}
           </button>
-        )}
-        <div className="chat-title">
-          <span className="brand">Weather<b>GPT</b></span>
-          <small>
+        </div>
+        <div className="chat-head-row sub">
+          <small className="chat-status">
             {llm === null
               ? 'connecting…'
               : llm.llm
-                ? `AI · ${[...new Set(llm.providers.map((p) => p.name))].join(' → ')} · live data`
+                ? `AI · ${new Set(llm.providers.map((p) => p.name)).size} providers · live data`
                 : 'offline intent mode'}
           </small>
+          <label className="lang-select">
+            <span className="sr-only">Language</span>
+            <select value={language} onChange={(e) => onLanguage(e.target.value)}>
+              {LANGUAGES.map((l) => (
+                <option key={l.code} value={l.code}>{l.native}</option>
+              ))}
+            </select>
+          </label>
         </div>
-        <label className="lang-select">
-          <span className="sr-only">Language</span>
-          <select value={language} onChange={(e) => onLanguage(e.target.value)}>
-            {LANGUAGES.map((l) => (
-              <option key={l.code} value={l.code}>{l.native}</option>
-            ))}
-          </select>
-        </label>
-        <button
-          className={`icon-btn ${autoSpeak ? 'active' : ''}`}
-          onClick={() => {
-            if (autoSpeak) stopSpeaking()
-            setAutoSpeak(!autoSpeak)
-          }}
-          aria-label={autoSpeak ? 'Stop reading replies aloud' : 'Read replies aloud'}
-          title={autoSpeak ? 'Auto-speak on' : 'Auto-speak off'}
-        >
-          {autoSpeak ? <Volume2 size={18} /> : <VolumeX size={18} />}
-        </button>
       </header>
 
       <div className="chat-list" ref={listRef}>

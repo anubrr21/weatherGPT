@@ -5,6 +5,7 @@ import Chat from './components/Chat'
 import DayStrip from './components/DayStrip'
 import Hud from './components/Hud'
 import InsightStrip from './components/InsightStrip'
+import Logo, { LogoMark, Wordmark } from './components/Logo'
 import LocationSearch from './components/LocationSearch'
 import ProfileSheet from './components/ProfileSheet'
 import RadarMap from './components/RadarMap'
@@ -216,6 +217,7 @@ export default function App() {
 
         <main className="stage">
           <header className="topbar">
+            <Logo size={42} className="topbar-logo" />
             <button className="place" onClick={() => setSearchOpen(true)}>
               <MapPin size={16} />
               <span>
@@ -249,7 +251,10 @@ export default function App() {
           ) : (
             !loadError && (
               <div className="boot">
-                <span className="boot-orb" />
+                <span className="logo-lockup">
+                  <LogoMark size={120} />
+                  <Wordmark size={30} />
+                </span>
                 Reading the atmosphere…
               </div>
             )

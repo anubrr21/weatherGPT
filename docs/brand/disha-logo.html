@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>weatherGPT — Disha identity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Poppins:wght@800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --rice: #f7f0e3; color-scheme: dark; }
+  body { margin: 0; min-height: 100vh; color: var(--rice); font-family: Inter, system-ui, sans-serif; background: radial-gradient(110% 80% at 50% 0%, #1b1f4a 0%, #0b0d22 60%, #07081a 100%); }
+  main { max-width: 1100px; margin: 0 auto; padding: 28px 22px 60px; }
+  h1 { font: 500 12px Inter; letter-spacing: .16em; text-transform: uppercase; color: #9da3cf; margin: 0 0 18px; }
+  .hero { display: flex; align-items: center; justify-content: center; gap: 34px; padding: 40px 24px; border-radius: 22px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08); margin-bottom: 18px; flex-wrap: wrap; }
+  .legend { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .legend div { padding: 11px 13px; border-radius: 12px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07); font-size: 12px; color: #c3c7e6; line-height: 1.45; }
+  .legend b { display: block; font-size: 10.5px; letter-spacing: .12em; color: #8fd0ff; margin-bottom: 3px; }
+  .sizes { display: flex; gap: 22px; align-items: center; margin: 18px 0; padding: 18px 22px; border-radius: 16px; background: rgba(255,255,255,.025); border: 1px solid rgba(255,255,255,.07); flex-wrap: wrap; }
+
+  .word { display: inline-flex; align-items: center; white-space: nowrap; line-height: 1; }
+  .script { font-family: 'Pinyon Script'; font-size: 104px; color: var(--rice); text-shadow: 0 2px 18px rgba(255, 230, 190, .12); padding-right: .06em; }
+  .gpt { position: relative; display: inline-block; font-family: Poppins; font-weight: 900; font-size: 70px; letter-spacing: .015em; margin-left: .1em; transform: translateY(.05em); animation: tint 20s linear infinite; }
+  .gpt::before { content: attr(data-t); position: absolute; inset: 0; color: #34508f;
+    text-shadow:
+      0 1px 0 #7d9ce6, 0 2px 0 #7493de, 0 3px 0 #6a89d4, 0 4px 0 #6180ca, 0 5px 0 #5776bf,
+      0 6px 0 #4e6cb3, 0 7px 0 #4462a6, 0 8px 0 #3b5898,
+      0 10px 6px rgba(0, 0, 0, .35), 0 16px 22px rgba(0, 0, 0, .5); }
+  .gpt span { position: relative; display: inline-block;
+    background: linear-gradient(180deg, #ffffff 0%, #e6f5ff 20%, #b9ddff 46%, #93bfff 50%, #a4caff 70%, #c6ddff 92%, #deebff 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 5px rgba(110, 170, 255, .22)); }
+  .gpt span::after { content: attr(data-t); position: absolute; inset: 0; color: transparent; -webkit-text-stroke: 1px rgba(255, 255, 255, .35); clip-path: inset(0 0 55% 0); }
+  @keyframes tint { to { filter: hue-rotate(360deg); } }
+  .small .script { font-size: 44px; } .small .gpt { font-size: 30px; }
+  .small .gpt::before { text-shadow: 0 1px 0 #7d9ce6, 0 2px 0 #6a89d4, 0 3px 0 #5776bf, 0 4px 0 #3b5898, 0 6px 8px rgba(0,0,0,.45); }
+
+  .disha .ring { fill: none; stroke: rgba(247,240,227,.55); }
+  .disha .tick { stroke: rgba(247,240,227,.45); stroke-width: 1.2; }
+  .disha .needle-l { fill: #f7f0e3; } .disha .needle-d { fill: #b9b3d9; }
+  .disha .needle-sl { fill: #ffcf6e; } .disha .needle-sd { fill: #d98a1f; }
+  .disha .glow-dot { animation: pulse 3.5s ease-in-out infinite; }
+  .disha .kolam-dot { animation: diya 7s ease-in-out infinite; }
+  .disha .kolam-dot:nth-of-type(2) { animation-delay: -2.3s; } .disha .kolam-dot:nth-of-type(3) { animation-delay: -4.6s; }
+  .disha .wheel { transform-box: fill-box; transform-origin: center; animation: turn 24s linear infinite; }
+  .disha .kite { transform-box: fill-box; transform-origin: 50% 20%; animation: sway 4s ease-in-out infinite; }
+  .disha .palm { transform-box: fill-box; transform-origin: 50% 100%; animation: bend 3.6s ease-in-out infinite; }
+  .disha .cyclone { transform-box: fill-box; transform-origin: center; animation: turn 6s linear infinite reverse; }
+  .disha .shimmer path { animation: shimmer 2.4s ease-in-out infinite; }
+  @keyframes diya { 0%,100% { fill: #0ea5a6 } 33% { fill: #f4a021 } 66% { fill: #e4577a } }
+  @keyframes pulse { 50% { opacity: .55; } }
+  @keyframes turn { to { transform: rotate(360deg); } }
+  @keyframes sway { 0%,100% { transform: rotate(-7deg); } 50% { transform: rotate(7deg); } }
+  @keyframes bend { 0%,100% { transform: skewX(-4deg); } 50% { transform: skewX(5deg); } }
+  @keyframes shimmer { 50% { opacity: .25; transform: translateY(-1px); } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>weatherGPT · Disha (दिशा) · all eight directions of India</h1>
+
+  <section class="hero">
+    <svg class="disha" id="mark" width="230" height="230" viewBox="-8 -8 136 136" aria-label="weatherGPT compass mark">
+      <defs>
+        <radialGradient id="core" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff3c4"/><stop offset=".5" stop-color="#ffb13b"/><stop offset="1" stop-color="#ff6a3d" stop-opacity="0"/></radialGradient>
+        <linearGradient id="snow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e6f4ff"/><stop offset="1" stop-color="#7fb2ff"/></linearGradient>
+        <linearGradient id="kite1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff4f8b"/><stop offset="1" stop-color="#d0283c"/></linearGradient>
+        <linearGradient id="dune" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f5c77e"/><stop offset="1" stop-color="#c7823a"/></linearGradient>
+        <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5ec8ff"/><stop offset="1" stop-color="#1f6fd1"/></linearGradient>
+      </defs>
+      <circle class="ring" cx="60" cy="60" r="44" stroke-width="1.4"/>
+      <circle class="ring" cx="60" cy="60" r="40" stroke-width=".6" stroke-dasharray="1.5 3.2"/>
+      <g class="tick"><path d="M60 16v5M60 99v5M16 60h5M99 60h5"/></g>
+      <g>
+        <path class="needle-l" d="M60 26 L65 55 L60 60 Z"/><path class="needle-d" d="M60 26 L55 55 L60 60 Z"/>
+        <path class="needle-sl" d="M60 94 L55 65 L60 60 Z"/><path class="needle-sd" d="M60 94 L65 65 L60 60 Z"/>
+        <path class="needle-l" d="M94 60 L65 65 L60 60 Z"/><path class="needle-d" d="M94 60 L65 55 L60 60 Z"/>
+        <path class="needle-l" d="M26 60 L55 55 L60 60 Z"/><path class="needle-d" d="M26 60 L55 65 L60 60 Z"/>
+        <g opacity=".75"><path class="needle-d" d="M79 41 L62 58 L64 60 Z"/><path class="needle-l" d="M79 41 L60 56 L62 58 Z"/><path class="needle-d" d="M41 79 L58 62 L56 60 Z"/><path class="needle-l" d="M41 79 L60 64 L58 62 Z"/><path class="needle-d" d="M41 41 L58 58 L60 56 Z"/><path class="needle-l" d="M41 41 L56 60 L58 58 Z"/><path class="needle-d" d="M79 79 L62 62 L60 64 Z"/><path class="needle-l" d="M79 79 L64 60 L62 62 Z"/></g>
+      </g>
+      <circle class="glow-dot" cx="60" cy="60" r="10" fill="url(#core)"/>
+      <circle cx="60" cy="60" r="3.2" fill="#fff8e6"/>
+
+      <g>
+        <path d="M46 16 L60 1.5 L74 16 Z" fill="#6b76c9"/>
+        <path d="M53.5 8.7 L60 1.5 L66.5 8.7 L63.2 7.2 L60 9.6 L56.8 7.2 Z" fill="url(#snow)"/>
+        <path d="M66 16 L70.5 9.5 L78 16 Z" fill="#4c57a8"/>
+      </g>
+
+      <g class="wheel">
+        <circle cx="104" cy="60" r="10.5" fill="none" stroke="#ffb13b" stroke-width="2.2"/>
+        <circle cx="104" cy="60" r="7" fill="none" stroke="#ffb13b" stroke-width=".8" stroke-dasharray="1.2 1.6"/>
+        <g stroke="#ffcf6e" stroke-width="1.4" stroke-linecap="round"><path d="M104 50v20M94 60h20M97 53l14 14M111 53l-14 14"/></g>
+        <circle cx="104" cy="60" r="2.6" fill="#d0283c"/>
+      </g>
+
+      <g>
+        <path d="M49 106 C 52 100, 58 100, 60 105 C 62 100, 68 100, 71 106" fill="none" stroke="#f7f0e3" stroke-width="1.6" stroke-linecap="round"/>
+        <circle class="kolam-dot" cx="54" cy="110" r="2.3"/>
+        <circle class="kolam-dot" cx="60" cy="116" r="2.3"/>
+        <circle class="kolam-dot" cx="66" cy="110" r="2.3"/>
+      </g>
+
+      <g class="kite">
+        <path d="M16 47 L27 60 L16 73 L5 60 Z" fill="url(#kite1)"/>
+        <path d="M16 47 L27 60 L16 60 Z" fill="#ffcf3a"/>
+        <path d="M16 47 V73 M5 60 C 10 56, 22 56, 27 60" fill="none" stroke="#3a1024" stroke-width=".9"/>
+        <path d="M16 73 c -2 4, 2 6, 0 10 c -2 3, 1 5, 0 7" fill="none" stroke="#ffcf3a" stroke-width="1.2" stroke-linecap="round"/>
+      </g>
+
+      <g transform="translate(97 23)">
+        <path d="M-12 3 L0 -8 L12 3 Z" fill="#e1b04a"/>
+        <path d="M-12 3 L0 -8 L12 3 Z" fill="none" stroke="#7a4a12" stroke-width=".8"/>
+        <path d="M-7.5 -1 L7.5 -1" stroke="#d0283c" stroke-width="1.6"/>
+        <path d="M-4 -4.5 L4 -4.5" stroke="#1f7a3a" stroke-width="1.2"/>
+        <path d="M-12 3 C -6 6, 6 6, 12 3" fill="none" stroke="#7a4a12" stroke-width="1.2"/>
+        <g fill="#9fd8ff"><circle cx="-6" cy="8" r="1"/><circle cx="0" cy="10" r="1"/><circle cx="6" cy="8" r="1"/></g>
+      </g>
+
+      <g transform="translate(23 23)">
+        <path d="M-13 6 C -7 -1, -1 -1, 4 4 C 7 1, 10 1, 13 5 L13 8 L-13 8 Z" fill="url(#dune)"/>
+        <path d="M-13 8 C -8 4, -2 4, 3 8 Z" fill="#b8702e" opacity=".8"/>
+        <g class="shimmer" stroke="#ffd79a" stroke-width="1" fill="none" stroke-linecap="round" opacity=".85"><path d="M-8 -4 c 2 -1.5, 4 1.5, 6 0"/><path d="M1 -7 c 2 -1.5, 4 1.5, 6 0"/></g>
+        <circle cx="8" cy="-8" r="3.2" fill="#ffb13b"/>
+      </g>
+
+      <g transform="translate(97 97)">
+        <path d="M-13 6 c 3 -3, 6 -3, 9 0 c 3 -3, 6 -3, 9 0 c 3 -3, 6 -3, 8 0 L13 10 L-13 10 Z" fill="url(#sea)"/>
+        <g class="cyclone" fill="none" stroke="#dff3ff" stroke-width="1.6" stroke-linecap="round"><circle cx="0" cy="-4" r="2.2"/><path d="M0 -6.2 c 5 -3, 9 1, 7 4"/><path d="M0 -1.8 c -5 3, -9 -1, -7 -4"/></g>
+      </g>
+
+      <g transform="translate(23 97)">
+        <g class="palm">
+          <path d="M1 10 C 2 4, 1 -1, -1 -5" fill="none" stroke="#8a5a2b" stroke-width="2" stroke-linecap="round"/>
+          <g fill="#3fae5a"><path d="M-1 -5 C -8 -8, -12 -4, -12 -1 C -8 -4, -5 -5, -1 -5 Z"/><path d="M-1 -5 C 5 -9, 10 -6, 11 -2 C 7 -5, 3 -5, -1 -5 Z"/><path d="M-1 -5 C -4 -11, 0 -14, 3 -13 C 1 -10, 0 -8, -1 -5 Z"/><path d="M-1 -5 C -6 -3, -8 1, -7 4 C -5 0, -3 -3, -1 -5 Z"/></g>
+          <g fill="#c98b2c"><circle cx="-1" cy="-4" r="1.2"/><circle cx="0.5" cy="-3.2" r="1.2"/></g>
+        </g>
+        <path d="M-12 11 C -6 8, 6 8, 12 11" fill="none" stroke="#5ec8ff" stroke-width="1.4" stroke-linecap="round"/>
+      </g>
+    </svg>
+    <span class="word"><span class="script">weather</span><span class="gpt" data-t="GPT"><span data-t="GPT">GPT</span></span></span>
+  </section>
+
+  <div class="sizes">
+    <span class="word small"><span class="script">weather</span><span class="gpt" data-t="GPT"><span data-t="GPT">GPT</span></span></span>
+  </div>
+
+  <div class="legend">
+    <div><b>N · SNOW</b>Himalayan peak: Kashmir, Himachal, Uttarakhand</div>
+    <div><b>NE · RAIN &amp; SUN</b>Assamese <i>japi</i> hat, worn in the wettest place on Earth (Meghalaya)</div>
+    <div><b>E · SUN</b>Konark Sun Temple wheel, Odisha</div>
+    <div><b>SE · CYCLONE</b>Bay of Bengal cyclone over the Andhra/Tamil coast</div>
+    <div><b>S · MONSOON</b>Kolam dots falling as rain, Tamil Nadu</div>
+    <div><b>SW · MONSOON WIND</b>Coconut palm bending in the Kerala/Goa monsoon</div>
+    <div><b>W · WIND</b>Uttarayan kite, Gujarat</div>
+    <div><b>NW · HEAT</b>Thar desert dunes shimmering in the heat, Rajasthan</div>
+  </div>
+</main>
+</body>
+</html>
