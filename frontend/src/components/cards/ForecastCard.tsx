@@ -57,16 +57,25 @@ export default function ForecastCard({ place, data }: { place: Place; data: Fore
         <line x1={PAD} x2={W - PAD} y1={H - 30} y2={H - 30} className="chart-base" />
       </svg>
       <div className="fc-days">
-        {data.daily.slice(0, 5).map((d, i) => (
-          <div key={d.time}>
-            <span>{weekday(d.time, i)}</span>
-            <SkyGlyph sky={d.condition.sky} size={16} />
-            <b>{round(d.temperature_2m_max)}°</b>
-            <small>{round(d.temperature_2m_min)}°</small>
-            <em>{round(d.precipitation_sum, d.precipitation_sum < 10 ? 1 : 0)}mm</em>
-          </div>
-        ))}
+        {data.daily.slice(0, 5).map((d, i) => {
+          const conf = data.confidence?.find((c) => c.date === d.time)
+          return (
+            <div key={d.time}>
+              <span>{weekday(d.time, i)}</span>
+              <SkyGlyph sky={d.condition.sky} size={16} />
+              <b>{round(d.temperature_2m_max)}°</b>
+              <small>{round(d.temperature_2m_min)}°</small>
+              <em>{round(d.precipitation_sum, d.precipitation_sum < 10 ? 1 : 0)}mm</em>
+              {conf && (
+                <i className={`conf conf-${conf.label.toLowerCase()}`} title={`${conf.label} confidence ${conf.score}/100 · ${conf.rain_agreement}`}>
+                  {conf.label}
+                </i>
+              )}
+            </div>
+          )
+        })}
       </div>
+      {data.confidence?.length ? <p className="card-fine">Confidence = agreement between GFS, ECMWF and ICON, reduced with lead time.</p> : null}
     </CardShell>
   )
 }

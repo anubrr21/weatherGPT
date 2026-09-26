@@ -3,9 +3,12 @@ import AirCard from './AirCard'
 import AlertsCard from './AlertsCard'
 import AviationCard from './AviationCard'
 import ClimateCard from './ClimateCard'
+import FarmCard from './FarmCard'
+import FishingCard from './FishingCard'
 import ForecastCard from './ForecastCard'
 import MarineCard from './MarineCard'
 import ModelsCard from './ModelsCard'
+import UrbanCard from './UrbanCard'
 
 export default function DataCard({ card }: { card: Card }) {
   switch (card.kind) {
@@ -23,5 +26,11 @@ export default function DataCard({ card }: { card: Card }) {
       return <MarineCard place={card.place} data={card.data} />
     case 'aviation':
       return <AviationCard data={card.data} />
+    case 'farm':
+      return <FarmCard place={card.place} data={card.data} />
+    case 'fishing':
+      return <FishingCard place={card.place} data={card.data} />
+    case 'urban':
+      return <UrbanCard place={card.place} data={card.data} />
   }
 }

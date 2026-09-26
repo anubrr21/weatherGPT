@@ -10,13 +10,23 @@
 - React + Vite mobile-first client: live sky canvas, 24 h radial time scrubber, 10-day strip, alert ribbon, streaming chat with data cards, 13 languages, voice in/out
 - Verified end to end against live data sources
 
-## Phase 1 — Intelligence and trust
+## Phase 1 — Intelligence and trust (in progress, 2026-09-26)
 
-- Hook up the Gemini key and test answers in all 13 languages (native script, spoken output)
-- Better alert-to-place matching: district alias table (e.g. Purba Bardhaman ↔ East Burdwan) and CAP polygon geometry where available
-- Sector advisory engines: crop-weather (crop stage, spray windows, irrigation from ET₀), fisher go/no-go, aviation briefing format, urban heat and waterlogging
-- Forecast-confidence scoring from the model spread, shown in answers
-- Conversation memory for the user's role, crops and saved places
+Done and verified against live data:
+- Sector advisory engines (`backend/app/services/advisory.py`)
+  - Farm: spray windows (wind 3–15 km/h, gust <25, no rain ≥30% within 6 h, ≤32 °C, RH ≥35%, daylight), 7-day irrigation balance (FAO-56 Kc × ET₀ minus effective rain, 14 crops × 4 stages), dry spells for harvest, livestock THI, heavy-rain days
+  - Fishing: GO / CAUTION / NO-GO now and for 5 days from waves, gusts and official sea/cyclone warnings
+  - City: NOAA heat index curve and band, waterlogging risk from hourly and 3-hourly rain intensity, commute slots
+  - Aviation: decoded METAR (wind, visibility, weather, cloud incl. CB/TCU, QNH, trend, hazards)
+- Forecast confidence per day from GFS/ECMWF/ICON spread, rain-vote agreement and lead time; shown on forecast cards and given to the LLM
+- Alert matching: word-boundary matching, diacritics stripped, Purba/Paschim → East/West, ~45 district alias groups (Burdwan, Baleshwar/Balasore, Gurugram/Gurgaon…)
+- User profile (role, crops + stage, saved places, notes), stored on device, sent with every chat; the LLM can update it through `update_profile`
+- Role-aware home briefing (`/api/insights`) and profile sheet
+- Offline mode handles farm/fishing/city/aviation intents, crop keywords and better place extraction
+
+Still open:
+- Gemini key → run `backend/eval_languages.py` (13 languages + sector questions: script check, tool use, first-token and total latency) and tune the prompt from the results
+- CAP polygon geometry (the SACHET polygon endpoint returns 403 today)
 
 ## Phase 2 — Real-time ingestion and scale
 

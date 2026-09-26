@@ -1,5 +1,6 @@
 import asyncio
 import re
+import unicodedata
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from typing import Any
@@ -100,29 +101,103 @@ async def official_alerts() -> list[dict[str, Any]]:
         return []
 
 
+DIRECTIONS = {"purba": "east", "paschim": "west", "uttar": "north", "dakshin": "south", "dakshina": "south", "uttara": "north", "pashchim": "west"}
+
+ALIASES = [
+    {"bardhaman", "burdwan", "barddhaman"},
+    {"medinipur", "midnapore", "midnapur"},
+    {"cooch behar", "coochbehar", "koch bihar"},
+    {"darjeeling", "darjiling"},
+    {"howrah", "haora"},
+    {"hooghly", "hugli"},
+    {"kolkata", "calcutta"},
+    {"gurugram", "gurgaon"},
+    {"nuh", "mewat"},
+    {"prayagraj", "allahabad"},
+    {"ayodhya", "faizabad"},
+    {"bengaluru", "bangalore"},
+    {"mysuru", "mysore"},
+    {"kalaburagi", "gulbarga"},
+    {"belagavi", "belgaum"},
+    {"vijayapura", "bijapur"},
+    {"shivamogga", "shimoga"},
+    {"mangaluru", "mangalore", "dakshina kannada", "south kannada"},
+    {"thiruvananthapuram", "trivandrum"},
+    {"kozhikode", "calicut"},
+    {"thrissur", "trichur"},
+    {"kochi", "cochin", "ernakulam"},
+    {"alappuzha", "alleppey"},
+    {"chennai", "madras"},
+    {"tiruchirappalli", "trichy", "tiruchi"},
+    {"thoothukudi", "tuticorin"},
+    {"puducherry", "pondicherry"},
+    {"visakhapatnam", "vizag", "vishakhapatnam", "visakhapatanam"},
+    {"vijayawada", "ntr", "bezawada"},
+    {"nellore", "sri potti sriramulu nellore", "spsr nellore"},
+    {"kadapa", "cuddapah", "ysr", "ysr kadapa"},
+    {"anantapur", "ananthapuramu", "anantapuramu"},
+    {"odisha", "orissa"},
+    {"baleshwar", "balasore"},
+    {"kendujhar", "keonjhar"},
+    {"mumbai", "bombay", "mumbai suburban"},
+    {"pune", "poona"},
+    {"vadodara", "baroda"},
+    {"ahmedabad", "amdavad"},
+    {"varanasi", "banaras", "benares"},
+    {"kanpur", "cawnpore"},
+    {"guwahati", "kamrup metropolitan", "kamrup metro"},
+    {"shimla", "simla"},
+    {"new delhi", "delhi", "nct of delhi", "national capital territory of delhi"},
+]
+
+
 def _normalize(value: str | None) -> str:
-    return re.sub(r"[^a-z ]", " ", (value or "").lower().replace("district", "")).strip()
+    ascii_text = unicodedata.normalize("NFKD", value or "").encode("ascii", "ignore").decode()
+    text = re.sub(r"[^a-z ]", " ", ascii_text.lower())
+    words = [DIRECTIONS.get(w, w) for w in text.split() if w not in {"district", "dist", "city", "urban", "rural"}]
+    return " ".join(words)
+
+
+def _word(term: str) -> str:
+    return f"(?<![a-z]){re.escape(term)}(?![a-z])"
+
+
+def _expand(name: str) -> set[str]:
+    names = {name}
+    for group in ALIASES:
+        for alias in group:
+            if re.search(_word(alias), name):
+                names |= {re.sub(_word(alias), other, name) for other in group}
+                names |= group
+    return names
 
 
 def _place_tokens(place: dict[str, Any]) -> set[str]:
-    tokens = set()
-    for key in ("name", "district", "state"):
+    tokens: set[str] = set()
+    for key in ("name", "district"):
         norm = _normalize(place.get(key))
-        if len(norm) >= 4:
-            tokens.add(norm)
-            tokens.add(norm.replace(" ", ""))
+        if len(norm) >= 3:
+            tokens |= _expand(norm)
+            core = re.sub(r"^(east|west|north|south) ", "", norm)
+            if core != norm and len(core) >= 4:
+                tokens |= {t for t in _expand(core) if len(t) >= 4}
     return tokens
+
+
+def _contains(haystack: str, needle: str) -> bool:
+    return bool(needle) and re.search(_word(needle), haystack) is not None
 
 
 def alerts_for_place(alerts: list[dict[str, Any]], place: dict[str, Any]) -> list[dict[str, Any]]:
     tokens = _place_tokens(place)
-    state = _normalize(place.get("state"))
+    states = _expand(_normalize(place.get("state"))) if place.get("state") else set()
     matched = []
     for alert in alerts:
-        haystack = " ".join(_normalize(a) for a in alert["areas"]) + " " + _normalize(alert.get("headline"))
-        compact = haystack.replace(" ", "")
-        local = any(t in haystack or t.replace(" ", "") in compact for t in tokens if t != state)
-        state_level = bool(state) and (state in haystack or state.replace(" ", "") in compact or state in _normalize(alert.get("sender")))
+        areas = " | ".join(_normalize(a) for a in alert["areas"])
+        haystack = f"{areas} | {_normalize(alert.get('headline'))}"
+        sender = _normalize((alert.get("sender") or "").replace("-", " "))
+        local = any(_contains(haystack, t) for t in tokens if t not in states)
+        state_level = any(_contains(haystack, s) or _contains(sender, s) for s in states)
         if local or state_level:
             matched.append({**alert, "match": "district" if local else "state"})
     matched.sort(key=lambda a: (a["match"] != "district", -SEVERITY_RANK.get(a["severity"], 0)))

@@ -1,4 +1,4 @@
-import type { AlertsBundle, ChatEvent, Forecast, Place } from './types'
+import type { AlertsBundle, ChatEvent, Forecast, Insight, Place, Profile } from './types'
 
 const BASE = import.meta.env.VITE_API_BASE ?? ''
 
@@ -15,6 +15,13 @@ export const api = {
   reverse: (lat: number, lon: number) => get<Place>('/api/reverse', { lat, lon }),
   geocode: (q: string) => get<Place[]>('/api/geocode', { q }),
   alerts: (lat: number, lon: number) => get<AlertsBundle>('/api/alerts', { lat, lon }),
+  insights: (lat: number, lon: number, profile: Profile) =>
+    get<Insight[]>('/api/insights', {
+      lat,
+      lon,
+      role: profile.role,
+      ...(profile.crops[0] ? { crop: profile.crops[0].name, stage: profile.crops[0].stage ?? '' } : {}),
+    }),
 }
 
 export interface ChatPayload {
@@ -24,6 +31,7 @@ export interface ChatPayload {
   lon?: number
   place_name?: string
   language: string
+  profile: Profile
 }
 
 export async function streamChat(payload: ChatPayload, onEvent: (e: ChatEvent) => void, signal?: AbortSignal) {

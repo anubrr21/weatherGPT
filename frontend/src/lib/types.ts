@@ -74,7 +74,17 @@ export interface Day {
   condition: Condition
 }
 
+export interface Confidence {
+  date: string
+  score: number
+  label: 'High' | 'Medium' | 'Low'
+  spread_tmax: number | null
+  spread_rain: number | null
+  rain_agreement: string
+}
+
 export interface Forecast {
+  confidence?: Confidence[]
   model: string
   model_name: string
   timezone: string
@@ -165,6 +175,94 @@ export interface AviationData {
   visibility?: number | string
   altimeter_hpa?: number
   flight_category?: string
+  decoded?: {
+    wind?: string
+    visibility?: string
+    weather: string[]
+    clouds: string[]
+    temp_dew?: string
+    qnh?: string
+    trend?: string
+    hazards: string[]
+  }
+}
+
+export interface SprayWindow {
+  start: string
+  end: string
+  hours: number
+}
+
+export interface FarmData {
+  spray: { windows: SprayWindow[]; rules: string; main_blocker: string | null }
+  irrigation: {
+    crop: string | null
+    stage: string | null
+    kc: number
+    et0_7d_mm: number
+    crop_water_need_7d_mm: number
+    rain_7d_mm: number
+    effective_rain_7d_mm: number
+    deficit_mm: number
+    next_useful_rain: string | null
+    advice: string
+    method: string
+  }
+  dry_spells: { from: string; to: string; days: number }[]
+  livestock: { peak_thi: number; at: string; level: string }
+  heavy_rain_days: string[]
+  hourly: Hour[]
+  daily: Day[]
+}
+
+export type Verdict = 'GO' | 'CAUTION' | 'NO-GO'
+
+export interface FishingData {
+  available: boolean
+  now: Verdict
+  wave_now_m: number | null
+  gust_now_kmh: number | null
+  days: { date: string; wave_max_m: number | null; gust_max_kmh: number | null; rain_mm: number | null; verdict: Verdict }[]
+  official_sea_alerts: { headline: string; severity: string }[]
+  rules: string
+}
+
+export interface UrbanData {
+  heat_index_peak: { time: string; heat_index: number; band: string }
+  heat_series: { time: string; heat_index: number }[]
+  waterlogging_risk: 'low' | 'moderate' | 'high'
+  max_hourly_rain_mm: number
+  max_3h_rain_mm: number
+  commutes: { slot: string; rain_prob: number; rain_mm: number; heat_index: number }[]
+}
+
+export interface Insight {
+  kind: string
+  title: string
+  value: string
+  detail: string
+  tone: string
+}
+
+export type Role = 'general' | 'farmer' | 'fisher' | 'aviation' | 'urban' | 'disaster_manager' | 'researcher'
+
+export interface CropEntry {
+  name: string
+  stage: string | null
+}
+
+export interface Profile {
+  role: Role
+  crops: CropEntry[]
+  places: Place[]
+  notes: string[]
+}
+
+export interface ProfilePatch {
+  role?: Role
+  crops?: CropEntry[]
+  save_place?: Place
+  note?: string
 }
 
 export type Card =
@@ -175,10 +273,14 @@ export type Card =
   | { kind: 'air'; place: Place; data: AirData }
   | { kind: 'marine'; place: Place; data: MarineData }
   | { kind: 'aviation'; place: Place; data: AviationData }
+  | { kind: 'farm'; place: Place; data: FarmData }
+  | { kind: 'fishing'; place: Place; data: FishingData }
+  | { kind: 'urban'; place: Place; data: UrbanData }
 
 export type ChatEvent =
   | { type: 'status'; text: string; tool: string; args: Record<string, unknown> }
   | { type: 'card'; card: Card }
+  | { type: 'profile'; patch: ProfilePatch }
   | { type: 'delta'; text: string }
   | { type: 'error'; text: string }
   | { type: 'done' }

@@ -1,6 +1,8 @@
+import asyncio
 from dataclasses import dataclass, field
 from typing import Any
 
+from app.services import advisory
 from app.services import alerts as alert_service
 from app.services import weather
 
@@ -11,7 +13,9 @@ class ChatContext:
     lon: float | None = None
     place_name: str | None = None
     language: str = "en"
+    profile: dict[str, Any] = field(default_factory=dict)
     cards: list[dict[str, Any]] = field(default_factory=list)
+    profile_updates: list[dict[str, Any]] = field(default_factory=list)
 
 
 class ToolError(Exception):
@@ -87,11 +91,24 @@ def _compact_forecast(fc: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+async def _confidence(lat: float, lon: float) -> list[dict[str, Any]]:
+    try:
+        return weather.confidence(await weather.compare_models(lat, lon))
+    except Exception:
+        return []
+
+
 async def get_forecast(ctx: ChatContext, location: str | None = None, model: str = "best_match") -> dict[str, Any]:
     place = await resolve_place(location, ctx)
-    fc = await weather.forecast(place["lat"], place["lon"], model=model)
-    ctx.cards.append({"kind": "forecast", "place": place, "data": fc})
-    return {"place": _label(place), **_compact_forecast(fc)}
+    fc, conf = await asyncio.gather(weather.forecast(place["lat"], place["lon"], model=model), _confidence(place["lat"], place["lon"]))
+    ctx.cards.append({"kind": "forecast", "place": place, "data": {**fc, "confidence": conf}})
+    compact = _compact_forecast(fc)
+    by_date = {c["date"]: c for c in conf}
+    for day in compact["daily"]:
+        c = by_date.get(day["date"])
+        if c:
+            day["confidence"] = f"{c['label']} ({c['score']}/100, {c['rain_agreement']})"
+    return {"place": _label(place), **compact}
 
 
 async def get_alerts(ctx: ChatContext, location: str | None = None) -> dict[str, Any]:
@@ -152,8 +169,79 @@ async def get_marine(ctx: ChatContext, location: str | None = None) -> dict[str,
 
 async def get_aviation(ctx: ChatContext, icao: str) -> dict[str, Any]:
     data = await weather.metar(icao)
+    if data.get("available"):
+        data = {**data, "decoded": advisory.decode_metar(data.get("raw_metar"))}
     ctx.cards.append({"kind": "aviation", "place": {"name": icao.upper()}, "data": data})
     return data
+
+
+def _profile_crop(ctx: ChatContext, crop: str | None, stage: str | None) -> tuple[str | None, str | None]:
+    if crop:
+        return crop, stage
+    crops = ctx.profile.get("crops") or []
+    if crops:
+        return crops[0].get("name"), stage or crops[0].get("stage")
+    return None, stage
+
+
+async def get_farm_advisory(ctx: ChatContext, location: str | None = None, crop: str | None = None, stage: str | None = None) -> dict[str, Any]:
+    place = await resolve_place(location, ctx)
+    crop, stage = _profile_crop(ctx, crop, stage)
+    fc = await weather.forecast(place["lat"], place["lon"])
+    data = advisory.farm_advisory(fc, crop, stage)
+    ctx.cards.append({"kind": "farm", "place": place, "data": {**data, "hourly": fc["hourly"], "daily": fc["daily"][:7]}})
+    return {"place": _label(place), **data}
+
+
+async def get_fishing_advisory(ctx: ChatContext, location: str | None = None) -> dict[str, Any]:
+    place = await resolve_place(location, ctx)
+    fc, sea, feed = await asyncio.gather(
+        weather.forecast(place["lat"], place["lon"]),
+        weather.marine(place["lat"], place["lon"]),
+        alert_service.official_alerts(),
+    )
+    data = advisory.fishing_advisory(sea, fc, alert_service.alerts_for_place(feed, place))
+    ctx.cards.append({"kind": "fishing", "place": place, "data": data})
+    return {"place": _label(place), **data}
+
+
+async def get_city_advisory(ctx: ChatContext, location: str | None = None) -> dict[str, Any]:
+    place = await resolve_place(location, ctx)
+    fc = await weather.forecast(place["lat"], place["lon"])
+    data = advisory.urban_advisory(fc)
+    ctx.cards.append({"kind": "urban", "place": place, "data": data})
+    return {"place": _label(place), **{k: v for k, v in data.items() if k != "heat_series"}}
+
+
+ROLES = ["general", "farmer", "fisher", "aviation", "urban", "disaster_manager", "researcher"]
+
+
+async def update_profile(
+    ctx: ChatContext,
+    role: str | None = None,
+    crops: list[dict[str, Any]] | None = None,
+    save_place: str | None = None,
+    note: str | None = None,
+) -> dict[str, Any]:
+    patch: dict[str, Any] = {}
+    if role in ROLES:
+        patch["role"] = role
+    if crops:
+        patch["crops"] = [
+            {"name": advisory.normalize_crop(c.get("name")) or c.get("name"), "stage": c.get("stage") if c.get("stage") in advisory.STAGES else None}
+            for c in crops
+            if c.get("name")
+        ]
+    if save_place:
+        results = await weather.geocode(save_place, count=1)
+        if results:
+            patch["save_place"] = results[0]
+    if note:
+        patch["note"] = note[:200]
+    if patch:
+        ctx.profile_updates.append(patch)
+        ctx.profile = {**ctx.profile, **{k: v for k, v in patch.items() if k in ("role", "crops")}}
+    return {"saved": patch or "nothing to save"}
 
 
 TOOL_FUNCTIONS = {
@@ -164,6 +252,10 @@ TOOL_FUNCTIONS = {
     "get_air_quality": get_air_quality,
     "get_marine": get_marine,
     "get_aviation": get_aviation,
+    "get_farm_advisory": get_farm_advisory,
+    "get_fishing_advisory": get_fishing_advisory,
+    "get_city_advisory": get_city_advisory,
+    "update_profile": update_profile,
 }
 
 _LOCATION = {
@@ -225,6 +317,51 @@ TOOL_DECLARATIONS = [
             "type": "OBJECT",
             "properties": {"icao": {"type": "STRING", "description": "4-letter ICAO airport code."}},
             "required": ["icao"],
+        },
+    },
+    {
+        "name": "get_farm_advisory",
+        "description": "Agro-met advisory for farmers: pesticide/fertiliser spray windows in the next 48 h, 7-day irrigation water balance (FAO-56 crop coefficient x ET0 minus effective rain), dry spells for harvest/drying, livestock heat stress (THI), heavy-rain days. Use for any farming, crop, sowing, spraying, irrigation, harvest or livestock question.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "location": _LOCATION,
+                "crop": {"type": "STRING", "enum": list(advisory.CROP_KC), "description": "Crop, translated to one of the listed values (rice->paddy, chana/dal->pulses, tomato/onion->vegetables, bajra/ragi->millets). Omit to use the user's profile crop."},
+                "stage": {"type": "STRING", "enum": list(advisory.STAGES), "description": "Crop growth stage if known."},
+            },
+        },
+    },
+    {
+        "name": "get_fishing_advisory",
+        "description": "Go / caution / no-go verdict for fishermen and small boats for now and the next 5 days from wave height, wind gusts and official sea/cyclone warnings. Location must be coastal.",
+        "parameters": {"type": "OBJECT", "properties": {"location": _LOCATION}},
+    },
+    {
+        "name": "get_city_advisory",
+        "description": "Urban advisory: heat index (feels-like) peak and band, waterlogging risk from rain intensity, and morning/evening commute weather. Use for city life, commute, outdoor work, school, events, heat or waterlogging questions.",
+        "parameters": {"type": "OBJECT", "properties": {"location": _LOCATION}},
+    },
+    {
+        "name": "update_profile",
+        "description": "Remember facts the user states about themselves so future answers are tailored: their role, the crops they grow (with stage), a place to save, or a short note. Call it when the user tells you such a fact, together with any data tool needed to answer.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "role": {"type": "STRING", "enum": ROLES},
+                "crops": {
+                    "type": "ARRAY",
+                    "items": {
+                        "type": "OBJECT",
+                        "properties": {
+                            "name": {"type": "STRING", "enum": list(advisory.CROP_KC)},
+                            "stage": {"type": "STRING", "enum": list(advisory.STAGES)},
+                        },
+                        "required": ["name"],
+                    },
+                },
+                "save_place": {"type": "STRING", "description": "A place name the user wants saved, e.g. their village or farm location."},
+                "note": {"type": "STRING", "description": "Short other fact worth remembering, e.g. 'owns a 5 m fibre boat'."},
+            },
         },
     },
 ]

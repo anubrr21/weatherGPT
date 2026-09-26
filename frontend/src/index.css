@@ -1687,3 +1687,511 @@ button:disabled {
     transition-duration: 0.01ms !important;
   }
 }
+
+.insights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.insight {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  padding: 11px 13px;
+  border-radius: 16px;
+  background: var(--glass);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.insight:hover {
+  border-color: var(--line-2);
+  transform: translateY(-1px);
+}
+
+.insight-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.insight b {
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.insight small {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.insight.calm .insight-title svg {
+  color: var(--calm);
+}
+
+.insight.moderate {
+  border-color: rgba(255, 200, 87, 0.35);
+}
+
+.insight.moderate .insight-title svg {
+  color: var(--moderate);
+}
+
+.insight.severe {
+  border-color: rgba(255, 138, 76, 0.5);
+}
+
+.insight.severe .insight-title svg {
+  color: var(--severe);
+}
+
+.search-panel.profile {
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  padding-bottom: 16px;
+}
+
+.profile-head {
+  position: relative;
+  padding: 18px 56px 6px 18px;
+}
+
+.profile-head h2 {
+  margin: 0;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 34px;
+}
+
+.profile-head p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+.profile-head .icon-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.search-panel.profile section {
+  padding: 12px 18px 4px;
+}
+
+.search-panel.profile h3 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-family: var(--mono);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chips button {
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 13px;
+}
+
+.chips button.on {
+  background: linear-gradient(135deg, #ffb35c, #ff6a3d);
+  border-color: transparent;
+  color: #1a0d05;
+  font-weight: 600;
+}
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rows li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 4px 6px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.rows li.dim {
+  background: none;
+  padding-left: 0;
+  font-size: 13px;
+}
+
+.rows li > b {
+  flex: 1;
+  text-transform: capitalize;
+  font-weight: 500;
+}
+
+.rows select,
+.add-row select {
+  appearance: none;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 13px;
+  text-transform: capitalize;
+}
+
+.rows option,
+.add-row option {
+  background: #0d1426;
+}
+
+.row-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  min-width: 0;
+}
+
+.row-main span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.row-main small {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+.note {
+  flex: 1;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.add-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.add-row select {
+  flex: 1;
+  min-width: 0;
+}
+
+.add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 10px;
+  background: rgba(143, 211, 255, 0.14);
+  color: var(--accent-2);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.add-btn.wide {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.card-sub.first {
+  margin-top: 0;
+}
+
+.card-fine {
+  margin: 8px 0 0;
+  font-size: 10.5px;
+  color: var(--ink-3);
+  line-height: 1.4;
+}
+
+.card-note.warn {
+  color: var(--moderate);
+}
+
+.spray-strip {
+  display: grid;
+  grid-template-columns: repeat(48, 1fr);
+  gap: 2px;
+  height: 22px;
+}
+
+.spray-strip span {
+  border-radius: 3px;
+  background: rgba(255, 138, 76, 0.4);
+}
+
+.spray-strip span.ok {
+  background: var(--calm);
+}
+
+.spray-strip span.night {
+  background: rgba(120, 140, 220, 0.18);
+}
+
+.spray-axis {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink-3);
+  margin-top: 3px;
+}
+
+.balance {
+  margin-bottom: 10px;
+}
+
+.balance-bar {
+  height: 10px;
+  border-radius: 99px;
+  background: rgba(255, 138, 76, 0.28);
+  overflow: hidden;
+}
+
+.balance-bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #4aa3ff, #8fd3ff);
+  border-radius: 99px;
+}
+
+.balance-legend {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.balance-legend > b {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.stats b {
+  text-transform: capitalize;
+}
+
+.stats b.calm {
+  color: var(--calm);
+}
+
+.stats b.minor {
+  color: var(--minor);
+}
+
+.stats b.moderate {
+  color: var(--moderate);
+}
+
+.stats b.severe {
+  color: var(--severe);
+}
+
+.verdict {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(95, 211, 154, 0.12);
+  color: var(--calm);
+}
+
+.verdict b {
+  font-family: var(--serif);
+  font-size: 34px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.verdict span {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.verdict.moderate {
+  background: rgba(255, 200, 87, 0.12);
+  color: var(--moderate);
+}
+
+.verdict.extreme {
+  background: rgba(255, 77, 109, 0.14);
+  color: var(--extreme);
+}
+
+.verdict-days {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.verdict-days div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 7px 2px;
+  border-radius: 10px;
+  background: rgba(95, 211, 154, 0.1);
+  font-size: 11px;
+}
+
+.verdict-days div.moderate {
+  background: rgba(255, 200, 87, 0.12);
+}
+
+.verdict-days div.extreme {
+  background: rgba(255, 77, 109, 0.14);
+}
+
+.verdict-days span {
+  color: var(--ink-2);
+}
+
+.verdict-days b {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--calm);
+}
+
+.verdict-days .moderate b {
+  color: var(--moderate);
+}
+
+.verdict-days .extreme b {
+  color: var(--extreme);
+}
+
+.verdict-days small {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink-3);
+  text-align: center;
+}
+
+.band-line {
+  stroke: rgba(255, 255, 255, 0.14);
+  stroke-dasharray: 3 4;
+}
+
+.commutes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.commutes div {
+  display: flex;
+  flex-direction: column;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 11px;
+}
+
+.commutes span {
+  color: var(--ink-3);
+  text-transform: capitalize;
+}
+
+.commutes b {
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.commutes b.cool {
+  color: var(--accent-2);
+}
+
+.commutes small {
+  color: var(--ink-3);
+}
+
+.decoded {
+  margin: 10px 0 0;
+  display: grid;
+  gap: 4px;
+}
+
+.decoded div {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.decoded dt {
+  color: var(--ink-3);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-top: 2px;
+}
+
+.decoded dd {
+  margin: 0;
+}
+
+.decoded .hazard dd {
+  color: var(--severe);
+  font-weight: 500;
+}
+
+.conf {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border-radius: 99px;
+  margin-top: 2px;
+}
+
+.conf-high {
+  color: var(--calm);
+  background: rgba(95, 211, 154, 0.12);
+}
+
+.conf-medium {
+  color: var(--moderate);
+  background: rgba(255, 200, 87, 0.12);
+}
+
+.conf-low {
+  color: var(--severe);
+  background: rgba(255, 138, 76, 0.14);
+}

@@ -7,7 +7,7 @@ from typing import Any, AsyncIterator
 import httpx
 
 from app.config import get_settings
-from app.services import tools
+from app.services import advisory, tools
 from app.services.http import client
 
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent"
@@ -27,7 +27,27 @@ TOOL_STATUS = {
     "get_air_quality": "Reading air quality sensors",
     "get_marine": "Reading sea state",
     "get_aviation": "Fetching METAR / TAF",
+    "get_farm_advisory": "Computing agro-met advisory",
+    "get_fishing_advisory": "Assessing sea for small boats",
+    "get_city_advisory": "Computing heat index & waterlogging",
+    "update_profile": "Remembering that",
 }
+
+
+def _profile_text(profile: dict[str, Any]) -> str:
+    parts = []
+    if profile.get("role") and profile["role"] != "general":
+        parts.append(f"role: {profile['role'].replace('_', ' ')}")
+    crops = [f"{c.get('name')}{' (' + c['stage'] + ' stage)' if c.get('stage') else ''}" for c in profile.get("crops") or [] if c.get("name")]
+    if crops:
+        parts.append("crops: " + ", ".join(crops))
+    places = [p.get("name") for p in profile.get("places") or [] if p.get("name")]
+    if places:
+        parts.append("saved places: " + ", ".join(places[:6]))
+    notes = [n for n in profile.get("notes") or [] if n]
+    if notes:
+        parts.append("notes: " + "; ".join(notes[-5:]))
+    return "; ".join(parts) if parts else "nothing known yet"
 
 
 def system_prompt(ctx: tools.ChatContext) -> str:
@@ -40,12 +60,15 @@ def system_prompt(ctx: tools.ChatContext) -> str:
     return f"""You are WeatherGPT, a meteorological assistant for India built on live data: NWP models (GFS, ECMWF, ICON), official IMD/NDMA CAP warnings, ERA5 climate reanalysis, CPCB-style AQI, marine and METAR data.
 
 Current local date-time: {datetime.now().strftime('%A %d %B %Y, %H:%M')}. {where}.
+What you know about this user: {_profile_text(ctx.profile)}.
 
 Rules:
 - Always call tools for real data. Never invent numbers. If a tool fails, say so plainly.
 - Reply in {language} unless the user clearly writes in another language; then reply in that language. Use the native script. Keep place names recognisable.
 - Be concise and actionable: lead with the direct answer, then key numbers, then practical advice. Short paragraphs or tight bullet points; no tables (the app renders rich cards from tool data next to your reply).
-- Tailor advice to the user's role when evident: farmers (sowing, spraying, irrigation, harvest windows, using rain and evapotranspiration), fishermen/marine (wave height, go/no-go), aviation (flight category, winds, visibility), urban (commute, waterlogging, heat), disaster managers (severity, timing, affected areas).
+- Tailor advice to the user's role and crops. Use the sector tools: get_farm_advisory for farmers (give concrete spray windows with times, irrigate/hold with mm, harvest/drying days), get_fishing_advisory for fishermen (lead with GO / CAUTION / NO-GO), get_aviation for pilots (decoded briefing: flight category, wind, visibility, cloud, hazards, trend), get_city_advisory for urban users (heat index, waterlogging, commute), get_alerts for disaster managers (severity, timing, affected areas, actions).
+- When the user states a lasting fact about themselves (their job, crops and stage, village, boat), call update_profile as well, then answer. Do not announce that you saved it unless asked.
+- Each forecast day carries a model-agreement confidence. Mention it when the answer depends on uncertain rain or days beyond tomorrow.
 - For safety questions, prioritise official IMD/NDMA warnings and clearly distinguish them from model-derived advisories. Include specific protective actions.
 - Express uncertainty honestly: forecasts beyond 3 days are less reliable; mention model disagreement when relevant.
 - Temperatures in °C, rain in mm, wind in km/h (knots for aviation)."""
@@ -130,9 +153,12 @@ async def run_llm(message: str, history: list[dict[str, str]], ctx: tools.ChatCo
         for call in calls:
             yield _event("status", text=TOOL_STATUS.get(call["name"], call["name"]), tool=call["name"], args=call.get("args", {}))
         before = len(ctx.cards)
+        updates_before = len(ctx.profile_updates)
         results = await asyncio.gather(*(_run_tool(c["name"], c.get("args") or {}, ctx) for c in calls))
         for card in ctx.cards[before:]:
             yield _event("card", card=card)
+        for patch in ctx.profile_updates[updates_before:]:
+            yield _event("profile", patch=patch)
         contents.append({
             "role": "user",
             "parts": [{"functionResponse": {"name": c["name"], "response": r}} for c, r in zip(calls, results)],
@@ -141,20 +167,29 @@ async def run_llm(message: str, history: list[dict[str, str]], ctx: tools.ChatCo
 
 
 INTENTS = [
+    ("get_farm_advisory", r"spray|pesticide|fertili|irrigat|crop|farm|sow|harvest|paddy|wheat|cotton|kisan|khet|छिड़क|सिंचाई|फसल|किसान|धान|పంట|పిచికారీ|பயிர்|ফসল"),
+    ("get_fishing_advisory", r"fisher|fishing|boat|venture|मछु|नाव|మత్స్య|పడవ|மீன்|படகு|মাছ"),
+    ("get_city_advisory", r"commute|office|waterlog|traffic|heat index|feels like|school|outdoor|jalbhar|जलभराव"),
     ("get_alerts", r"alert|warn|cyclone|flood|storm|safe|danger|चेतावनी|तूफान|बाढ़|హెచ్చరిక|எச்சரிக்கை|সতর্ক"),
     ("get_climate", r"climate|trend|histor|normal|hotter|warmer|\d+ years|past years|last year|जलवायु|ఇతిహాస|காலநிலை"),
     ("compare_models", r"model|gfs|ecmwf|icon|confiden|uncertain"),
     ("get_air_quality", r"aqi|air quality|pollution|pm2|smog|प्रदूषण"),
-    ("get_marine", r"sea|wave|marine|fish|boat|tide|समुद्र|मछु"),
+    ("get_marine", r"sea|wave|marine|tide|समुद्र"),
 ]
 
 
+NOT_PLACES = re.compile(
+    r"^(the|my|our|this|that|here|there|today|tomorrow|tonight|now|next|coming|few|some|all|a|an|week|weekend|days?|hours?|morning|evening)\b",
+    re.I,
+)
+
+
 def _extract_location(message: str) -> str | None:
-    match = re.search(r"\b(?:in|at|for|near|of)\s+([A-Za-z][A-Za-z .'-]{2,40}?)(?:\s+(?:today|tomorrow|now|this|next|tonight|on|during|weather)\b|[?.!,]|$)", message, re.I)
-    if match:
-        candidate = match.group(1).strip()
-        if candidate.lower() not in {"the", "my area", "here", "my location", "today", "tomorrow"}:
-            return candidate
+    tail = re.compile(r"([A-Za-z][A-Za-z .'-]{2,40}?)(?:\s+(?:today|tomorrow|now|this|next|tonight|on|during|weather|and|to|in|for)\b|[?.!,]|$)", re.I)
+    for prep in re.finditer(r"\b(?:in|at|for|near|of|from|around)\s+", message, re.I):
+        match = tail.match(message, prep.end())
+        if match and not NOT_PLACES.match(match.group(1).strip()):
+            return match.group(1).strip()
     return None
 
 
@@ -196,7 +231,25 @@ def _offline_summary(name: str, result: dict[str, Any]) -> str:
     if name == "get_aviation":
         if not result.get("available"):
             return f"No recent METAR for {result['station']}."
-        return f"**{result['station']}** {result.get('flight_category') or ''} — `{result['raw_metar']}`"
+        d = result.get("decoded") or {}
+        bits = [d.get("wind"), f"visibility {d['visibility']}" if d.get("visibility") else None, ", ".join(d.get("weather") or []) or None,
+                "; ".join(d.get("clouds") or []) or None]
+        return f"**{result['station']}** {result.get('flight_category') or ''} — " + " · ".join(b for b in bits if b) + f"\n\n`{result['raw_metar']}`"
+    if name == "get_farm_advisory":
+        w = result["spray"]["windows"]
+        irr = result["irrigation"]
+        spray = f"Spray window: {w[0]['start'][5:16].replace('T', ' ')} for {w[0]['hours']} h." if w else f"No safe spray window in 48 h (mostly {result['spray']['main_blocker']})."
+        return (
+            f"**{place}** — {spray}\n\n"
+            f"Water balance ({irr['crop'] or 'reference crop'}, 7 d): need {irr['crop_water_need_7d_mm']} mm, effective rain {irr['effective_rain_7d_mm']} mm → {irr['advice']}"
+        )
+    if name == "get_fishing_advisory":
+        return f"**{place}** — **{result['now']}** now ({f"waves {result['wave_now_m']} m, " if result['wave_now_m'] is not None else ""}gusts {result['gust_now_kmh']} km/h). " + " · ".join(
+            f"{d['date'][5:]}: {d['verdict']}" for d in result["days"]
+        )
+    if name == "get_city_advisory":
+        peak = result["heat_index_peak"]
+        return f"**{place}** — feels-like peak {peak['heat_index']} °C at {peak['time'][11:16]} ({peak['band']}); waterlogging risk {result['waterlogging_risk']}."
     if name == "compare_models":
         return f"Model comparison for **{place}** is shown in the card."
     return json.dumps(result)[:800]
@@ -210,6 +263,10 @@ async def run_offline(message: str, ctx: tools.ChatContext) -> AsyncIterator[dic
         name = next((tool for tool, pattern in INTENTS if re.search(pattern, message, re.I)), "get_forecast")
         location = _extract_location(message)
         args = {"location": location} if location else {}
+        if name == "get_farm_advisory":
+            crop = next((c for c in map(advisory.normalize_crop, re.findall(r"\w+", message)) if c), None)
+            if crop:
+                args["crop"] = crop
     yield _event("status", text=TOOL_STATUS[name], tool=name, args=args)
     result = await _run_tool(name, args, ctx)
     for card in ctx.cards:

@@ -1,15 +1,18 @@
-import { MapPin, MessageSquareText, RefreshCw } from 'lucide-react'
+import { MapPin, MessageSquareText, RefreshCw, UserRound } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import AlertRibbon from './components/AlertRibbon'
 import Chat from './components/Chat'
 import DayStrip from './components/DayStrip'
 import Hud from './components/Hud'
+import InsightStrip from './components/InsightStrip'
 import LocationSearch from './components/LocationSearch'
+import ProfileSheet from './components/ProfileSheet'
 import SkyCanvas from './components/SkyCanvas'
 import TimeDial from './components/TimeDial'
 import { api, streamChat } from './lib/api'
+import { applyPatch, loadProfile, saveProfile } from './lib/profile'
 import { momentAt, skyFor } from './lib/sky'
-import type { AlertsBundle, ChatEvent, Forecast, Message, Place } from './lib/types'
+import type { AlertsBundle, ChatEvent, Forecast, Insight, Message, Place, Profile } from './lib/types'
 
 const FALLBACK: Place = { name: 'Amaravati', district: 'Guntur', state: 'Andhra Pradesh', lat: 16.514, lon: 80.516 }
 const STORE = 'weathergpt:v1'
@@ -37,6 +40,17 @@ function save(patch: Saved) {
 
 const uid = () => Math.random().toString(36).slice(2, 10)
 
+const INSIGHT_QUESTIONS: Record<string, string> = {
+  spray: 'When can I safely spray pesticide in the next two days?',
+  irrigation: 'Should I irrigate my crop this week, and how much?',
+  dry: 'Is there a dry spell coming for harvesting and drying my produce?',
+  sea: 'Is it safe to take the boat out today and this week?',
+  heat: 'How hot will it feel today and how do I stay safe?',
+  flood: 'Is there any risk of waterlogging in my area?',
+  commute: 'What will the weather be like for my commute?',
+  day: 'What is the weather today and tomorrow?',
+}
+
 export default function App() {
   const saved = useMemo(load, [])
   const [place, setPlace] = useState<Place | null>(saved.place ?? null)
@@ -51,6 +65,9 @@ export default function App() {
   const [messages, setMessages] = useState<Message[]>([])
   const [busy, setBusy] = useState(false)
   const [llm, setLlm] = useState<boolean | null>(null)
+  const [profile, setProfileState] = useState<Profile>(loadProfile)
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [insights, setInsights] = useState<Insight[] | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
   const locate = useCallback(() => {
@@ -100,6 +117,20 @@ export default function App() {
     return () => clearInterval(id)
   }, [refresh])
 
+  const setProfile = useCallback((next: Profile | ((p: Profile) => Profile)) => {
+    setProfileState((prev) => {
+      const value = typeof next === 'function' ? next(prev) : next
+      saveProfile(value)
+      return value
+    })
+  }, [])
+
+  const insightKey = `${profile.role}:${profile.crops[0]?.name ?? ''}:${profile.crops[0]?.stage ?? ''}`
+  useEffect(() => {
+    if (!place || !fc) return
+    api.insights(place.lat, place.lon, profile).then(setInsights).catch(() => setInsights(null))
+  }, [place?.lat, place?.lon, fc?.current.time, insightKey])
+
   const moment = fc ? momentAt(fc, hour) : null
   const sky = fc && moment ? skyFor(fc, moment) : null
 
@@ -124,6 +155,7 @@ export default function App() {
         else if (e.type === 'card') patchLast((m) => ({ ...m, cards: [...m.cards, e.card] }))
         else if (e.type === 'delta') patchLast((m) => ({ ...m, text: m.text + e.text }))
         else if (e.type === 'error') patchLast((m) => ({ ...m, error: e.text }))
+        else if (e.type === 'profile') setProfile((p) => applyPatch(p, e.patch))
       }
       try {
         await streamChat(
@@ -134,6 +166,7 @@ export default function App() {
             lon: place?.lon,
             place_name: place?.name,
             language,
+            profile,
           },
           onEvent,
           controller.signal,
@@ -145,7 +178,7 @@ export default function App() {
         setBusy(false)
       }
     },
-    [busy, messages, place, language],
+    [busy, messages, place, language, profile],
   )
 
   const subtitle = place
@@ -168,6 +201,9 @@ export default function App() {
           <button className="icon-btn glass" onClick={refresh} aria-label="Refresh">
             <RefreshCw size={16} />
           </button>
+          <button className={`icon-btn glass ${profile.role !== 'general' ? 'active' : ''}`} onClick={() => setProfileOpen(true)} aria-label="Your profile">
+            <UserRound size={17} />
+          </button>
         </header>
 
         {loadError && (
@@ -180,6 +216,7 @@ export default function App() {
           <>
             <Hud fc={fc} m={moment} />
             <AlertRibbon bundle={alerts} onAsk={send} />
+            <InsightStrip items={insights} onAsk={(kind) => send(INSIGHT_QUESTIONS[kind] ?? INSIGHT_QUESTIONS.day)} />
             <TimeDial hours={fc.hourly} selected={hour} onSelect={setHour} />
             <DayStrip days={fc.daily} />
           </>
@@ -214,8 +251,24 @@ export default function App() {
         />
       </aside>
 
+      {profileOpen && (
+        <ProfileSheet
+          profile={profile}
+          current={place}
+          onChange={setProfile}
+          onClose={() => setProfileOpen(false)}
+          onPickPlace={(p) => {
+            setPlace(p)
+            setUsingDevice(false)
+            save({ place: p })
+            setProfileOpen(false)
+          }}
+        />
+      )}
+
       {searchOpen && (
         <LocationSearch
+          saved={profile.places}
           onClose={() => setSearchOpen(false)}
           onLocate={locate}
           onPick={(p) => {

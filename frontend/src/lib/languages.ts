@@ -25,8 +25,9 @@ export const languageByCode = (code: string) => LANGUAGES.find((l) => l.code ===
 
 export const PROMPTS: Record<string, { persona: string; text: string }[]> = {
   en: [
-    { persona: 'Farmer', text: 'Is it safe to spray pesticide on my paddy field tomorrow morning?' },
+    { persona: 'Farmer', text: 'I grow paddy near Tenali. When can I spray pesticide, and do I need to irrigate this week?' },
     { persona: 'Fisher', text: 'Can boats go out from Visakhapatnam today? How rough is the sea?' },
+    { persona: 'City', text: 'How hot will it feel in Chennai today, and will my commute get waterlogged?' },
     { persona: 'Aviation', text: 'Give me a weather briefing for Delhi airport VIDP' },
     { persona: 'Safety', text: 'Are there any IMD warnings for my area right now?' },
     { persona: 'Climate', text: 'Has this place become hotter over the last 30 years?' },

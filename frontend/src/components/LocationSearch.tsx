@@ -4,12 +4,13 @@ import { api } from '../lib/api'
 import type { Place } from '../lib/types'
 
 interface Props {
+  saved: Place[]
   onPick: (p: Place) => void
   onLocate: () => void
   onClose: () => void
 }
 
-export default function LocationSearch({ onPick, onLocate, onClose }: Props) {
+export default function LocationSearch({ saved, onPick, onLocate, onClose }: Props) {
   const [q, setQ] = useState('')
   const [results, setResults] = useState<Place[]>([])
   const [loading, setLoading] = useState(false)
@@ -55,7 +56,7 @@ export default function LocationSearch({ onPick, onLocate, onClose }: Props) {
         </button>
         <ul className="search-results">
           {loading && <li className="dim">Searching…</li>}
-          {results.map((p) => (
+          {(q.trim().length < 2 ? saved : results).map((p) => (
             <li key={`${p.lat},${p.lon}`}>
               <button onClick={() => onPick(p)}>
                 <MapPin size={15} />

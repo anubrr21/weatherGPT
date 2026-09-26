@@ -1,5 +1,6 @@
 import json
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,7 +8,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.config import get_settings
-from app.services import agent, alerts, weather
+from app.services import advisory, agent, alerts, weather
 from app.services.http import close_client
 from app.services.tools import ChatContext
 
@@ -86,6 +87,12 @@ async def location_alerts(lat: float = Lat, lon: float = Lon):
     }
 
 
+@app.get("/api/insights")
+async def insights(lat: float = Lat, lon: float = Lon, role: str = "general", crop: str | None = None, stage: str | None = None):
+    fc = await _guard(weather.forecast(lat, lon))
+    return advisory.home_insights(role, fc, crop, stage)
+
+
 @app.get("/api/alerts/india")
 async def india_alerts():
     return await alerts.official_alerts()
@@ -103,11 +110,12 @@ class ChatRequest(BaseModel):
     lon: float | None = None
     place_name: str | None = None
     language: str = "en"
+    profile: dict[str, Any] = {}
 
 
 @app.post("/api/chat")
 async def chat(req: ChatRequest):
-    ctx = ChatContext(lat=req.lat, lon=req.lon, place_name=req.place_name, language=req.language)
+    ctx = ChatContext(lat=req.lat, lon=req.lon, place_name=req.place_name, language=req.language, profile=req.profile)
 
     async def stream():
         async for event in agent.chat(req.message, [t.model_dump() for t in req.history], ctx):

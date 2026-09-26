@@ -384,3 +384,24 @@ async def metar(icao: str) -> dict[str, Any]:
         }
 
     return await _metar_cache.get_or_set(f"metar:{code}", load)
+
+
+def confidence(compare: dict[str, Any]) -> list[dict[str, Any]]:
+    out = []
+    for i, day in enumerate(compare["days"]):
+        spread_t = day.get("spread_tmax") or 0
+        spread_r = min(day.get("spread_rain") or 0, 40)
+        rains = [day[m]["rain"] for m in compare["models"] if day[m]["rain"] is not None]
+        wet_votes = sum(1 for r in rains if r >= 2.5)
+        rain_split = 0 < wet_votes < len(rains)
+        score = 100 - i * 5 - spread_t * 7 - spread_r * 1.1 - (12 if rain_split else 0)
+        score = int(max(5, min(100, round(score))))
+        out.append({
+            "date": day["date"],
+            "score": score,
+            "label": "High" if score >= 75 else "Medium" if score >= 50 else "Low",
+            "spread_tmax": day.get("spread_tmax"),
+            "spread_rain": day.get("spread_rain"),
+            "rain_agreement": f"{wet_votes}/{len(rains)} models expect ≥2.5 mm",
+        })
+    return out
