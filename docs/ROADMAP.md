@@ -23,9 +23,10 @@ Done and verified against live data:
 - User profile (role, crops + stage, saved places, notes), stored on device, sent with every chat; the LLM can update it through `update_profile`
 - Role-aware home briefing (`/api/insights`) and profile sheet
 - Offline mode handles farm/fishing/city/aviation intents, crop keywords and better place extraction
+- LLM provider chain Gemini -> Groq (openai/gpt-oss-120b) -> offline intent engine; a provider failing mid-answer emits reset and the next one answers cleanly; verified with invalid keys and a simulated mid-stream failure
 
 Still open:
-- Gemini key → run `backend/eval_languages.py` (13 languages + sector questions: script check, tool use, first-token and total latency) and tune the prompt from the results
+- Gemini/Groq keys → run `backend/eval_languages.py` (13 languages + sector questions: script check, tool use, first-token and total latency) and tune the prompt from the results
 - CAP polygon geometry (the SACHET polygon endpoint returns 403 today)
 
 ## Phase 2 — Real-time ingestion and scale

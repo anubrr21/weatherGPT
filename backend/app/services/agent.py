@@ -4,13 +4,8 @@ import re
 from datetime import datetime
 from typing import Any, AsyncIterator
 
-import httpx
+from app.services import advisory, providers, tools
 
-from app.config import get_settings
-from app.services import advisory, tools
-from app.services.http import client
-
-GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent"
 MAX_TOOL_ROUNDS = 5
 
 LANGUAGES = {
@@ -74,45 +69,6 @@ Rules:
 - Temperatures in °C, rain in mm, wind in km/h (knots for aviation)."""
 
 
-def _history_to_contents(history: list[dict[str, str]], message: str) -> list[dict[str, Any]]:
-    contents = []
-    for turn in history[-12:]:
-        text = (turn.get("text") or "").strip()
-        if not text:
-            continue
-        contents.append({"role": "model" if turn.get("role") == "assistant" else "user", "parts": [{"text": text}]})
-    contents.append({"role": "user", "parts": [{"text": message}]})
-    return contents
-
-
-async def _stream_gemini(payload: dict[str, Any]) -> AsyncIterator[dict[str, Any]]:
-    settings = get_settings()
-    url = GEMINI_URL.format(model=settings.gemini_model)
-    delays = [1.5, 3.0, 6.0]
-    for attempt in range(len(delays) + 1):
-        async with client().stream(
-            "POST",
-            url,
-            params={"alt": "sse"},
-            headers={"x-goog-api-key": settings.gemini_api_key},
-            json=payload,
-            timeout=httpx.Timeout(90, connect=15),
-        ) as response:
-            if response.status_code in (429, 500, 503) and attempt < len(delays):
-                await response.aread()
-                await asyncio.sleep(delays[attempt])
-                continue
-            if response.status_code >= 400:
-                body = (await response.aread()).decode(errors="ignore")
-                raise RuntimeError(f"Gemini error {response.status_code}: {body[:300]}")
-            async for line in response.aiter_lines():
-                if line.startswith("data:"):
-                    chunk = line[5:].strip()
-                    if chunk:
-                        yield json.loads(chunk)
-            return
-
-
 async def _run_tool(name: str, args: dict[str, Any], ctx: tools.ChatContext) -> dict[str, Any]:
     fn = tools.TOOL_FUNCTIONS.get(name)
     if fn is None:
@@ -129,40 +85,26 @@ def _event(kind: str, **data: Any) -> dict[str, Any]:
     return {"type": kind, **data}
 
 
-async def run_llm(message: str, history: list[dict[str, str]], ctx: tools.ChatContext) -> AsyncIterator[dict[str, Any]]:
-    contents = _history_to_contents(history, message)
-    base = {
-        "systemInstruction": {"parts": [{"text": system_prompt(ctx)}]},
-        "tools": [{"functionDeclarations": tools.TOOL_DECLARATIONS}],
-        "generationConfig": {"temperature": 0.4},
-    }
+async def run_provider(provider: providers.Provider, ctx: tools.ChatContext) -> AsyncIterator[dict[str, Any]]:
     for _ in range(MAX_TOOL_ROUNDS):
-        model_parts: list[dict[str, Any]] = []
-        calls: list[dict[str, Any]] = []
-        async for chunk in _stream_gemini({**base, "contents": contents}):
-            for candidate in chunk.get("candidates", [])[:1]:
-                for part in candidate.get("content", {}).get("parts", []):
-                    model_parts.append(part)
-                    if "functionCall" in part:
-                        calls.append(part["functionCall"])
-                    elif part.get("text") and not part.get("thought"):
-                        yield _event("delta", text=part["text"])
-        contents.append({"role": "model", "parts": model_parts or [{"text": ""}]})
+        calls: list[providers.Call] = []
+        async for kind, value in provider.turn():
+            if kind == "text":
+                yield _event("delta", text=value)
+            else:
+                calls.append(value)
         if not calls:
             return
         for call in calls:
-            yield _event("status", text=TOOL_STATUS.get(call["name"], call["name"]), tool=call["name"], args=call.get("args", {}))
+            yield _event("status", text=TOOL_STATUS.get(call.name, call.name), tool=call.name, args=call.args)
         before = len(ctx.cards)
         updates_before = len(ctx.profile_updates)
-        results = await asyncio.gather(*(_run_tool(c["name"], c.get("args") or {}, ctx) for c in calls))
+        results = await asyncio.gather(*(_run_tool(c.name, c.args, ctx) for c in calls))
         for card in ctx.cards[before:]:
             yield _event("card", card=card)
         for patch in ctx.profile_updates[updates_before:]:
             yield _event("profile", patch=patch)
-        contents.append({
-            "role": "user",
-            "parts": [{"functionResponse": {"name": c["name"], "response": r}} for c, r in zip(calls, results)],
-        })
+        provider.add_results(calls, list(results))
     yield _event("delta", text="\n\n(Stopped after too many data lookups.)")
 
 
@@ -255,7 +197,7 @@ def _offline_summary(name: str, result: dict[str, Any]) -> str:
     return json.dumps(result)[:800]
 
 
-async def run_offline(message: str, ctx: tools.ChatContext) -> AsyncIterator[dict[str, Any]]:
+async def run_offline(message: str, ctx: tools.ChatContext, note: bool = True) -> AsyncIterator[dict[str, Any]]:
     icao = re.search(r"\b(V[A-Z]{3})\b", message)
     if icao:
         name, args = "get_aviation", {"icao": icao.group(1)}
@@ -272,17 +214,40 @@ async def run_offline(message: str, ctx: tools.ChatContext) -> AsyncIterator[dic
     for card in ctx.cards:
         yield _event("card", card=card)
     yield _event("delta", text=_offline_summary(name, result))
-    yield _event("delta", text="\n\n_Offline mode: add a `GEMINI_API_KEY` to `backend/.env` for full conversational answers in every language._")
+    if note:
+        yield _event("delta", text="\n\n_Offline mode: add a `GEMINI_API_KEY` or `GROQ_API_KEY` to `backend/.env` for full conversational answers in every language._")
 
 
 async def chat(message: str, history: list[dict[str, str]], ctx: tools.ChatContext) -> AsyncIterator[dict[str, Any]]:
+    chain = providers.available()
+    system = system_prompt(ctx)
+    failures: list[str] = []
+    for index, provider_cls in enumerate(chain):
+        backup_exists = index < len(chain) - 1
+        provider = provider_cls(system, history, message, retries=[1.5] if backup_exists else [1.5, 3.0, 6.0])
+        emitted = False
+        try:
+            async for event in run_provider(provider, ctx):
+                if not emitted:
+                    emitted = True
+                    yield _event("provider", name=provider.name, label=provider.label, fallback=index > 0)
+                yield event
+            yield _event("done")
+            return
+        except Exception as exc:
+            failures.append(f"{provider.label}: {exc}")
+            if emitted:
+                yield _event("reset")
+            ctx.cards.clear()
+            if backup_exists:
+                yield _event("status", text=f"{provider.label} unavailable, switching to backup", tool="fallback", args={})
     try:
-        if get_settings().llm_enabled:
-            async for event in run_llm(message, history, ctx):
-                yield event
-        else:
-            async for event in run_offline(message, ctx):
-                yield event
+        if failures:
+            yield _event("provider", name="offline", label="Offline intent mode", fallback=True)
+        async for event in run_offline(message, ctx, note=not failures):
+            yield event
     except Exception as exc:
         yield _event("error", text=str(exc))
+    if failures:
+        yield _event("delta", text="\n\n_AI models were unreachable, so this is a data-only answer._")
     yield _event("done")

@@ -9,8 +9,14 @@ async function get<T>(path: string, params: Record<string, string | number>): Pr
   return response.json() as Promise<T>
 }
 
+export interface Health {
+  ok: boolean
+  llm: boolean
+  providers: { name: string; model: string }[]
+}
+
 export const api = {
-  health: () => fetch(`${BASE}/api/health`).then((r) => r.json() as Promise<{ ok: boolean; llm: boolean; model: string | null }>),
+  health: () => fetch(`${BASE}/api/health`).then((r) => r.json() as Promise<Health>),
   forecast: (lat: number, lon: number) => get<Forecast>('/api/weather', { lat, lon }),
   reverse: (lat: number, lon: number) => get<Place>('/api/reverse', { lat, lon }),
   geocode: (q: string) => get<Place[]>('/api/geocode', { q }),

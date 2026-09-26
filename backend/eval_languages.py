@@ -46,6 +46,7 @@ async def run_case(client: httpx.AsyncClient, lang: str, question: str) -> dict:
     first = None
     text = ""
     tools_used = []
+    provider = None
     errors = []
     async with client.stream("POST", f"{API}/api/chat", json={"message": question, "language": lang, "lat": 16.51, "lon": 80.52}) as r:
         async for line in r.aiter_lines():
@@ -57,6 +58,10 @@ async def run_case(client: httpx.AsyncClient, lang: str, question: str) -> dict:
                 text += event["text"]
             elif event["type"] == "status":
                 tools_used.append(event["tool"])
+            elif event["type"] == "provider":
+                provider = event["label"]
+            elif event["type"] == "reset":
+                text = ""
             elif event["type"] == "error":
                 errors.append(event["text"])
     return {
@@ -65,6 +70,7 @@ async def run_case(client: httpx.AsyncClient, lang: str, question: str) -> dict:
         "first_token_s": round(first or 0, 2),
         "total_s": round(time.perf_counter() - start, 2),
         "tools": tools_used,
+        "provider": provider,
         "script_share": round(script_share(text, lang), 2),
         "errors": errors,
         "answer": text,
@@ -75,14 +81,14 @@ async def main():
     async with httpx.AsyncClient(timeout=120) as client:
         health = (await client.get(f"{API}/api/health")).json()
         if not health.get("llm"):
-            print("LLM is not enabled: set GEMINI_API_KEY in backend/.env and restart the API.")
+            print("LLM is not enabled: set GEMINI_API_KEY and/or GROQ_API_KEY in backend/.env and restart the API.")
             return
         results = []
         for lang, question in CASES:
             result = await run_case(client, lang, question)
             results.append(result)
             ok = result["tools"] and result["script_share"] >= 0.6 and not result["errors"]
-            print(f"{'PASS' if ok else 'FAIL'} {lang} first={result['first_token_s']}s total={result['total_s']}s script={result['script_share']} tools={result['tools']} {result['errors'][:1]}")
+            print(f"{'PASS' if ok else 'FAIL'} {lang} first={result['first_token_s']}s total={result['total_s']}s script={result['script_share']} tools={result['tools']} via={result['provider']} {result['errors'][:1]}")
         firsts = sorted(r["first_token_s"] for r in results)
         totals = sorted(r["total_s"] for r in results)
         print(f"\nfirst token p50={firsts[len(firsts) // 2]}s  total p50={totals[len(totals) // 2]}s p95={totals[int(len(totals) * 0.95) - 1]}s")

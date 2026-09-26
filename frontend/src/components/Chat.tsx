@@ -1,5 +1,6 @@
 import { ArrowUp, ChevronDown, Loader2, Mic, Square, Volume2, VolumeX } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import type { Health } from '../lib/api'
 import { LANGUAGES, PROMPTS, languageByCode } from '../lib/languages'
 import type { Message } from '../lib/types'
 import { speak, stopSpeaking, useListen } from '../lib/voice'
@@ -10,7 +11,7 @@ interface Props {
   messages: Message[]
   busy: boolean
   language: string
-  llm: boolean | null
+  llm: Health | null
   onLanguage: (code: string) => void
   onSend: (text: string, viaVoice: boolean) => void
   onStop: () => void
@@ -62,7 +63,13 @@ export default function Chat({ messages, busy, language, llm, onLanguage, onSend
         )}
         <div className="chat-title">
           <span className="brand">Weather<b>GPT</b></span>
-          <small>{llm === null ? 'connecting…' : llm ? 'AI · live meteorological data' : 'offline intent mode'}</small>
+          <small>
+            {llm === null
+              ? 'connecting…'
+              : llm.llm
+                ? `AI · ${llm.providers.map((p) => p.name).join(' → ')} · live data`
+                : 'offline intent mode'}
+          </small>
         </div>
         <label className="lang-select">
           <span className="sr-only">Language</span>
@@ -119,6 +126,7 @@ export default function Chat({ messages, busy, language, llm, onLanguage, onSend
                 {m.text && <Markdown text={m.text} />}
                 {m.pending && !m.text && m.steps.length === 0 && <Loader2 className="spin" size={18} />}
                 {m.error && <p className="msg-error">{m.error}</p>}
+                {!m.pending && m.provider?.fallback && <p className="msg-provider">Answered by backup: {m.provider.label}</p>}
                 {!m.pending && m.text && (
                   <button
                     className="speak-btn"

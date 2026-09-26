@@ -16,7 +16,7 @@ Ask about the weather by voice or text in 13 Indian languages. Answers are groun
 | Air quality | India **NAQI** computed with the CPCB sub-index method from 24 h PM2.5/PM10 |
 | Marine | Wave height, swell, period, SST, go/no-go sea state |
 | Aviation | Live **METAR/TAF** from aviationweather.gov |
-| Conversational AI | Gemini function-calling agent over the tools above, streamed (SSE). Falls back to an offline intent engine without a key |
+| Conversational AI | Function-calling agent over the tools above, streamed (SSE). Provider chain: **Gemini → Groq (gpt-oss-120b) → offline intent engine**; a provider failing mid-answer is discarded and the next one answers cleanly |
 | Voice | Web Speech API speech-to-text and text-to-speech in the selected language |
 
 ## Run it
@@ -31,7 +31,7 @@ cp .env.example .env
 .venv/Scripts/python -m uvicorn app.main:app --port 8000 --reload
 ```
 
-Put a Gemini API key in `backend/.env` (`GEMINI_API_KEY=...`) to turn on the full multilingual assistant.
+Put a Gemini API key (Google AI Studio) in `backend/.env` as `GEMINI_API_KEY=...` to turn on the full multilingual assistant. Add `GROQ_API_KEY=...` (console.groq.com) as an automatic backup when Gemini is rate-limited or down. Either key alone works.
 
 Frontend:
 

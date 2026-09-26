@@ -43,7 +43,11 @@ async def _guard(coro):
 @app.get("/api/health")
 async def health():
     settings = get_settings()
-    return {"ok": True, "llm": settings.llm_enabled, "model": settings.gemini_model if settings.llm_enabled else None}
+    chain = [
+        {"name": "gemini", "model": settings.gemini_model, "enabled": bool(settings.gemini_api_key.strip())},
+        {"name": "groq", "model": settings.groq_model, "enabled": bool(settings.groq_api_key.strip())},
+    ]
+    return {"ok": True, "llm": settings.llm_enabled, "providers": [p for p in chain if p["enabled"]]}
 
 
 @app.get("/api/geocode")

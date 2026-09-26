@@ -281,6 +281,8 @@ export type ChatEvent =
   | { type: 'status'; text: string; tool: string; args: Record<string, unknown> }
   | { type: 'card'; card: Card }
   | { type: 'profile'; patch: ProfilePatch }
+  | { type: 'provider'; name: string; label: string; fallback: boolean }
+  | { type: 'reset' }
   | { type: 'delta'; text: string }
   | { type: 'error'; text: string }
   | { type: 'done' }
@@ -293,4 +295,5 @@ export interface Message {
   steps: string[]
   pending?: boolean
   error?: string
+  provider?: { name: string; label: string; fallback: boolean }
 }

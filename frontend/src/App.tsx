@@ -9,7 +9,7 @@ import LocationSearch from './components/LocationSearch'
 import ProfileSheet from './components/ProfileSheet'
 import SkyCanvas from './components/SkyCanvas'
 import TimeDial from './components/TimeDial'
-import { api, streamChat } from './lib/api'
+import { api, streamChat, type Health } from './lib/api'
 import { applyPatch, loadProfile, saveProfile } from './lib/profile'
 import { momentAt, skyFor } from './lib/sky'
 import type { AlertsBundle, ChatEvent, Forecast, Insight, Message, Place, Profile } from './lib/types'
@@ -64,7 +64,7 @@ export default function App() {
   const [language, setLanguage] = useState(saved.language ?? 'en')
   const [messages, setMessages] = useState<Message[]>([])
   const [busy, setBusy] = useState(false)
-  const [llm, setLlm] = useState<boolean | null>(null)
+  const [llm, setLlm] = useState<Health | null>(null)
   const [profile, setProfileState] = useState<Profile>(loadProfile)
   const [profileOpen, setProfileOpen] = useState(false)
   const [insights, setInsights] = useState<Insight[] | null>(null)
@@ -94,7 +94,7 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    api.health().then((h) => setLlm(h.llm)).catch(() => setLlm(false))
+    api.health().then(setLlm).catch(() => setLlm({ ok: false, llm: false, providers: [] }))
     if (!saved.place) locate()
   }, [])
 
@@ -156,6 +156,8 @@ export default function App() {
         else if (e.type === 'delta') patchLast((m) => ({ ...m, text: m.text + e.text }))
         else if (e.type === 'error') patchLast((m) => ({ ...m, error: e.text }))
         else if (e.type === 'profile') setProfile((p) => applyPatch(p, e.patch))
+        else if (e.type === 'provider') patchLast((m) => ({ ...m, provider: { name: e.name, label: e.label, fallback: e.fallback } }))
+        else if (e.type === 'reset') patchLast((m) => ({ ...m, text: '', cards: [], steps: [] }))
       }
       try {
         await streamChat(
