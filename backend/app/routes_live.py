@@ -9,7 +9,7 @@ from sqlalchemy import delete, select
 
 from app.db import Alert, Observation, Session, Subscription, utcnow
 from app.services import alerts as alert_service
-from app.services import ingest, weather
+from app.services import ingest, weather, wis2
 from app.services.realtime import hub
 
 router = APIRouter()
@@ -79,7 +79,12 @@ async def observations_nearby(lat: float = Query(..., ge=-90, le=90), lon: float
 
 @router.get("/api/system/status")
 async def system_status():
-    return await ingest.status()
+    return {**await ingest.status(), "wis2": await wis2.subscriber.status()}
+
+
+@router.get("/api/wis2/status")
+async def wis2_status():
+    return await wis2.subscriber.status()
 
 
 @router.websocket("/ws")

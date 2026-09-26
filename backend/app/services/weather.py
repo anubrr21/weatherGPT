@@ -1,3 +1,4 @@
+import asyncio
 import math
 import re
 from datetime import date, datetime, timedelta, timezone
@@ -419,45 +420,95 @@ def _km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return 6371 * 2 * math.asin(math.sqrt(a))
 
 
+async def _imd_candidate(lat: float, lon: float, max_km: float, max_age_h: float = 3) -> dict[str, Any] | None:
+    from sqlalchemy import select
+
+    from app.db import Observation, Session, utcnow
+
+    since = utcnow() - timedelta(hours=max_age_h)
+    async with Session() as s:
+        rows = (await s.scalars(
+            select(Observation).where(
+                Observation.name.like("%(IMD%"), Observation.observed_at >= since,
+                Observation.lat.between(lat - 1.5, lat + 1.5), Observation.lon.between(lon - 1.5, lon + 1.5),
+                Observation.temp_c.is_not(None),
+            )
+        )).all()
+    if not rows:
+        return None
+    best = min(rows, key=lambda o: (round(_km(lat, lon, o.lat, o.lon)), -o.observed_at.timestamp()))
+    distance = _km(lat, lon, best.lat, best.lon)
+    if distance > max_km:
+        return None
+    observed = best.observed_at if best.observed_at.tzinfo else best.observed_at.replace(tzinfo=timezone.utc)
+    temp, dew = best.temp_c, best.dewpoint_c
+    rh = round(100 * math.exp(17.625 * dew / (243.04 + dew)) / math.exp(17.625 * temp / (243.04 + temp))) if dew is not None else None
+    return {
+        "station": best.station,
+        "name": best.name.rsplit(" (", 1)[0],
+        "distance_km": round(distance),
+        "age_min": round((datetime.now(timezone.utc) - observed).total_seconds() / 60),
+        "observed": observed.isoformat(),
+        "temp_c": temp,
+        "dewpoint_c": dew,
+        "humidity_pct": rh,
+        "wind_kmh": best.wind_kmh,
+        "wind_dir": int(best.wind_dir) if best.wind_dir and best.wind_dir.isdigit() else None,
+        "visibility": best.visibility,
+        "pressure_hpa": best.pressure_hpa,
+        "weather": best.weather,
+        "raw": best.raw,
+        "source": "IMD surface synoptic station via WMO WIS2 (real station observation)",
+    }
+
+
+async def _metar_candidate(lat: float, lon: float, max_km: float) -> dict[str, Any] | None:
+    box = f"{lat - 1.2:.2f},{lon - 1.2:.2f},{lat + 1.2:.2f},{lon + 1.2:.2f}"
+    response = await get_retry(METAR_URL, params={"bbox": box, "format": "json"})
+    if response.status_code != 200 or not response.content.strip():
+        return None
+    rows = [r for r in response.json() if r.get("lat") is not None and r.get("temp") is not None]
+    if not rows:
+        return None
+    best = min(rows, key=lambda r: _km(lat, lon, r["lat"], r["lon"]))
+    distance = _km(lat, lon, best["lat"], best["lon"])
+    if distance > max_km:
+        return None
+    observed = best.get("reportTime") or best.get("obsTime")
+    age_min = None
+    if isinstance(observed, str):
+        try:
+            age_min = round((datetime.now(timezone.utc) - datetime.fromisoformat(observed.replace("Z", "+00:00"))).total_seconds() / 60)
+        except ValueError:
+            age_min = None
+    dew = best.get("dewp")
+    temp = best["temp"]
+    rh = round(100 * math.exp(17.625 * dew / (243.04 + dew)) / math.exp(17.625 * temp / (243.04 + temp))) if dew is not None else None
+    return {
+        "station": best.get("icaoId"),
+        "name": best.get("name"),
+        "distance_km": round(distance),
+        "age_min": age_min,
+        "temp_c": temp,
+        "dewpoint_c": dew,
+        "humidity_pct": rh,
+        "wind_kmh": round(best["wspd"] * 1.852) if best.get("wspd") is not None else None,
+        "wind_dir": best.get("wdir"),
+        "visibility": best.get("visib"),
+        "pressure_hpa": best.get("altim"),
+        "weather": best.get("wxString"),
+        "raw": best.get("rawOb"),
+        "source": "METAR via aviationweather.gov (real station observation)",
+    }
+
+
 async def nearest_observation(lat: float, lon: float, max_km: float = 120) -> dict[str, Any] | None:
     async def load() -> dict[str, Any] | None:
-        box = f"{lat - 1.2:.2f},{lon - 1.2:.2f},{lat + 1.2:.2f},{lon + 1.2:.2f}"
-        response = await get_retry(METAR_URL, params={"bbox": box, "format": "json"})
-        if response.status_code != 200 or not response.content.strip():
+        found = await asyncio.gather(_metar_candidate(lat, lon, max_km), _imd_candidate(lat, lon, max_km), return_exceptions=True)
+        candidates = [c for c in found if isinstance(c, dict)]
+        if not candidates:
             return None
-        rows = [r for r in response.json() if r.get("lat") is not None and r.get("temp") is not None]
-        if not rows:
-            return None
-        best = min(rows, key=lambda r: _km(lat, lon, r["lat"], r["lon"]))
-        distance = _km(lat, lon, best["lat"], best["lon"])
-        if distance > max_km:
-            return None
-        observed = best.get("reportTime") or best.get("obsTime")
-        age_min = None
-        if isinstance(observed, str):
-            try:
-                age_min = round((datetime.now(timezone.utc) - datetime.fromisoformat(observed.replace("Z", "+00:00"))).total_seconds() / 60)
-            except ValueError:
-                age_min = None
-        dew = best.get("dewp")
-        temp = best["temp"]
-        rh = round(100 * math.exp(17.625 * dew / (243.04 + dew)) / math.exp(17.625 * temp / (243.04 + temp))) if dew is not None else None
-        return {
-            "station": best.get("icaoId"),
-            "name": best.get("name"),
-            "distance_km": round(distance),
-            "age_min": age_min,
-            "temp_c": temp,
-            "dewpoint_c": dew,
-            "humidity_pct": rh,
-            "wind_kmh": round(best["wspd"] * 1.852) if best.get("wspd") is not None else None,
-            "wind_dir": best.get("wdir"),
-            "visibility": best.get("visib"),
-            "pressure_hpa": best.get("altim"),
-            "weather": best.get("wxString"),
-            "raw": best.get("rawOb"),
-            "source": "METAR via aviationweather.gov (real station observation)",
-        }
+        return min(candidates, key=lambda c: c["distance_km"] + max(0, (c.get("age_min") or 0) - 90) / 6)
 
     try:
         return await _obs_cache.get_or_set(coord_key(lat, lon, "obs"), load)

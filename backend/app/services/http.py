@@ -1,12 +1,24 @@
 import asyncio
+import ssl
 import time
+from pathlib import Path
 from typing import Any, Awaitable, Callable
 
+import certifi
 import httpx
 
 from app.config import get_settings
 
 _client: httpx.AsyncClient | None = None
+
+EXTRA_INTERMEDIATES = Path(__file__).resolve().parent.parent / "data" / "emsign_ssl_ca_g1.pem"
+
+
+def tls_context() -> ssl.SSLContext:
+    context = ssl.create_default_context(cafile=certifi.where())
+    if EXTRA_INTERMEDIATES.exists():
+        context.load_verify_locations(cafile=str(EXTRA_INTERMEDIATES))
+    return context
 
 
 def client() -> httpx.AsyncClient:
@@ -16,6 +28,7 @@ def client() -> httpx.AsyncClient:
             timeout=get_settings().http_timeout_s,
             headers={"User-Agent": "WeatherGPT/0.1 (+https://github.com/anubrr21)"},
             follow_redirects=True,
+            verify=tls_context(),
         )
     return _client
 

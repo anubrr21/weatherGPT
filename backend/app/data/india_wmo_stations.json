@@ -1,0 +1,2606 @@
+{
+"42026": {
+"elev_m": 2655.0,
+"icao": null,
+"lat": 34.05,
+"lon": 74.4,
+"name": "Gulmarg"
+},
+"42027": {
+"elev_m": 1587.0,
+"icao": null,
+"lat": 34.083,
+"lon": 74.833,
+"name": "Srinagar"
+},
+"42044": {
+"elev_m": 1690.0,
+"icao": null,
+"lat": 33.583,
+"lon": 75.083,
+"name": "Qazi Gund"
+},
+"42045": {
+"elev_m": 1630.0,
+"icao": null,
+"lat": 33.5,
+"lon": 75.167,
+"name": "Banihal"
+},
+"42056": {
+"elev_m": 367.0,
+"icao": null,
+"lat": 32.667,
+"lon": 74.833,
+"name": "Jammu"
+},
+"42062": {
+"elev_m": 1211.0,
+"icao": null,
+"lat": 32.267,
+"lon": 76.383,
+"name": "Dharmsala"
+},
+"42065": {
+"elev_m": 2039.0,
+"icao": null,
+"lat": 32.267,
+"lon": 77.167,
+"name": "Manali"
+},
+"42071": {
+"elev_m": 230.4,
+"icao": "VIAR",
+"lat": 31.71,
+"lon": 74.797,
+"name": "Amritsar"
+},
+"42077": {
+"elev_m": 369.0,
+"icao": null,
+"lat": 31.467,
+"lon": 76.267,
+"name": "Una"
+},
+"42078": {
+"elev_m": 761.0,
+"icao": null,
+"lat": 31.717,
+"lon": 76.967,
+"name": "Mandi"
+},
+"42079": {
+"elev_m": 874.0,
+"icao": null,
+"lat": 31.533,
+"lon": 76.9,
+"name": "Sundernagar"
+},
+"42081": {
+"elev_m": 1084.0,
+"icao": null,
+"lat": 31.833,
+"lon": 77.167,
+"name": "Bhuntar"
+},
+"42083": {
+"elev_m": 2202.0,
+"icao": null,
+"lat": 31.1,
+"lon": 77.167,
+"name": "Shimla"
+},
+"42099": {
+"elev_m": 255.0,
+"icao": null,
+"lat": 30.867,
+"lon": 75.933,
+"name": "Ludhiana"
+},
+"42101": {
+"elev_m": 251.0,
+"icao": null,
+"lat": 30.333,
+"lon": 76.467,
+"name": "Patiala"
+},
+"42103": {
+"elev_m": 272.0,
+"icao": null,
+"lat": 30.383,
+"lon": 76.767,
+"name": "Ambala"
+},
+"42104": {
+"elev_m": 958.0,
+"icao": null,
+"lat": 30.4,
+"lon": 76.767,
+"name": "Nahan"
+},
+"42105": {
+"elev_m": 347.0,
+"icao": null,
+"lat": 30.733,
+"lon": 76.883,
+"name": "Chandigarh(Iafb)"
+},
+"42111": {
+"elev_m": 682.0,
+"icao": null,
+"lat": 30.317,
+"lon": 78.033,
+"name": "Dehradun"
+},
+"42114": {
+"elev_m": 770.0,
+"icao": null,
+"lat": 30.4,
+"lon": 78.483,
+"name": "Tehri"
+},
+"42123": {
+"elev_m": 177.0,
+"icao": null,
+"lat": 29.917,
+"lon": 73.917,
+"name": "Ganganagar"
+},
+"42131": {
+"elev_m": 213.4,
+"icao": "VIHR",
+"lat": 29.179,
+"lon": 75.755,
+"name": "Hisar"
+},
+"42137": {
+"elev_m": 249.0,
+"icao": null,
+"lat": 29.7,
+"lon": 77.033,
+"name": "Karnal"
+},
+"42139": {
+"elev_m": 222.0,
+"icao": null,
+"lat": 29.017,
+"lon": 77.717,
+"name": "Meerut"
+},
+"42143": {
+"elev_m": 270.0,
+"icao": null,
+"lat": 29.617,
+"lon": 78.383,
+"name": "Najibabad"
+},
+"42147": {
+"elev_m": 2311.0,
+"icao": null,
+"lat": 29.467,
+"lon": 79.65,
+"name": "Mukteshwar Kumaon"
+},
+"42148": {
+"elev_m": 233.0,
+"icao": null,
+"lat": 29.033,
+"lon": 79.467,
+"name": "Pantnagar"
+},
+"42165": {
+"elev_m": 224.0,
+"icao": null,
+"lat": 28.0,
+"lon": 73.3,
+"name": "Bikaner"
+},
+"42170": {
+"elev_m": 291.0,
+"icao": null,
+"lat": 28.25,
+"lon": 74.917,
+"name": "Churu"
+},
+"42174": {
+"elev_m": 301.0,
+"icao": null,
+"lat": 28.333,
+"lon": 75.583,
+"name": "Pilani"
+},
+"42176": {
+"elev_m": 222.0,
+"icao": null,
+"lat": 28.833,
+"lon": 76.583,
+"name": "Rohtak"
+},
+"42181": {
+"elev_m": 236.8,
+"icao": "VIDP",
+"lat": 28.567,
+"lon": 77.103,
+"name": "Indira Gandhi Intl"
+},
+"42182": {
+"elev_m": 214.9,
+"icao": "VIDD",
+"lat": 28.585,
+"lon": 77.206,
+"name": "Safdarjung"
+},
+"42183": {
+"elev_m": 218.0,
+"icao": null,
+"lat": 28.4,
+"lon": 77.867,
+"name": "Bulandshahr"
+},
+"42187": {
+"elev_m": 202.0,
+"icao": null,
+"lat": 28.833,
+"lon": 78.75,
+"name": "Moradabad"
+},
+"42189": {
+"elev_m": 176.8,
+"icao": "VIBY",
+"lat": 28.422,
+"lon": 79.451,
+"name": "Bareilly"
+},
+"42220": {
+"elev_m": 157.0,
+"icao": null,
+"lat": 28.1,
+"lon": 95.383,
+"name": "Pasighat"
+},
+"42237": {
+"elev_m": 234.0,
+"icao": null,
+"lat": 27.133,
+"lon": 72.367,
+"name": "Phalodi"
+},
+"42249": {
+"elev_m": 433.0,
+"icao": null,
+"lat": 27.617,
+"lon": 75.133,
+"name": "Sikar"
+},
+"42255": {
+"elev_m": 271.0,
+"icao": null,
+"lat": 27.5,
+"lon": 76.583,
+"name": "Alwar"
+},
+"42260": {
+"elev_m": 167.9,
+"icao": "VIAG",
+"lat": 27.156,
+"lon": 77.961,
+"name": "Agra"
+},
+"42262": {
+"elev_m": 187.0,
+"icao": null,
+"lat": 27.883,
+"lon": 78.067,
+"name": "Aligarh"
+},
+"42266": {
+"elev_m": 155.0,
+"icao": null,
+"lat": 27.883,
+"lon": 79.9,
+"name": "Shahjahanpur"
+},
+"42270": {
+"elev_m": 147.0,
+"icao": null,
+"lat": 27.9,
+"lon": 80.8,
+"name": "Kheri"
+},
+"42271": {
+"elev_m": 142.0,
+"icao": null,
+"lat": 27.383,
+"lon": 80.167,
+"name": "Hardoi"
+},
+"42273": {
+"elev_m": 124.0,
+"icao": null,
+"lat": 27.567,
+"lon": 81.6,
+"name": "Bahraich"
+},
+"42279": {
+"elev_m": 89.0,
+"icao": null,
+"lat": 26.8,
+"lon": 82.733,
+"name": "Basti"
+},
+"42295": {
+"elev_m": 2128.0,
+"icao": null,
+"lat": 27.05,
+"lon": 88.267,
+"name": "Darjeeling"
+},
+"42296": {
+"elev_m": 1209.0,
+"icao": null,
+"lat": 27.067,
+"lon": 88.467,
+"name": "Kalimpong"
+},
+"42299": {
+"elev_m": 1756.0,
+"icao": null,
+"lat": 27.333,
+"lon": 88.617,
+"name": "Gangtok"
+},
+"42305": {
+"elev_m": 2484.0,
+"icao": null,
+"lat": 27.417,
+"lon": 92.85,
+"name": "Bomdila"
+},
+"42309": {
+"elev_m": 100.6,
+"icao": "VELR",
+"lat": 27.295,
+"lon": 94.098,
+"name": "Lilabari"
+},
+"42314": {
+"elev_m": 110.3,
+"icao": "VEMN",
+"lat": 27.484,
+"lon": 95.017,
+"name": "Dibrugarh"
+},
+"42328": {
+"elev_m": 231.0,
+"icao": null,
+"lat": 26.9,
+"lon": 70.917,
+"name": "Jaisalmer"
+},
+"42339": {
+"elev_m": 218.5,
+"icao": "VIJO",
+"lat": 26.251,
+"lon": 73.049,
+"name": "Jodhpur"
+},
+"42343": {
+"elev_m": 486.0,
+"icao": null,
+"lat": 26.45,
+"lon": 74.617,
+"name": "Ajmer"
+},
+"42348": {
+"elev_m": 385.0,
+"icao": "VIJP",
+"lat": 26.824,
+"lon": 75.812,
+"name": "Jaipur"
+},
+"42354": {
+"elev_m": 176.0,
+"icao": null,
+"lat": 26.667,
+"lon": 77.833,
+"name": "Dholpur"
+},
+"42361": {
+"elev_m": 188.1,
+"icao": "VIGR",
+"lat": 26.293,
+"lon": 78.228,
+"name": "Gwalior"
+},
+"42364": {
+"elev_m": 149.0,
+"icao": "VIXX",
+"lat": 26.921,
+"lon": 79.062,
+"name": "Etawah"
+},
+"42367": {
+"elev_m": 123.4,
+"icao": "VICX",
+"lat": 26.404,
+"lon": 80.41,
+"name": "Kanpur Chakeri"
+},
+"42369": {
+"elev_m": 125.0,
+"icao": "VILK",
+"lat": 26.761,
+"lon": 80.889,
+"name": "Lucknow / Chaudhary Charan Singh Intl"
+},
+"42372": {
+"elev_m": 109.7,
+"icao": "VERB",
+"lat": 26.25,
+"lon": 81.383,
+"name": "Fursatganj Airport"
+},
+"42374": {
+"elev_m": 100.0,
+"icao": "VEAY",
+"lat": 26.748,
+"lon": 82.163,
+"name": "Ayodha"
+},
+"42379": {
+"elev_m": 78.9,
+"icao": "VEGK",
+"lat": 26.74,
+"lon": 83.45,
+"name": "Gorakhpur"
+},
+"42383": {
+"elev_m": 66.0,
+"icao": null,
+"lat": 26.667,
+"lon": 84.917,
+"name": "Motihari"
+},
+"42387": {
+"elev_m": 53.0,
+"icao": null,
+"lat": 26.117,
+"lon": 85.4,
+"name": "Muzaffarpur"
+},
+"42391": {
+"elev_m": 49.0,
+"icao": null,
+"lat": 26.167,
+"lon": 85.9,
+"name": "Darbhanga"
+},
+"42393": {
+"elev_m": 50.0,
+"icao": null,
+"lat": 26.133,
+"lon": 86.583,
+"name": "Supaul"
+},
+"42395": {
+"elev_m": 61.0,
+"icao": null,
+"lat": 26.3,
+"lon": 87.267,
+"name": "Forbesganj"
+},
+"42398": {
+"elev_m": 125.6,
+"icao": "VEBD",
+"lat": 26.681,
+"lon": 88.329,
+"name": "Bagdogra"
+},
+"42399": {
+"elev_m": 83.0,
+"icao": null,
+"lat": 26.533,
+"lon": 88.717,
+"name": "Jalpaiguri"
+},
+"42403": {
+"elev_m": 43.0,
+"icao": null,
+"lat": 26.333,
+"lon": 89.467,
+"name": "Cooch Behar"
+},
+"42404": {
+"elev_m": 36.0,
+"icao": null,
+"lat": 26.017,
+"lon": 89.983,
+"name": "Dhubri"
+},
+"42407": {
+"elev_m": 38.0,
+"icao": null,
+"lat": 26.183,
+"lon": 90.633,
+"name": "Goalpara"
+},
+"42408": {
+"elev_m": 60.0,
+"icao": null,
+"lat": 26.433,
+"lon": 91.617,
+"name": "Rangia"
+},
+"42410": {
+"elev_m": 49.4,
+"icao": "VEGT",
+"lat": 26.106,
+"lon": 91.586,
+"name": "Guwahati Intl / Lokpriya Gopinath Bordoloi Intl"
+},
+"42413": {
+"elev_m": 120.0,
+"icao": null,
+"lat": 26.75,
+"lon": 92.35,
+"name": "Majbat"
+},
+"42414": {
+"elev_m": 66.0,
+"icao": null,
+"lat": 26.2,
+"lon": 92.517,
+"name": "Chaparmukh"
+},
+"42415": {
+"elev_m": 79.0,
+"icao": null,
+"lat": 26.617,
+"lon": 92.783,
+"name": "Tezpur"
+},
+"42420": {
+"elev_m": 95.0,
+"icao": null,
+"lat": 26.517,
+"lon": 93.983,
+"name": "Golaghat"
+},
+"42423": {
+"elev_m": 880.0,
+"icao": null,
+"lat": 26.067,
+"lon": 90.167,
+"name": "Jorhat"
+},
+"42435": {
+"elev_m": 194.0,
+"icao": null,
+"lat": 25.75,
+"lon": 71.383,
+"name": "Barmer"
+},
+"42441": {
+"elev_m": 295.0,
+"icao": null,
+"lat": 25.083,
+"lon": 73.083,
+"name": "Erinpura /Jawai Dam Site"
+},
+"42447": {
+"elev_m": 425.0,
+"icao": null,
+"lat": 25.35,
+"lon": 74.633,
+"name": "Bhilwara"
+},
+"42452": {
+"elev_m": 273.1,
+"icao": "VIKO",
+"lat": 25.16,
+"lon": 75.846,
+"name": "Kota"
+},
+"42456": {
+"elev_m": 235.0,
+"icao": null,
+"lat": 25.667,
+"lon": 76.683,
+"name": "Sheopur"
+},
+"42459": {
+"elev_m": 464.0,
+"icao": null,
+"lat": 25.333,
+"lon": 77.65,
+"name": "Shivpuri"
+},
+"42460": {
+"elev_m": 229.0,
+"icao": null,
+"lat": 25.667,
+"lon": 78.467,
+"name": "Datia"
+},
+"42463": {
+"elev_m": 244.1,
+"icao": "VIJN",
+"lat": 25.491,
+"lon": 78.558,
+"name": "Jhansi"
+},
+"42467": {
+"elev_m": 229.0,
+"icao": null,
+"lat": 25.067,
+"lon": 79.45,
+"name": "Nowgong"
+},
+"42468": {
+"elev_m": 141.0,
+"icao": null,
+"lat": 25.983,
+"lon": 79.5,
+"name": "Orai"
+},
+"42469": {
+"elev_m": 109.0,
+"icao": null,
+"lat": 25.95,
+"lon": 80.15,
+"name": "Hamirpur"
+},
+"42471": {
+"elev_m": 114.0,
+"icao": null,
+"lat": 25.933,
+"lon": 80.833,
+"name": "Fatehpur"
+},
+"42473": {
+"elev_m": 121.0,
+"icao": null,
+"lat": 25.467,
+"lon": 80.367,
+"name": "Banda"
+},
+"42475": {
+"elev_m": 98.2,
+"icao": "VEAB",
+"lat": 25.44,
+"lon": 81.734,
+"name": "Allahabad Arpt"
+},
+"42479": {
+"elev_m": 81.1,
+"icao": "VEBN",
+"lat": 25.45,
+"lon": 82.867,
+"name": "Lal Bahadur Shastri Varanasi Intl"
+},
+"42482": {
+"elev_m": 67.0,
+"icao": null,
+"lat": 25.4,
+"lon": 83.55,
+"name": "Ghazipur"
+},
+"42483": {
+"elev_m": 90.0,
+"icao": null,
+"lat": 25.3,
+"lon": 83.017,
+"name": "Varanasi"
+},
+"42488": {
+"elev_m": 58.0,
+"icao": null,
+"lat": 25.783,
+"lon": 84.733,
+"name": "Chapra"
+},
+"42492": {
+"elev_m": 51.8,
+"icao": "VEPT",
+"lat": 25.591,
+"lon": 85.088,
+"name": "Jai Prakash Narayan Intl Patna"
+},
+"42498": {
+"elev_m": 49.0,
+"icao": null,
+"lat": 25.233,
+"lon": 86.95,
+"name": "Bhagalpur"
+},
+"42500": {
+"elev_m": 38.0,
+"icao": null,
+"lat": 25.267,
+"lon": 87.467,
+"name": "Purnea"
+},
+"42503": {
+"elev_m": 31.0,
+"icao": null,
+"lat": 25.033,
+"lon": 88.133,
+"name": "Malda"
+},
+"42506": {
+"elev_m": 26.0,
+"icao": null,
+"lat": 25.217,
+"lon": 88.783,
+"name": "Balurghat"
+},
+"42512": {
+"elev_m": 891.2,
+"icao": "VEBI",
+"lat": 25.7,
+"lon": 91.983,
+"name": "Shillong Arpt / Umroi Arpt / Barapani"
+},
+"42515": {
+"elev_m": 1313.0,
+"icao": null,
+"lat": 25.25,
+"lon": 91.733,
+"name": "Cherrapunji"
+},
+"42516": {
+"elev_m": 1598.0,
+"icao": null,
+"lat": 25.567,
+"lon": 91.883,
+"name": "Shillong"
+},
+"42522": {
+"elev_m": 682.0,
+"icao": null,
+"lat": 25.167,
+"lon": 93.017,
+"name": "Haflong"
+},
+"42523": {
+"elev_m": 149.0,
+"icao": null,
+"lat": 25.75,
+"lon": 93.183,
+"name": "Lumding"
+},
+"42527": {
+"elev_m": 1406.0,
+"icao": null,
+"lat": 25.633,
+"lon": 94.167,
+"name": "Kohima"
+},
+"42539": {
+"elev_m": 136.0,
+"icao": null,
+"lat": 24.2,
+"lon": 72.2,
+"name": "Deesa"
+},
+"42540": {
+"elev_m": 1195.0,
+"icao": null,
+"lat": 24.6,
+"lon": 72.717,
+"name": "Mount Abu"
+},
+"42542": {
+"elev_m": 513.3,
+"icao": "VAUD",
+"lat": 24.618,
+"lon": 73.896,
+"name": "Udaipur / Maharana Pratap"
+},
+"42546": {
+"elev_m": 404.0,
+"icao": null,
+"lat": 24.883,
+"lon": 74.633,
+"name": "Chittorgarh"
+},
+"42557": {
+"elev_m": 382.0,
+"icao": null,
+"lat": 24.0,
+"lon": 76.717,
+"name": "Rajgarh"
+},
+"42559": {
+"elev_m": 478.0,
+"icao": null,
+"lat": 24.65,
+"lon": 77.317,
+"name": "Guna"
+},
+"42562": {
+"elev_m": 345.0,
+"icao": null,
+"lat": 24.767,
+"lon": 78.833,
+"name": "Tikamgarh"
+},
+"42567": {
+"elev_m": 217.0,
+"icao": null,
+"lat": 24.983,
+"lon": 79.917,
+"name": "Khajuraho"
+},
+"42570": {
+"elev_m": 354.0,
+"icao": null,
+"lat": 24.717,
+"lon": 80.167,
+"name": "Panna"
+},
+"42571": {
+"elev_m": 317.0,
+"icao": "VIST",
+"lat": 24.567,
+"lon": 80.833,
+"name": "Satna"
+},
+"42574": {
+"elev_m": 299.0,
+"icao": null,
+"lat": 24.533,
+"lon": 81.3,
+"name": "Rewa"
+},
+"42577": {
+"elev_m": 272.0,
+"icao": null,
+"lat": 24.417,
+"lon": 81.867,
+"name": "Sidhi"
+},
+"42587": {
+"elev_m": 221.0,
+"icao": null,
+"lat": 24.05,
+"lon": 84.067,
+"name": "Daltonganj"
+},
+"42588": {
+"elev_m": 107.0,
+"icao": null,
+"lat": 24.917,
+"lon": 84.183,
+"name": "Dehri"
+},
+"42591": {
+"elev_m": 115.8,
+"icao": "VEGY",
+"lat": 24.744,
+"lon": 84.951,
+"name": "Gaya"
+},
+"42603": {
+"elev_m": 19.0,
+"icao": null,
+"lat": 24.133,
+"lon": 88.267,
+"name": "Berhampore"
+},
+"42618": {
+"elev_m": 30.0,
+"icao": null,
+"lat": 24.317,
+"lon": 92.0,
+"name": "Kailashahar"
+},
+"42619": {
+"elev_m": 29.0,
+"icao": null,
+"lat": 24.75,
+"lon": 92.8,
+"name": "Silchar"
+},
+"42623": {
+"elev_m": 774.2,
+"icao": "VEIM",
+"lat": 24.76,
+"lon": 93.897,
+"name": "Imphal"
+},
+"42631": {
+"elev_m": 21.0,
+"icao": null,
+"lat": 23.25,
+"lon": 68.85,
+"name": "Naliya"
+},
+"42634": {
+"elev_m": 81.7,
+"icao": "VABJ",
+"lat": 23.288,
+"lon": 69.67,
+"name": "Bhuj"
+},
+"42638": {
+"elev_m": 29.0,
+"icao": null,
+"lat": 23.15,
+"lon": 70.117,
+"name": "Kandla Aerodrome"
+},
+"42639": {
+"elev_m": 14.0,
+"icao": null,
+"lat": 23.0,
+"lon": 70.217,
+"name": "New Kandla"
+},
+"42647": {
+"elev_m": 57.6,
+"icao": "VAAH",
+"lat": 23.077,
+"lon": 72.635,
+"name": "Ahmedabad / Sardar Vallabhbhai Patel Intl"
+},
+"42654": {
+"elev_m": 82.0,
+"icao": null,
+"lat": 23.233,
+"lon": 72.717,
+"name": "Gandhinagar"
+},
+"42661": {
+"elev_m": 486.0,
+"icao": null,
+"lat": 23.317,
+"lon": 75.05,
+"name": "Ratlam"
+},
+"42662": {
+"elev_m": 489.0,
+"icao": null,
+"lat": 23.183,
+"lon": 75.783,
+"name": "Ujjain"
+},
+"42667": {
+"elev_m": 524.0,
+"icao": "VABP",
+"lat": 23.287,
+"lon": 77.337,
+"name": "Bhopal / Raja Bhoj"
+},
+"42671": {
+"elev_m": 551.0,
+"icao": null,
+"lat": 23.85,
+"lon": 78.75,
+"name": "Sagar"
+},
+"42672": {
+"elev_m": 440.0,
+"icao": null,
+"lat": 23.317,
+"lon": 77.833,
+"name": "Raisen"
+},
+"42674": {
+"elev_m": 371.0,
+"icao": null,
+"lat": 23.833,
+"lon": 79.45,
+"name": "Damoh"
+},
+"42675": {
+"elev_m": 495.0,
+"icao": "VAJB",
+"lat": 23.178,
+"lon": 80.052,
+"name": "Jabalpur"
+},
+"42679": {
+"elev_m": 459.0,
+"icao": null,
+"lat": 23.533,
+"lon": 80.883,
+"name": "Umaria"
+},
+"42693": {
+"elev_m": 611.0,
+"icao": null,
+"lat": 23.167,
+"lon": 83.25,
+"name": "Ambikapur"
+},
+"42701": {
+"elev_m": 654.7,
+"icao": "VERC",
+"lat": 23.314,
+"lon": 85.322,
+"name": "Birsa Munda"
+},
+"42705": {
+"elev_m": 255.0,
+"icao": null,
+"lat": 23.333,
+"lon": 86.417,
+"name": "Purulia"
+},
+"42706": {
+"elev_m": 100.0,
+"icao": null,
+"lat": 23.383,
+"lon": 87.083,
+"name": "Bankura"
+},
+"42708": {
+"elev_m": 59.0,
+"icao": null,
+"lat": 23.65,
+"lon": 87.7,
+"name": "Shanti Niketan"
+},
+"42709": {
+"elev_m": 30.0,
+"icao": null,
+"lat": 23.233,
+"lon": 87.85,
+"name": "Burdwan"
+},
+"42711": {
+"elev_m": 15.0,
+"icao": null,
+"lat": 23.4,
+"lon": 88.517,
+"name": "Krishnanagar"
+},
+"42714": {
+"elev_m": 12.0,
+"icao": null,
+"lat": 22.983,
+"lon": 88.367,
+"name": "Bagati"
+},
+"42715": {
+"elev_m": 581.0,
+"icao": null,
+"lat": 22.0,
+"lon": 80.7,
+"name": "Malanjkhand"
+},
+"42724": {
+"elev_m": 14.0,
+"icao": "VEAT",
+"lat": 23.887,
+"lon": 91.24,
+"name": "Agartala"
+},
+"42726": {
+"elev_m": 426.1,
+"icao": "VELP",
+"lat": 23.841,
+"lon": 92.62,
+"name": "Lengpui"
+},
+"42730": {
+"elev_m": 7.0,
+"icao": null,
+"lat": 22.483,
+"lon": 69.117,
+"name": "Okha"
+},
+"42731": {
+"elev_m": 11.0,
+"icao": null,
+"lat": 22.367,
+"lon": 69.083,
+"name": "Dwarka"
+},
+"42737": {
+"elev_m": 134.4,
+"icao": "VARK",
+"lat": 22.309,
+"lon": 70.78,
+"name": "Rajkot"
+},
+"42740": {
+"elev_m": 74.0,
+"icao": null,
+"lat": 22.733,
+"lon": 71.6,
+"name": "Surendranagar"
+},
+"42744": {
+"elev_m": 44.0,
+"icao": null,
+"lat": 22.567,
+"lon": 72.933,
+"name": "Vallabh Vidyanagar"
+},
+"42752": {
+"elev_m": 583.0,
+"icao": null,
+"lat": 22.6,
+"lon": 75.3,
+"name": "Dhar"
+},
+"42754": {
+"elev_m": 563.9,
+"icao": "VAID",
+"lat": 22.722,
+"lon": 75.801,
+"name": "Devi Ahilyabai Holkar"
+},
+"42763": {
+"elev_m": 302.0,
+"icao": null,
+"lat": 22.767,
+"lon": 77.767,
+"name": "Hoshangabad"
+},
+"42767": {
+"elev_m": 1075.0,
+"icao": null,
+"lat": 22.467,
+"lon": 78.433,
+"name": "Pachmarhi"
+},
+"42768": {
+"elev_m": 685.0,
+"icao": null,
+"lat": 22.1,
+"lon": 79.0,
+"name": "Chhindwara"
+},
+"42770": {
+"elev_m": 356.0,
+"icao": null,
+"lat": 22.95,
+"lon": 79.183,
+"name": "Narsinghpur"
+},
+"42771": {
+"elev_m": 619.0,
+"icao": null,
+"lat": 22.083,
+"lon": 79.55,
+"name": "Seoni"
+},
+"42776": {
+"elev_m": 443.0,
+"icao": null,
+"lat": 22.583,
+"lon": 80.367,
+"name": "Mandla"
+},
+"42779": {
+"elev_m": 625.0,
+"icao": null,
+"lat": 22.767,
+"lon": 81.9,
+"name": "Pendra Road"
+},
+"42782": {
+"elev_m": 274.0,
+"icao": "VABI",
+"lat": 21.988,
+"lon": 82.111,
+"name": "Bilaspur"
+},
+"42792": {
+"elev_m": 240.0,
+"icao": null,
+"lat": 22.117,
+"lon": 84.033,
+"name": "Sundargarh"
+},
+"42793": {
+"elev_m": 196.0,
+"icao": null,
+"lat": 22.217,
+"lon": 84.883,
+"name": "Rourkela"
+},
+"42795": {
+"elev_m": 226.0,
+"icao": null,
+"lat": 22.55,
+"lon": 85.817,
+"name": "Chaibasa"
+},
+"42798": {
+"elev_m": 153.9,
+"icao": "VEJS",
+"lat": 22.813,
+"lon": 86.169,
+"name": "Jamshedpur"
+},
+"42799": {
+"elev_m": 129.0,
+"icao": null,
+"lat": 22.817,
+"lon": 86.183,
+"name": "Jamshedpur"
+},
+"42803": {
+"elev_m": 45.0,
+"icao": null,
+"lat": 22.417,
+"lon": 87.317,
+"name": "Midnapore"
+},
+"42805": {
+"elev_m": 5.0,
+"icao": null,
+"lat": 22.5,
+"lon": 87.95,
+"name": "Uluberia"
+},
+"42807": {
+"elev_m": 2.4,
+"icao": "VEBA",
+"lat": 22.505,
+"lon": 88.293,
+"name": "Behala"
+},
+"42809": {
+"elev_m": 4.9,
+"icao": "VECC",
+"lat": 22.655,
+"lon": 88.447,
+"name": "Netaji Subhash Chandra Bose Intl"
+},
+"42811": {
+"elev_m": 7.0,
+"icao": null,
+"lat": 22.183,
+"lon": 88.2,
+"name": "Diamond Harbour"
+},
+"42812": {
+"elev_m": 4.0,
+"icao": null,
+"lat": 22.25,
+"lon": 88.667,
+"name": "Canning"
+},
+"42830": {
+"elev_m": 5.0,
+"icao": null,
+"lat": 21.65,
+"lon": 69.667,
+"name": "Porbandar"
+},
+"42832": {
+"elev_m": 50.0,
+"icao": null,
+"lat": 21.317,
+"lon": 70.317,
+"name": "Keshod"
+},
+"42834": {
+"elev_m": 115.0,
+"icao": null,
+"lat": 21.6,
+"lon": 71.217,
+"name": "Amreli"
+},
+"42837": {
+"elev_m": 9.0,
+"icao": null,
+"lat": 21.083,
+"lon": 71.783,
+"name": "Mahuva"
+},
+"42838": {
+"elev_m": 5.0,
+"icao": null,
+"lat": 21.75,
+"lon": 72.2,
+"name": "Bhaunagar"
+},
+"42840": {
+"elev_m": 12.0,
+"icao": null,
+"lat": 21.2,
+"lon": 72.833,
+"name": "Surat"
+},
+"42846": {
+"elev_m": 206.0,
+"icao": null,
+"lat": 21.333,
+"lon": 74.25,
+"name": "Nandurbar"
+},
+"42849": {
+"elev_m": 251.0,
+"icao": null,
+"lat": 21.817,
+"lon": 75.617,
+"name": "Khargone"
+},
+"42851": {
+"elev_m": 201.0,
+"icao": null,
+"lat": 21.05,
+"lon": 75.567,
+"name": "Jalgaon"
+},
+"42855": {
+"elev_m": 318.0,
+"icao": "VAKD",
+"lat": 21.833,
+"lon": 76.367,
+"name": "Khandwa"
+},
+"42860": {
+"elev_m": 653.0,
+"icao": null,
+"lat": 21.867,
+"lon": 77.933,
+"name": "Betul"
+},
+"42866": {
+"elev_m": 311.0,
+"icao": null,
+"lat": 21.15,
+"lon": 79.117,
+"name": "Nagpur (Mayo Hospital)"
+},
+"42867": {
+"elev_m": 314.9,
+"icao": "VANP",
+"lat": 21.092,
+"lon": 79.047,
+"name": "Dr Baba Saheb Ambedkar Intl"
+},
+"42871": {
+"elev_m": 300.8,
+"icao": "VAGD",
+"lat": 21.524,
+"lon": 80.288,
+"name": "Gondia Arpt/Birsi"
+},
+"42872": {
+"elev_m": 313.0,
+"icao": null,
+"lat": 21.233,
+"lon": 81.65,
+"name": "Mana"
+},
+"42874": {
+"elev_m": 298.0,
+"icao": null,
+"lat": 21.233,
+"lon": 81.65,
+"name": "Pbo Raipur"
+},
+"42875": {
+"elev_m": 317.6,
+"icao": "VERP",
+"lat": 21.183,
+"lon": 81.733,
+"name": "Swami Vivekananda"
+},
+"42876": {
+"elev_m": 293.0,
+"icao": null,
+"lat": 21.183,
+"lon": 81.283,
+"name": "Durg"
+},
+"42883": {
+"elev_m": 148.0,
+"icao": null,
+"lat": 21.467,
+"lon": 83.967,
+"name": "Sambalpur"
+},
+"42886": {
+"elev_m": 228.9,
+"icao": "VEJH",
+"lat": 21.914,
+"lon": 84.05,
+"name": "Jharsuguda / Veer Surendra Sai"
+},
+"42891": {
+"elev_m": 463.0,
+"icao": null,
+"lat": 21.617,
+"lon": 85.517,
+"name": "Keongjhargarh"
+},
+"42894": {
+"elev_m": 54.0,
+"icao": null,
+"lat": 21.933,
+"lon": 86.767,
+"name": "Baripada"
+},
+"42895": {
+"elev_m": 20.0,
+"icao": null,
+"lat": 21.517,
+"lon": 86.933,
+"name": "Balasore"
+},
+"42900": {
+"elev_m": 11.0,
+"icao": null,
+"lat": 21.783,
+"lon": 87.75,
+"name": "Contai"
+},
+"42901": {
+"elev_m": 6.0,
+"icao": null,
+"lat": 21.617,
+"lon": 87.5,
+"name": "Digha"
+},
+"42903": {
+"elev_m": 3.0,
+"icao": null,
+"lat": 21.65,
+"lon": 88.05,
+"name": "Sagar Island"
+},
+"42909": {
+"elev_m": 8.0,
+"icao": null,
+"lat": 20.9,
+"lon": 70.367,
+"name": "Veraval"
+},
+"42914": {
+"elev_m": 9.1,
+"icao": "VADU",
+"lat": 20.715,
+"lon": 70.922,
+"name": "Diu Aprt"
+},
+"42916": {
+"elev_m": 12.0,
+"icao": null,
+"lat": 20.417,
+"lon": 72.85,
+"name": "Daman"
+},
+"42920": {
+"elev_m": 598.0,
+"icao": "VAOZ",
+"lat": 20.119,
+"lon": 73.914,
+"name": "Ozar Air Force Station /Nashik Arpt"
+},
+"42921": {
+"elev_m": 598.0,
+"icao": null,
+"lat": 19.967,
+"lon": 73.817,
+"name": "Nasik City"
+},
+"42925": {
+"elev_m": 437.0,
+"icao": null,
+"lat": 20.55,
+"lon": 74.533,
+"name": "Malegaon"
+},
+"42931": {
+"elev_m": 650.0,
+"icao": null,
+"lat": 20.533,
+"lon": 76.233,
+"name": "Buldana"
+},
+"42933": {
+"elev_m": 282.0,
+"icao": null,
+"lat": 20.7,
+"lon": 77.033,
+"name": "Akola"
+},
+"42935": {
+"elev_m": 565.0,
+"icao": null,
+"lat": 20.117,
+"lon": 77.117,
+"name": "Washim"
+},
+"42937": {
+"elev_m": 370.0,
+"icao": null,
+"lat": 20.933,
+"lon": 77.783,
+"name": "Amraoti"
+},
+"42939": {
+"elev_m": 283.0,
+"icao": null,
+"lat": 20.667,
+"lon": 78.583,
+"name": "Wardha"
+},
+"42943": {
+"elev_m": 451.0,
+"icao": null,
+"lat": 20.4,
+"lon": 78.15,
+"name": "Yeotmal"
+},
+"42946": {
+"elev_m": 229.0,
+"icao": null,
+"lat": 20.6,
+"lon": 79.85,
+"name": "Bramhapuri"
+},
+"42948": {
+"elev_m": 329.0,
+"icao": null,
+"lat": 21.1,
+"lon": 81.033,
+"name": "Rajnandgaon"
+},
+"42961": {
+"elev_m": 211.0,
+"icao": null,
+"lat": 20.3,
+"lon": 83.3,
+"name": "Titlagarh"
+},
+"42966": {
+"elev_m": 489.0,
+"icao": null,
+"lat": 20.483,
+"lon": 84.267,
+"name": "Phulbani"
+},
+"42969": {
+"elev_m": 139.0,
+"icao": null,
+"lat": 20.833,
+"lon": 85.1,
+"name": "Angul"
+},
+"42970": {
+"elev_m": 27.0,
+"icao": null,
+"lat": 20.467,
+"lon": 85.933,
+"name": "Cuttack"
+},
+"42971": {
+"elev_m": 42.1,
+"icao": "VEBS",
+"lat": 20.244,
+"lon": 85.818,
+"name": "Bhubaneshwar / Biju Patnaik Intl"
+},
+"42973": {
+"elev_m": 6.0,
+"icao": null,
+"lat": 20.783,
+"lon": 86.733,
+"name": "Chandbali"
+},
+"42976": {
+"elev_m": 8.0,
+"icao": null,
+"lat": 20.3,
+"lon": 86.683,
+"name": "Paradip (C.W.R.)"
+},
+"43001": {
+"elev_m": 5.0,
+"icao": null,
+"lat": 19.967,
+"lon": 72.717,
+"name": "Dahanu"
+},
+"43003": {
+"elev_m": 11.3,
+"icao": "VABB",
+"lat": 19.089,
+"lon": 72.868,
+"name": "Chhatrapati Shivaji Maharaj Intl"
+},
+"43005": {
+"elev_m": 12.0,
+"icao": null,
+"lat": 19.15,
+"lon": 72.0,
+"name": "T B I A"
+},
+"43009": {
+"elev_m": 657.0,
+"icao": null,
+"lat": 19.083,
+"lon": 74.8,
+"name": "Ahmadnagar"
+},
+"43011": {
+"elev_m": 519.0,
+"icao": null,
+"lat": 19.0,
+"lon": 75.717,
+"name": "Bir"
+},
+"43014": {
+"elev_m": 582.5,
+"icao": "VAAU",
+"lat": 19.863,
+"lon": 75.398,
+"name": "Aurangabad"
+},
+"43017": {
+"elev_m": 422.0,
+"icao": null,
+"lat": 19.133,
+"lon": 76.833,
+"name": "Parbhani"
+},
+"43021": {
+"elev_m": 358.0,
+"icao": null,
+"lat": 19.083,
+"lon": 77.333,
+"name": "Nanded"
+},
+"43025": {
+"elev_m": 269.0,
+"icao": null,
+"lat": 19.65,
+"lon": 78.533,
+"name": "Adilabad"
+},
+"43029": {
+"elev_m": 193.0,
+"icao": null,
+"lat": 19.967,
+"lon": 79.3,
+"name": "Chandrapur"
+},
+"43041": {
+"elev_m": 553.0,
+"icao": null,
+"lat": 19.083,
+"lon": 82.033,
+"name": "Jagdalpur"
+},
+"43042": {
+"elev_m": 261.0,
+"icao": null,
+"lat": 19.917,
+"lon": 83.183,
+"name": "Bhawanipatna"
+},
+"43049": {
+"elev_m": 17.0,
+"icao": null,
+"lat": 19.267,
+"lon": 84.883,
+"name": "Gopalpur"
+},
+"43053": {
+"elev_m": 6.0,
+"icao": null,
+"lat": 19.8,
+"lon": 85.817,
+"name": "Puri"
+},
+"43057": {
+"elev_m": 11.0,
+"icao": null,
+"lat": 18.9,
+"lon": 72.817,
+"name": "Bombay / Colaba"
+},
+"43058": {
+"elev_m": 7.0,
+"icao": null,
+"lat": 18.633,
+"lon": 72.867,
+"name": "Alibag"
+},
+"43060": {
+"elev_m": 695.0,
+"icao": null,
+"lat": 18.983,
+"lon": 73.283,
+"name": "Matheran"
+},
+"43063": {
+"elev_m": 558.0,
+"icao": null,
+"lat": 18.533,
+"lon": 73.85,
+"name": "Pune"
+},
+"43067": {
+"elev_m": 560.0,
+"icao": null,
+"lat": 18.533,
+"lon": 73.85,
+"name": "Pashan Cti"
+},
+"43069": {
+"elev_m": 551.0,
+"icao": null,
+"lat": 18.15,
+"lon": 74.583,
+"name": "Baramati"
+},
+"43071": {
+"elev_m": 521.0,
+"icao": null,
+"lat": 18.2,
+"lon": 75.2,
+"name": "Jeur"
+},
+"43076": {
+"elev_m": 639.0,
+"icao": null,
+"lat": 18.067,
+"lon": 77.117,
+"name": "Udgir"
+},
+"43081": {
+"elev_m": 381.0,
+"icao": null,
+"lat": 18.667,
+"lon": 78.1,
+"name": "Nizamabad"
+},
+"43083": {
+"elev_m": 472.0,
+"icao": null,
+"lat": 18.05,
+"lon": 78.267,
+"name": "Medak"
+},
+"43086": {
+"elev_m": 156.0,
+"icao": null,
+"lat": 18.767,
+"lon": 79.433,
+"name": "Ramgundam"
+},
+"43087": {
+"elev_m": 269.0,
+"icao": null,
+"lat": 18.017,
+"lon": 79.567,
+"name": "Hanamkonda"
+},
+"43093": {
+"elev_m": 1144.0,
+"icao": null,
+"lat": 18.583,
+"lon": 81.233,
+"name": "Bailadila"
+},
+"43097": {
+"elev_m": 913.0,
+"icao": null,
+"lat": 18.817,
+"lon": 82.717,
+"name": "Koraput"
+},
+"43105": {
+"elev_m": 6.0,
+"icao": null,
+"lat": 18.333,
+"lon": 84.133,
+"name": "Kalingapatam"
+},
+"43109": {
+"elev_m": 20.0,
+"icao": null,
+"lat": 17.817,
+"lon": 73.1,
+"name": "Harnai"
+},
+"43110": {
+"elev_m": 67.0,
+"icao": null,
+"lat": 16.983,
+"lon": 73.333,
+"name": "Ratnagiri"
+},
+"43111": {
+"elev_m": 1382.0,
+"icao": null,
+"lat": 17.933,
+"lon": 73.667,
+"name": "Mahabaleshwar"
+},
+"43113": {
+"elev_m": 612.0,
+"icao": null,
+"lat": 17.517,
+"lon": 74.05,
+"name": "Satara"
+},
+"43117": {
+"elev_m": 482.8,
+"icao": "VASL",
+"lat": 17.628,
+"lon": 75.935,
+"name": "Solapur"
+},
+"43121": {
+"elev_m": 458.0,
+"icao": null,
+"lat": 17.35,
+"lon": 76.85,
+"name": "Gulbarga"
+},
+"43125": {
+"elev_m": 663.0,
+"icao": "VOBR",
+"lat": 17.917,
+"lon": 77.533,
+"name": "Bidar"
+},
+"43128": {
+"elev_m": 531.0,
+"icao": "VOHY",
+"lat": 17.452,
+"lon": 78.461,
+"name": "Begumpet Airport / Hyderabad Intl"
+},
+"43133": {
+"elev_m": 227.0,
+"icao": null,
+"lat": 17.0,
+"lon": 79.25,
+"name": "Nalgonda"
+},
+"43136": {
+"elev_m": 54.0,
+"icao": null,
+"lat": 17.667,
+"lon": 80.883,
+"name": "Bhadrachalam"
+},
+"43137": {
+"elev_m": 112.0,
+"icao": null,
+"lat": 17.25,
+"lon": 80.15,
+"name": "Khammam"
+},
+"43147": {
+"elev_m": 35.0,
+"icao": null,
+"lat": 17.35,
+"lon": 82.55,
+"name": "Tuni"
+},
+"43149": {
+"elev_m": 4.6,
+"icao": "VOVZ",
+"lat": 17.717,
+"lon": 83.217,
+"name": "Vishakhapatnam Ctlz"
+},
+"43150": {
+"elev_m": 66.0,
+"icao": null,
+"lat": 17.7,
+"lon": 83.3,
+"name": "Cwc Vishakhapatnam/Waltair"
+},
+"43157": {
+"elev_m": 608.4,
+"icao": "VAKP",
+"lat": 16.665,
+"lon": 74.289,
+"name": "Kolhapur"
+},
+"43158": {
+"elev_m": 549.0,
+"icao": null,
+"lat": 16.85,
+"lon": 74.6,
+"name": "Sangli"
+},
+"43161": {
+"elev_m": 594.0,
+"icao": null,
+"lat": 16.817,
+"lon": 75.717,
+"name": "Bijapur"
+},
+"43168": {
+"elev_m": 505.0,
+"icao": null,
+"lat": 16.75,
+"lon": 78.0,
+"name": "Mahabubnagar"
+},
+"43169": {
+"elev_m": 400.0,
+"icao": null,
+"lat": 16.2,
+"lon": 77.35,
+"name": "Raichur"
+},
+"43177": {
+"elev_m": 106.0,
+"icao": null,
+"lat": 16.55,
+"lon": 79.55,
+"name": "Rentachintala"
+},
+"43181": {
+"elev_m": 25.0,
+"icao": "VOBZ",
+"lat": 16.53,
+"lon": 80.797,
+"name": "Vijayawada"
+},
+"43182": {
+"elev_m": 51.0,
+"icao": null,
+"lat": 16.783,
+"lon": 80.283,
+"name": "Nandigama"
+},
+"43184": {
+"elev_m": 13.0,
+"icao": null,
+"lat": 16.833,
+"lon": 81.583,
+"name": "Nidadavole"
+},
+"43185": {
+"elev_m": 3.0,
+"icao": null,
+"lat": 16.2,
+"lon": 81.15,
+"name": "Machilipatnam/Franchpet"
+},
+"43187": {
+"elev_m": 4.0,
+"icao": null,
+"lat": 16.433,
+"lon": 81.7,
+"name": "Narsapur"
+},
+"43189": {
+"elev_m": 8.0,
+"icao": null,
+"lat": 16.95,
+"lon": 82.233,
+"name": "Kakinada"
+},
+"43192": {
+"elev_m": 58.4,
+"icao": null,
+"lat": 15.483,
+"lon": 73.817,
+"name": "Goa/Panjim"
+},
+"43194": {
+"elev_m": 56.1,
+"icao": "VOGO",
+"lat": 15.381,
+"lon": 73.831,
+"name": "Goa Intl"
+},
+"43196": {
+"elev_m": 62.0,
+"icao": null,
+"lat": 15.417,
+"lon": 73.783,
+"name": "Mormugao"
+},
+"43197": {
+"elev_m": 753.0,
+"icao": null,
+"lat": 15.85,
+"lon": 74.533,
+"name": "Belgaum"
+},
+"43198": {
+"elev_m": 758.0,
+"icao": "VABM",
+"lat": 15.859,
+"lon": 74.618,
+"name": "Belgaum"
+},
+"43200": {
+"elev_m": 678.0,
+"icao": null,
+"lat": 15.483,
+"lon": 74.983,
+"name": "Dharwad"
+},
+"43201": {
+"elev_m": 650.0,
+"icao": null,
+"lat": 15.417,
+"lon": 75.633,
+"name": "Gadag"
+},
+"43207": {
+"elev_m": 3.0,
+"icao": null,
+"lat": 11.5,
+"lon": 79.767,
+"name": "Parangipettai"
+},
+"43212": {
+"elev_m": 212.0,
+"icao": null,
+"lat": 15.467,
+"lon": 78.483,
+"name": "Nandyal"
+},
+"43213": {
+"elev_m": 281.0,
+"icao": null,
+"lat": 15.8,
+"lon": 78.067,
+"name": "Kurnool"
+},
+"43220": {
+"elev_m": 6.0,
+"icao": null,
+"lat": 15.9,
+"lon": 80.467,
+"name": "Bapatla"
+},
+"43221": {
+"elev_m": 12.0,
+"icao": null,
+"lat": 15.5,
+"lon": 80.083,
+"name": "Ongole"
+},
+"43225": {
+"elev_m": 4.0,
+"icao": null,
+"lat": 14.783,
+"lon": 74.133,
+"name": "Karwar"
+},
+"43226": {
+"elev_m": 9.0,
+"icao": null,
+"lat": 14.283,
+"lon": 74.45,
+"name": "Honavar"
+},
+"43227": {
+"elev_m": 573.0,
+"icao": null,
+"lat": 14.783,
+"lon": 75.4,
+"name": "Haveri"
+},
+"43229": {
+"elev_m": 45.0,
+"icao": null,
+"lat": 14.067,
+"lon": 74.533,
+"name": "Shirali"
+},
+"43230": {
+"elev_m": 620.0,
+"icao": null,
+"lat": 14.5,
+"lon": 75.917,
+"name": "Davangere"
+},
+"43233": {
+"elev_m": 733.0,
+"icao": null,
+"lat": 14.233,
+"lon": 76.433,
+"name": "Chitradurga"
+},
+"43237": {
+"elev_m": 364.0,
+"icao": null,
+"lat": 14.583,
+"lon": 77.633,
+"name": "Pbo Anantapur"
+},
+"43241": {
+"elev_m": 130.0,
+"icao": null,
+"lat": 14.483,
+"lon": 78.833,
+"name": "Cuddapah"
+},
+"43243": {
+"elev_m": 17.0,
+"icao": null,
+"lat": 14.9,
+"lon": 79.983,
+"name": "Kavali"
+},
+"43245": {
+"elev_m": 20.0,
+"icao": null,
+"lat": 14.45,
+"lon": 79.983,
+"name": "Nellore"
+},
+"43258": {
+"elev_m": 630.6,
+"icao": "VOSH",
+"lat": 13.858,
+"lon": 75.62,
+"name": "Shivamogga"
+},
+"43260": {
+"elev_m": 1057.0,
+"icao": null,
+"lat": 13.25,
+"lon": 75.75,
+"name": "Chickmagalur"
+},
+"43266": {
+"elev_m": 3.0,
+"icao": null,
+"lat": 10.85,
+"lon": 72.467,
+"name": "M.O. Agathi Airport"
+},
+"43271": {
+"elev_m": 701.0,
+"icao": null,
+"lat": 13.533,
+"lon": 78.5,
+"name": "Arogyavaram"
+},
+"43272": {
+"elev_m": 857.0,
+"icao": null,
+"lat": 13.2,
+"lon": 78.067,
+"name": "Chintamani"
+},
+"43275": {
+"elev_m": 105.0,
+"icao": null,
+"lat": 13.667,
+"lon": 79.583,
+"name": "Tirupathi"
+},
+"43277": {
+"elev_m": 87.0,
+"icao": null,
+"lat": 13.15,
+"lon": 79.533,
+"name": "Tiruttani"
+},
+"43278": {
+"elev_m": 7.0,
+"icao": null,
+"lat": 13.067,
+"lon": 80.2,
+"name": "Numgambakkam"
+},
+"43279": {
+"elev_m": 15.8,
+"icao": "VOMM",
+"lat": 12.994,
+"lon": 80.181,
+"name": "Chennai Intl"
+},
+"43284": {
+"elev_m": 102.7,
+"icao": "VOML",
+"lat": 12.961,
+"lon": 74.89,
+"name": "Mangalore"
+},
+"43285": {
+"elev_m": 31.0,
+"icao": null,
+"lat": 12.95,
+"lon": 74.833,
+"name": "Mangalore/Panambur"
+},
+"43287": {
+"elev_m": 1153.0,
+"icao": null,
+"lat": 12.417,
+"lon": 75.733,
+"name": "Madikeri"
+},
+"43289": {
+"elev_m": 695.0,
+"icao": null,
+"lat": 12.5,
+"lon": 76.833,
+"name": "Mandya"
+},
+"43291": {
+"elev_m": 767.0,
+"icao": null,
+"lat": 12.3,
+"lon": 76.7,
+"name": "Mysore"
+},
+"43295": {
+"elev_m": 921.0,
+"icao": null,
+"lat": 12.967,
+"lon": 77.583,
+"name": "Bangalore"
+},
+"43301": {
+"elev_m": 396.0,
+"icao": null,
+"lat": 12.133,
+"lon": 78.033,
+"name": "Dharmapuri"
+},
+"43302": {
+"elev_m": 385.0,
+"icao": null,
+"lat": 12.483,
+"lon": 78.567,
+"name": "Tiruppattur"
+},
+"43303": {
+"elev_m": 214.0,
+"icao": "VOVR",
+"lat": 12.917,
+"lon": 79.15,
+"name": "Vellore"
+},
+"43309": {
+"elev_m": 28.0,
+"icao": null,
+"lat": 12.917,
+"lon": 92.917,
+"name": "Maya Bandar"
+},
+"43310": {
+"elev_m": 25.0,
+"icao": null,
+"lat": 12.417,
+"lon": 92.933,
+"name": "Long Island"
+},
+"43311": {
+"elev_m": 3.0,
+"icao": null,
+"lat": 11.117,
+"lon": 72.733,
+"name": "M.O. Amini"
+},
+"43314": {
+"elev_m": 5.0,
+"icao": null,
+"lat": 11.25,
+"lon": 75.783,
+"name": "Kozhikode"
+},
+"43315": {
+"elev_m": 18.0,
+"icao": null,
+"lat": 11.833,
+"lon": 75.333,
+"name": "Cannur"
+},
+"43317": {
+"elev_m": 2249.0,
+"icao": null,
+"lat": 11.4,
+"lon": 76.733,
+"name": "Udhagamandalam"
+},
+"43318": {
+"elev_m": 1747.0,
+"icao": null,
+"lat": 11.35,
+"lon": 76.8,
+"name": "Coonoor"
+},
+"43321": {
+"elev_m": 403.6,
+"icao": "VOCB",
+"lat": 11.031,
+"lon": 77.044,
+"name": "Coimbatore"
+},
+"43322": {
+"elev_m": 760.0,
+"icao": null,
+"lat": 11.933,
+"lon": 76.933,
+"name": "Chamarajnagar"
+},
+"43324": {
+"elev_m": 747.0,
+"icao": null,
+"lat": 11.167,
+"lon": 79.0,
+"name": "Ariyalur"
+},
+"43325": {
+"elev_m": 278.0,
+"icao": null,
+"lat": 11.65,
+"lon": 78.167,
+"name": "Salem"
+},
+"43327": {
+"elev_m": 92.0,
+"icao": null,
+"lat": 10.067,
+"lon": 78.8,
+"name": "Karaikudi"
+},
+"43329": {
+"elev_m": 12.0,
+"icao": null,
+"lat": 11.767,
+"lon": 79.767,
+"name": "Cuddalore"
+},
+"43330": {
+"elev_m": 68.0,
+"icao": null,
+"lat": 10.783,
+"lon": 79.133,
+"name": "Thanjavur"
+},
+"43331": {
+"elev_m": 38.0,
+"icao": null,
+"lat": 11.967,
+"lon": 79.817,
+"name": "M.O. Pondicherry"
+},
+"43333": {
+"elev_m": 79.0,
+"icao": "VEPB",
+"lat": 11.667,
+"lon": 92.717,
+"name": "Port Blair"
+},
+"43334": {
+"elev_m": 5.0,
+"icao": null,
+"lat": 10.8,
+"lon": 73.983,
+"name": "Androth"
+},
+"43335": {
+"elev_m": 97.0,
+"icao": null,
+"lat": 10.767,
+"lon": 76.65,
+"name": "Palakkad"
+},
+"43337": {
+"elev_m": 9.1,
+"icao": "VOKV",
+"lat": 10.542,
+"lon": 72.616,
+"name": "Kavaratti Heliport"
+},
+"43338": {
+"elev_m": 172.0,
+"icao": null,
+"lat": 11.483,
+"lon": 77.767,
+"name": "Erode"
+},
+"43339": {
+"elev_m": 2343.0,
+"icao": null,
+"lat": 10.233,
+"lon": 77.467,
+"name": "Kodaikanal"
+},
+"43340": {
+"elev_m": 1463.0,
+"icao": null,
+"lat": 11.75,
+"lon": 78.167,
+"name": "Yercaud"
+},
+"43341": {
+"elev_m": 1041.0,
+"icao": null,
+"lat": 10.283,
+"lon": 77.0,
+"name": "Valparai"
+},
+"43342": {
+"elev_m": 181.0,
+"icao": null,
+"lat": 10.95,
+"lon": 78.083,
+"name": "K. Paramathy"
+},
+"43343": {
+"elev_m": 88.0,
+"icao": null,
+"lat": 10.767,
+"lon": 78.717,
+"name": "Tiruchirapalli Town"
+},
+"43344": {
+"elev_m": 87.8,
+"icao": "VOTR",
+"lat": 10.765,
+"lon": 78.71,
+"name": "Tiruchirappalli"
+},
+"43346": {
+"elev_m": 7.0,
+"icao": null,
+"lat": 10.917,
+"lon": 79.833,
+"name": "Karaikal"
+},
+"43347": {
+"elev_m": 9.0,
+"icao": null,
+"lat": 10.767,
+"lon": 79.85,
+"name": "Nagappattinam"
+},
+"43348": {
+"elev_m": 6.0,
+"icao": null,
+"lat": 10.333,
+"lon": 79.383,
+"name": "Atiramapattinam"
+},
+"43351": {
+"elev_m": 3.0,
+"icao": null,
+"lat": 9.967,
+"lon": 76.233,
+"name": "Fort Cochin"
+},
+"43353": {
+"elev_m": 2.4,
+"icao": "VOCC",
+"lat": 9.946,
+"lon": 76.272,
+"name": "Cochin"
+},
+"43354": {
+"elev_m": 34.0,
+"icao": null,
+"lat": 9.0,
+"lon": 76.917,
+"name": "Punalur"
+},
+"43355": {
+"elev_m": 78.0,
+"icao": null,
+"lat": 9.533,
+"lon": 76.6,
+"name": "Kottayam"
+},
+"43356": {
+"elev_m": 300.0,
+"icao": null,
+"lat": 10.0,
+"lon": 77.133,
+"name": "Periakulam"
+},
+"43357": {
+"elev_m": 39.0,
+"icao": null,
+"lat": 10.517,
+"lon": 76.217,
+"name": "Thrissur"
+},
+"43359": {
+"elev_m": 133.0,
+"icao": null,
+"lat": 9.917,
+"lon": 78.117,
+"name": "Madurai"
+},
+"43360": {
+"elev_m": 139.9,
+"icao": "VOMD",
+"lat": 9.835,
+"lon": 78.093,
+"name": "Madurai"
+},
+"43361": {
+"elev_m": 5.0,
+"icao": null,
+"lat": 9.733,
+"lon": 79.033,
+"name": "Tondi"
+},
+"43363": {
+"elev_m": 11.0,
+"icao": null,
+"lat": 9.283,
+"lon": 79.217,
+"name": "Pamban"
+},
+"43364": {
+"elev_m": 5.0,
+"icao": null,
+"lat": 10.583,
+"lon": 92.55,
+"name": "Hut Bay"
+},
+"43367": {
+"elev_m": 10.0,
+"icao": null,
+"lat": 9.167,
+"lon": 92.833,
+"name": "Car Nicobar"
+},
+"43368": {
+"elev_m": 14.0,
+"icao": "VECX",
+"lat": 9.15,
+"lon": 92.817,
+"name": "Car Nicobar(In-Afb)"
+},
+"43369": {
+"elev_m": 2.0,
+"icao": null,
+"lat": 8.3,
+"lon": 73.15,
+"name": "Minicoy"
+},
+"43371": {
+"elev_m": 64.0,
+"icao": null,
+"lat": 8.483,
+"lon": 76.95,
+"name": "Thiruvananthapuram"
+},
+"43372": {
+"elev_m": 4.6,
+"icao": "VOTV",
+"lat": 8.482,
+"lon": 76.92,
+"name": "Thiruvananthapuram Intl"
+},
+"43376": {
+"elev_m": 51.0,
+"icao": null,
+"lat": 8.733,
+"lon": 77.75,
+"name": "Palayankottai"
+},
+"43377": {
+"elev_m": 37.0,
+"icao": null,
+"lat": 8.083,
+"lon": 77.5,
+"name": "Kanniyakumari"
+},
+"43379": {
+"elev_m": 2.0,
+"icao": null,
+"lat": 8.75,
+"lon": 78.183,
+"name": "Tuticorin New Port"
+},
+"43382": {
+"elev_m": 26.0,
+"icao": null,
+"lat": 7.983,
+"lon": 93.533,
+"name": "Nancowry"
+}
+}

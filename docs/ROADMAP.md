@@ -41,11 +41,18 @@ Phase 2a done:
 - API: `PUT /api/subscriptions`, `GET /api/alerts/history`, `GET /api/observations/nearby`, `GET /api/system/status`
 - Frontend: live bell with connection state, unread badge and inbox; alert banners; desktop notifications (permission on request); tapping an alert asks the assistant what to do. Verified in the browser with real IMD alerts for Jaipur
 
+Phase 2b done:
+- WMO WIS 2.0 subscription over MQTT (Météo-France global broker, TLS): the full global notification stream (about 1,000 messages a minute), with every India-related message stored (IMD's own `in-imd` node plus GTS bulletins with area IN relayed by DWD and JMA)
+- IMD's native WIS2 node publishes hourly per-station BUFR4 SYNOP; these are downloaded and decoded in pure Python (pybufrkit), giving temperature, dew point, humidity, pressure, wind, visibility, cloud and present weather. A 6-hour backfill runs on startup
+- FM-12 SYNOP text decoder for GTS bulletins (SMIN/SIIN/SNIN), with a 372-station Indian WMO catalogue for coordinates
+- IMD's server omits its emSign intermediate certificate, so the public intermediate is bundled and added to the trust store. Verification stays on and chains still have to end at a certifi root
+- About 93 IMD surface stations per synoptic hour now sit next to about 26 airport METARs. The "Measured" reading and the assistant use whichever real station is closest and fresh, labelled IMD station or METAR (for example Bahraich 42273 at 1 km)
+- Duplicate re-issued CAP bulletins (same text and expiry under a new ID) are collapsed, so each warning is notified once
+- `GET /api/wis2/status` reports broker state, message rate, per-centre counts and decode stats
+- Tests: SYNOP decoding, topic parsing, BUFR decoding on a real IMD Nashik file, alert dedup
+
 Still in Phase 2:
-- Background ingestion workers for the CAP feed and model runs, with push when a new warning hits a saved place — done (above)
-- Explore MQTT / WIS 2.0 subscriptions for WMO real-time data
-- PostgreSQL + PostGIS for places, alert polygons and history; Redis cache
-- WebSocket channel for live alert push
+- PostGIS for alert polygons; Redis cache
 - Docker Compose, then Kubernetes manifests; load test for latency targets
 
 ## Phase 3 — Mobile app and rural voice

@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from app.config import get_settings
 from app.db import init_db
 from app.routes_live import router as live_router
-from app.services import advisory, agent, alerts, ingest, knowledge, local_tts, providers, voice, weather
+from app.services import advisory, agent, alerts, ingest, knowledge, local_tts, providers, voice, weather, wis2
 from app.services.http import close_client
 from app.services.tools import ChatContext
 
@@ -20,8 +20,10 @@ from app.services.tools import ChatContext
 async def lifespan(_: FastAPI):
     await init_db()
     ingest.start()
+    wis2.subscriber.start()
     asyncio.get_running_loop().run_in_executor(None, local_tts.warm, ["hi", "en"])
     yield
+    await wis2.subscriber.stop()
     await ingest.stop()
     await close_client()
 

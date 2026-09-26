@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     observation_poll_s: int = 900
     warm_poll_s: int = 1800
     workers_enabled: bool = True
+    wis2_enabled: bool = True
+    wis2_broker: str = "globalbroker.meteo.fr"
+    wis2_username: str = "everyone"
+    wis2_password: str = "everyone"
+    wis2_topic: str = "origin/a/wis2/#"
     alert_feed_url: str = "https://sachet.ndma.gov.in/cap_public_website/rss/rss_india.xml"
     http_timeout_s: float = 20.0
 

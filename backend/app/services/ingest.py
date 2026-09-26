@@ -83,6 +83,10 @@ async def _record(job: str, runner: Callable[[], Awaitable[tuple[int, int, str |
         await s.commit()
 
 
+def _content_key(alert: dict[str, Any]) -> tuple[str, str | None]:
+    return (" ".join((alert.get("headline") or "").lower().split()), iso(_parse(alert.get("expires"))))
+
+
 async def notify_client(client_id: str, alerts: list[dict[str, Any]] | None = None) -> int:
     async with Session() as s:
         subs = (await s.scalars(select(Subscription).where(Subscription.client_id == client_id))).all()
@@ -90,14 +94,19 @@ async def notify_client(client_id: str, alerts: list[dict[str, Any]] | None = No
             return 0
         now = utcnow()
         rows = (await s.scalars(select(Alert).where((Alert.expires.is_(None)) | (Alert.expires >= now)))).all()
-        candidates = [alert_payload(r) for r in rows] if alerts is None else alerts
+        active = [alert_payload(r) for r in rows]
+        candidates = active if alerts is None else alerts
         already = set((await s.scalars(select(Delivery.alert_id).where(Delivery.client_id == client_id))).all())
+        seen = {_content_key(a) for a in active if a["id"] in already}
         sent = 0
         for sub in subs:
             for alert in alert_service.alerts_for_place([a for a in candidates if a["id"] not in already], _place(sub)):
                 already.add(alert["id"])
                 delivery = Delivery(alert_id=alert["id"], client_id=client_id, place_name=sub.name, match=alert["match"])
                 s.add(delivery)
+                if _content_key(alert) in seen:
+                    continue
+                seen.add(_content_key(alert))
                 if await hub.send(client_id, {"type": "alert", "place": _place(sub), "match": alert["match"], "alert": alert}):
                     delivery.delivered_at = utcnow()
                     sent += 1

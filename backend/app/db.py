@@ -91,6 +91,19 @@ class Observation(Base):
     raw: Mapped[str | None] = mapped_column(Text)
 
 
+class Wis2Message(Base):
+    __tablename__ = "wis2_messages"
+
+    data_id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    topic: Mapped[str] = mapped_column(String(255))
+    centre: Mapped[str | None] = mapped_column(String(80), index=True)
+    policy: Mapped[str | None] = mapped_column(String(20))
+    bulletin: Mapped[str | None] = mapped_column(String(40), index=True)
+    href: Mapped[str | None] = mapped_column(Text)
+    pubtime: Mapped[str | None] = mapped_column(String(40))
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+
+
 class IngestRun(Base):
     __tablename__ = "ingest_runs"
 

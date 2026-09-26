@@ -56,6 +56,7 @@ export default function Hud({ fc, m }: { fc: Forecast; m: Moment }) {
           <small>
             {fc.observed.name.split(',')[0]} ({fc.observed.station}) · {fc.observed.distance_km} km away
             {fc.observed.age_min !== null ? ` · ${fc.observed.age_min} min ago` : ''}
+            {fc.observed.source.startsWith('IMD') ? ' · IMD station' : ' · METAR'}
           </small>
         </p>
       )}
