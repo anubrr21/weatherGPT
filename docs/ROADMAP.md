@@ -25,8 +25,11 @@ Done and verified against live data:
 - Offline mode handles farm/fishing/city/aviation intents, crop keywords and better place extraction
 - LLM provider chain Gemini -> Groq (openai/gpt-oss-120b) -> offline intent engine; a provider failing mid-answer emits reset and the next one answers cleanly; verified with invalid keys and a simulated mid-stream failure
 
+- Model rotation across 5 free-tier models (Gemini 3.8 flash → 3.7 flash → 3.5 flash-lite → Groq gpt-oss-120b → gpt-oss-20b). Each model is benched on 429/503 with escalating backoff; 30 s stall timeout; waits up to 20 s for capacity before degrading; low thinking effort on both providers
+- Multilingual eval (`backend/eval_languages.py --pace=15`, 15 questions in 13 languages incl. farm and fishing): 14/15 pass (native script, real tool use), median 7.7 s total. The one miss was every model rate-limited after three back-to-back eval runs. Prompt tuned from the answers: calibrated rain wording, confidence stated as a score, condition labels translated
+
 Still open:
-- Gemini/Groq keys → run `backend/eval_languages.py` (13 languages + sector questions: script check, tool use, first-token and total latency) and tune the prompt from the results
+- Free-tier capacity is the real constraint (gemini-3.8-flash allows ~20 requests on this key). Before a demo, don't run evals; consider a paid tier or more Groq models
 - CAP polygon geometry (the SACHET polygon endpoint returns 403 today)
 
 ## Phase 2 — Real-time ingestion and scale
