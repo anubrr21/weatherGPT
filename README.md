@@ -16,8 +16,8 @@ Ask about the weather by voice or text in 13 Indian languages. Answers are groun
 | Air quality | India **NAQI** computed with the CPCB sub-index method from 24 h PM2.5/PM10 |
 | Marine | Wave height, swell, period, SST, go/no-go sea state |
 | Aviation | Live **METAR/TAF** from aviationweather.gov |
-| Conversational AI | Function-calling agent over the tools above, streamed (SSE). Provider chain: **Gemini → Groq (gpt-oss-120b) → offline intent engine**; a provider failing mid-answer is discarded and the next one answers cleanly |
-| Voice | Web Speech API speech-to-text and text-to-speech in the selected language |
+| Conversational AI | Function-calling agent over the tools above, streamed (SSE). 11 models across **Cerebras, Groq, Gemini, Mistral, OpenRouter** (the fast three take turns leading), then an offline intent engine; rate-limited models are benched, answers are cached for 10 minutes, and a provider failing mid-answer is discarded so the next one answers cleanly. Scope-guarded: non-weather requests (e.g. code) are declined |
+| Voice | Whisper (Groq) speech-to-text; offline Piper voices for 7 languages, then Sarvam / Azure / Gemini neural voices, chosen by the reply's script |
 | Knowledge (RAG) | 24 official documents — IMD SOPs (forecasting & warnings, cyclone, agromet GKMS, aviation), RSMC cyclone terminology, IMD health bulletin, NDMA hazard guidance and Do's & Don'ts, NDMA thunderstorm/lightning guidelines — 1,259 cited passages, hybrid keyword (BM25) + multilingual semantic search (Mistral embeddings) with rank fusion |
 | Observations | Nearest real station report (METAR) shown next to the model forecast |
 | Radar | Live 2-hour precipitation radar loop (RainViewer) |
