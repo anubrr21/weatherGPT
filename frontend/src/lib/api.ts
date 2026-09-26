@@ -12,6 +12,8 @@ async function get<T>(path: string, params: Record<string, string | number>): Pr
 export interface Health {
   ok: boolean
   llm: boolean
+  neural_voice?: boolean
+  server_stt?: boolean
   providers: { name: string; model: string }[]
 }
 

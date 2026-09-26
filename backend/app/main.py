@@ -2,13 +2,13 @@ import json
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.config import get_settings
-from app.services import advisory, agent, alerts, providers, weather
+from app.services import advisory, agent, alerts, providers, voice, weather
 from app.services.http import close_client
 from app.services.tools import ChatContext
 
@@ -46,6 +46,8 @@ async def health():
     return {
         "ok": True,
         "llm": settings.llm_enabled,
+        "neural_voice": bool(settings.gemini_api_key.strip()),
+        "server_stt": bool(settings.groq_api_key.strip()),
         "providers": [
             {"name": cls.name, "model": model, "cooling_s": round(providers.cooling(f"{cls.name}:{model}"))} for cls, model in providers.chain()
         ],
@@ -102,6 +104,34 @@ async def insights(lat: float = Lat, lon: float = Lon, role: str = "general", cr
 @app.get("/api/alerts/india")
 async def india_alerts():
     return await alerts.official_alerts()
+
+
+class SpeakRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=1500)
+    voice: str = "Kore"
+    language: str | None = None
+
+
+@app.post("/api/tts")
+async def tts(req: SpeakRequest):
+    try:
+        audio = await voice.synthesize(req.text, req.voice, req.language)
+    except voice.VoiceError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return Response(content=audio, media_type="audio/wav", headers={"Cache-Control": "private, max-age=3600"})
+
+
+@app.post("/api/transcribe")
+async def transcribe(audio: UploadFile = File(...), language: str | None = Form(None)):
+    data = await audio.read()
+    if len(data) < 1200:
+        raise HTTPException(status_code=400, detail="Recording too short")
+    if len(data) > 20 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Recording too long")
+    try:
+        return await voice.transcribe(data, audio.filename or "speech.webm", audio.content_type or "audio/webm", language)
+    except voice.VoiceError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
 class Turn(BaseModel):

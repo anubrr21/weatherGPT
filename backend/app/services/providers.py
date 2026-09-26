@@ -26,7 +26,7 @@ _cooldown: dict[str, float] = {}
 _strikes: dict[str, int] = {}
 
 
-def _retry_after(body: str) -> float | None:
+def parse_retry_after(body: str) -> float | None:
     match = re.search(r"(?:retry in|try again in)\s+(?:(\d+)m)?([\d.]+)s", body, re.I)
     if not match:
         return None
@@ -36,6 +36,9 @@ def _retry_after(body: str) -> float | None:
 def bench(key: str, error: Exception) -> None:
     strikes = _strikes.get(key, 0) + 1
     _strikes[key] = strikes
+    if isinstance(error, ProviderError) and error.status == 429 and key.startswith("groq:") and error.retry_after:
+        _cooldown[key] = time.monotonic() + error.retry_after + 1
+        return
     if isinstance(error, ProviderError) and error.status == 429:
         base = max(error.retry_after or 60, 60)
         if "per day" in str(error).lower() or "perday" in str(error).lower():
@@ -80,7 +83,7 @@ def _history(history: list[dict[str, str]]) -> list[tuple[str, str]]:
 
 
 async def _post_stream(url: str, headers: dict[str, str], payload: dict[str, Any], params: dict[str, str] | None, label: str, retries: list[float]) -> AsyncIterator[str]:
-    timeout = httpx.Timeout(60 if retries else 30, connect=10)
+    timeout = httpx.Timeout(60 if retries else 12, connect=8)
     for attempt in range(len(retries) + 1):
         try:
             async with client().stream("POST", url, params=params, headers=headers, json=payload, timeout=timeout) as response:
@@ -90,7 +93,7 @@ async def _post_stream(url: str, headers: dict[str, str], payload: dict[str, Any
                     continue
                 if response.status_code >= 400:
                     body = (await response.aread()).decode(errors="ignore")
-                    raise ProviderError(f"{label} error {response.status_code}: {body[:300]}", response.status_code, _retry_after(body))
+                    raise ProviderError(f"{label} error {response.status_code}: {body[:300]}", response.status_code, parse_retry_after(body))
                 async for line in response.aiter_lines():
                     if line.startswith("data:"):
                         chunk = line[5:].strip()
@@ -213,7 +216,16 @@ class Groq:
 
 def chain() -> list[tuple[type, str]]:
     settings = get_settings()
-    return [(Gemini, m) for m in settings.gemini_models] + [(Groq, m) for m in settings.groq_models]
+    pools = {"gemini": (Gemini, settings.gemini_models), "groq": (Groq, settings.groq_models)}
+    ordered: list[tuple[type, str]] = []
+    for slot in settings.model_order.split(","):
+        name, _, index = slot.strip().partition(":")
+        cls, models = pools.get(name, (None, []))
+        if cls and index.isdigit() and int(index) < len(models):
+            ordered.append((cls, models[int(index)]))
+    for cls, models in pools.values():
+        ordered += [(cls, m) for m in models if (cls, m) not in ordered]
+    return ordered
 
 
 def available() -> list[tuple[type, str]]:

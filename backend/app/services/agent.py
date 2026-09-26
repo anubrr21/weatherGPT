@@ -72,7 +72,11 @@ Rules:
 - Tool data contains English condition labels such as "Light drizzle"; translate them into the reply language.
 - For safety questions, prioritise official IMD/NDMA warnings and clearly distinguish them from model-derived advisories. Include specific protective actions.
 - Express uncertainty honestly: forecasts beyond 3 days are less reliable; mention model disagreement when relevant.
-- Temperatures in °C, rain in mm, wind in km/h (knots for aviation)."""
+- Temperatures in °C, rain in mm, wind in km/h (knots for aviation).
+
+Reply format (strict):
+1. After you have the data, START the reply with a spoken version wrapped exactly as <speak>...</speak>. It is read aloud by a voice, so write it the way a friendly local weather presenter would talk to this person: 1 to 3 short sentences in the reply language, answering only what was asked, most important fact first, with one practical tip if useful. No markdown, bullets, symbols, units written as symbols, decimals, dates in digits or English words inside other languages. Round numbers and say units as spoken words in that language (for example "about 33 degrees", "around 20 kilometres an hour", "a light chance of rain"). Do not greet or repeat the question.
+2. Then the written answer for the screen, following the rules above."""
 
 
 async def _run_tool(name: str, args: dict[str, Any], ctx: tools.ChatContext) -> dict[str, Any]:
@@ -92,14 +96,18 @@ def _event(kind: str, **data: Any) -> dict[str, Any]:
 
 
 async def run_provider(provider: providers.Provider, ctx: tools.ChatContext) -> AsyncIterator[dict[str, Any]]:
+    wrote = False
     for _ in range(MAX_TOOL_ROUNDS):
         calls: list[providers.Call] = []
         async for kind, value in provider.turn():
             if kind == "text":
+                wrote = wrote or bool(value.strip())
                 yield _event("delta", text=value)
             else:
                 calls.append(value)
         if not calls:
+            if not wrote:
+                raise providers.ProviderError(f"{provider.label} returned an empty answer")
             return
         for call in calls:
             yield _event("status", text=TOOL_STATUS.get(call.name, call.name), tool=call.name, args=call.args)
@@ -138,6 +146,52 @@ def _extract_location(message: str) -> str | None:
         match = tail.match(message, prep.end())
         if match and not NOT_PLACES.match(match.group(1).strip()):
             return match.group(1).strip()
+    return None
+
+
+def _say(value: float | None) -> str:
+    return "unknown" if value is None else str(round(value))
+
+
+def _offline_speech(name: str, result: dict[str, Any]) -> str | None:
+    if "error" in result:
+        return None
+    place = (result.get("place") or "").split(",")[0]
+    if name == "get_forecast":
+        n = result["now"]
+        tomorrow = result["daily"][1] if len(result["daily"]) > 1 else result["daily"][0]
+        prob = tomorrow.get("rain_prob_pct") or 0
+        rain = "rain looks likely" if (tomorrow.get("rain_mm") or 0) >= 2.5 or prob >= 60 else "rain is unlikely" if prob < 40 else "there is a small chance of rain"
+        return (
+            f"Right now in {place} it's about {_say(n['temp_c'])} degrees and {n['condition'].lower()}. "
+            f"Tomorrow, {rain}, with temperatures between {_say(tomorrow['tmin_c'])} and {_say(tomorrow['tmax_c'])} degrees."
+        )
+    if name == "get_alerts":
+        official = result["official_imd_ndma_alerts"]
+        if official:
+            return f"There {'is an official warning' if len(official) == 1 else f'are {len(official)} official warnings'} for the {place} area. The main one is {official[0]['event'] or 'a weather alert'}. Please check the details on screen."
+        if result["model_derived_advisories"]:
+            return f"There are no official warnings for {place}, but the forecast flags {result['model_derived_advisories'][0]['event'].lower()} in the coming days."
+        return f"Good news, there are no weather warnings for {place} right now."
+    if name == "get_farm_advisory":
+        w = result["spray"]["windows"]
+        irr = result["irrigation"]
+        if w:
+            start = datetime.fromisoformat(w[0]["start"])
+            day = "today" if start.date() == datetime.now().date() else start.strftime("%A")
+            spray = f"The next good time to spray is {day} from {start.strftime('%I').lstrip('0')} {'in the morning' if start.hour < 12 else 'in the afternoon' if start.hour < 17 else 'in the evening'}, for about {w[0]['hours']} hours."
+        else:
+            spray = "There's no safe spraying window in the next two days."
+        water = "You should irrigate this week." if irr["deficit_mm"] > 20 else "Expected rain should cover your crop's water need."
+        return f"{spray} {water}"
+    if name == "get_fishing_advisory":
+        verdict = {"GO": "it's safe to go out", "CAUTION": "go out only with caution", "NO-GO": "please do not go to sea"}[result["now"]]
+        return f"Right now at {place}, {verdict}. Winds are gusting to about {_say(result['gust_now_kmh'])} kilometres an hour."
+    if name == "get_city_advisory":
+        peak = result["heat_index_peak"]
+        return f"In {place} it will feel like about {_say(peak['heat_index'])} degrees at its hottest, around {int(peak['time'][11:13])} o'clock. Waterlogging risk is {result['waterlogging_risk']}."
+    if name == "get_air_quality":
+        return f"Air quality in {place} is {(result.get('india_naqi_band') or 'unknown').lower()}, with an AQI of about {_say(result.get('india_naqi'))}."
     return None
 
 
@@ -219,6 +273,9 @@ async def run_offline(message: str, ctx: tools.ChatContext, note: bool = True) -
     result = await _run_tool(name, args, ctx)
     for card in ctx.cards:
         yield _event("card", card=card)
+    spoken = _offline_speech(name, result)
+    if spoken:
+        yield _event("delta", text=f"<speak>{spoken}</speak>")
     yield _event("delta", text=_offline_summary(name, result))
     if note:
         yield _event("delta", text="\n\n_Offline mode: add a `GEMINI_API_KEY` or `GROQ_API_KEY` to `backend/.env` for full conversational answers in every language._")

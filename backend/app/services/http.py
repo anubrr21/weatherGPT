@@ -20,6 +20,19 @@ def client() -> httpx.AsyncClient:
     return _client
 
 
+async def get_retry(url: str, **kwargs: Any) -> httpx.Response:
+    for attempt in range(3):
+        try:
+            response = await client().get(url, **kwargs)
+            if response.status_code < 500 or attempt == 2:
+                return response
+        except (httpx.TimeoutException, httpx.TransportError):
+            if attempt == 2:
+                raise
+        await asyncio.sleep(0.6 * (attempt + 1))
+    raise RuntimeError("unreachable")
+
+
 async def close_client() -> None:
     global _client
     if _client is not None:

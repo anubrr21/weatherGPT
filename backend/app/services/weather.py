@@ -2,7 +2,7 @@ from datetime import date, timedelta
 from statistics import mean
 from typing import Any
 
-from app.services.http import TTLCache, client, coord_key
+from app.services.http import TTLCache, coord_key, get_retry
 from app.services.wmo import compass, describe
 
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
@@ -47,7 +47,7 @@ _metar_cache = TTLCache(ttl_s=300)
 
 async def geocode(query: str, count: int = 6) -> list[dict[str, Any]]:
     async def load() -> list[dict[str, Any]]:
-        response = await client().get(
+        response = await get_retry(
             GEOCODE_URL, params={"name": query, "count": count, "language": "en", "format": "json"}
         )
         response.raise_for_status()
@@ -74,7 +74,7 @@ async def geocode(query: str, count: int = 6) -> list[dict[str, Any]]:
 async def reverse_geocode(lat: float, lon: float) -> dict[str, Any]:
     async def load() -> dict[str, Any]:
         try:
-            response = await client().get(
+            response = await get_retry(
                 REVERSE_URL, params={"latitude": lat, "longitude": lon, "localityLanguage": "en"}
             )
             response.raise_for_status()
@@ -105,7 +105,7 @@ async def forecast(lat: float, lon: float, model: str = "best_match", days: int 
     model = model if model in NWP_MODELS else "best_match"
 
     async def load() -> dict[str, Any]:
-        response = await client().get(
+        response = await get_retry(
             FORECAST_URL,
             params={
                 "latitude": lat,
@@ -151,7 +151,7 @@ async def compare_models(lat: float, lon: float, days: int = 7) -> dict[str, Any
     models = [m for m in NWP_MODELS if m != "best_match"]
 
     async def load() -> dict[str, Any]:
-        response = await client().get(
+        response = await get_retry(
             FORECAST_URL,
             params={
                 "latitude": lat,
@@ -200,7 +200,7 @@ def _sub_index(value: float | None, breaks: list[tuple[int, int, int, int]]) -> 
 
 async def air_quality(lat: float, lon: float) -> dict[str, Any]:
     async def load() -> dict[str, Any]:
-        response = await client().get(
+        response = await get_retry(
             AIR_URL,
             params={
                 "latitude": lat,
@@ -252,7 +252,7 @@ async def climate(lat: float, lon: float, month: int | None = None, start_year: 
     end = today - timedelta(days=7)
 
     async def load() -> dict[str, Any]:
-        response = await client().get(
+        response = await get_retry(
             ARCHIVE_URL,
             params={
                 "latitude": lat,
@@ -328,7 +328,7 @@ async def climate(lat: float, lon: float, month: int | None = None, start_year: 
 
 async def marine(lat: float, lon: float) -> dict[str, Any]:
     async def load() -> dict[str, Any]:
-        response = await client().get(
+        response = await get_retry(
             MARINE_URL,
             params={
                 "latitude": lat,
@@ -359,7 +359,7 @@ async def metar(icao: str) -> dict[str, Any]:
     code = icao.strip().upper()
 
     async def load() -> dict[str, Any]:
-        response = await client().get(METAR_URL, params={"ids": code, "format": "json", "taf": "true", "hours": 3})
+        response = await get_retry(METAR_URL, params={"ids": code, "format": "json", "taf": "true", "hours": 3})
         response.raise_for_status()
         rows = response.json() if response.content else []
         if not rows:

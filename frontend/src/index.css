@@ -110,6 +110,7 @@ button:disabled {
 .stage > * {
   width: 100%;
   max-width: 560px;
+  flex-shrink: 0;
 }
 
 .topbar {
@@ -446,6 +447,15 @@ button:disabled {
 
 .dial svg:active {
   cursor: grabbing;
+}
+
+.dial svg:focus {
+  outline: none;
+}
+
+.dial svg:focus-visible .dial-bezel {
+  stroke: var(--accent-2);
+  stroke-width: 2;
 }
 
 .dial-bezel {
@@ -890,6 +900,11 @@ button:disabled {
   color: var(--ink);
 }
 
+.speak-btn.on {
+  color: var(--accent);
+  border-color: rgba(255, 179, 92, 0.4);
+}
+
 .spin {
   animation: spin 1s linear infinite;
   color: var(--ink-3);
@@ -966,10 +981,11 @@ button:disabled {
 
 .wave i {
   width: 3px;
-  height: 100%;
+  height: calc(30% + 70% * var(--level, 1));
   border-radius: 3px;
   background: var(--accent);
   animation: wave 0.9s ease-in-out infinite;
+  transition: height 0.08s linear;
 }
 
 .wave i:nth-child(2) {
