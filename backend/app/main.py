@@ -1,3 +1,4 @@
+import asyncio
 import json
 from contextlib import asynccontextmanager
 from typing import Any
@@ -8,13 +9,14 @@ from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.config import get_settings
-from app.services import advisory, agent, alerts, providers, voice, weather
+from app.services import advisory, agent, alerts, local_tts, providers, voice, weather
 from app.services.http import close_client
 from app.services.tools import ChatContext
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    asyncio.get_running_loop().run_in_executor(None, local_tts.warm, ["hi", "en"])
     yield
     await close_client()
 
@@ -46,7 +48,8 @@ async def health():
     return {
         "ok": True,
         "llm": settings.llm_enabled,
-        "neural_voice": bool(settings.gemini_api_key.strip() or settings.azure_speech_key.strip()),
+        "neural_voice": bool(local_tts.available_languages() or settings.gemini_api_key.strip() or settings.azure_speech_key.strip()),
+        "local_voices": local_tts.available_languages(),
         "voice_engine": "azure" if settings.azure_speech_key.strip() else "gemini" if settings.gemini_api_key.strip() else "browser",
         "server_stt": bool(settings.groq_api_key.strip()),
         "providers": [

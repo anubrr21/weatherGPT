@@ -6,3 +6,4 @@ __pycache__/
 .env
 .DS_Store
 eval_languages_results.json
+backend/models/

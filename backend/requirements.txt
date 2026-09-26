@@ -1,6 +1,8 @@
 fastapi==0.141.1
 httpx==0.28.1
+onnx==1.23.0
 pydantic-settings==2.15.0
 python-dotenv==1.2.3
 python-multipart==0.0.32
+sherpa_onnx==1.13.8
 uvicorn==0.54.0

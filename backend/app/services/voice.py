@@ -9,7 +9,7 @@ import unicodedata
 import wave
 
 from app.config import get_settings
-from app.services import providers
+from app.services import local_tts, providers
 from app.services.http import TTLCache, client
 
 TTS_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
@@ -90,9 +90,13 @@ async def _verified(audio: bytes, text: str, language: str | None) -> float | No
         return None
     try:
         heard = await transcribe(audio, "check.wav", "audio/wav", language)
-    except VoiceError:
+    except VoiceError as exc:
+        log.warning("tts verify skipped: %s", exc)
         return None
-    return similarity(text, heard["text"])
+    score = similarity(text, heard["text"])
+    if score < MIN_MATCH:
+        log.warning("tts verify lang=%s expected=%r heard=%r", language, text[:80], heard["text"][:80])
+    return score
 
 
 def _ssml(text: str, language: str | None) -> str:
@@ -129,14 +133,22 @@ async def _azure(text: str, language: str | None) -> bytes | None:
 
 async def synthesize(text: str, voice: str = "Kore", language: str | None = None) -> bytes:
     settings = get_settings()
-    if not settings.gemini_api_key.strip() and not settings.azure_speech_key.strip():
-        raise VoiceError("No neural voice configured")
+    local = (language or "en") in local_tts.available_languages()
+    if not local and not settings.gemini_api_key.strip() and not settings.azure_speech_key.strip():
+        raise VoiceError("No voice available for this language")
     text = text.strip()[:1200]
     if not text:
         raise VoiceError("Nothing to say")
     key = hashlib.sha1(f"{voice}|{language}|{text}".encode()).hexdigest()
 
     async def load() -> bytes:
+        if local:
+            try:
+                audio = await local_tts.synthesize(language or "en", text)
+                if audio:
+                    return _trim_silence(audio)
+            except Exception as exc:
+                log.warning("local tts failed for %s: %s", language, exc)
         azure = await _azure(text, language)
         if azure:
             return azure
