@@ -54,6 +54,16 @@ npm run android:run -- --api https://weathergpt.example.in
 - Push needs a Firebase project. Put `google-services.json` (Android app `in.weathergpt.app`) in `frontend/android/app/`. Give the backend the service account via `FCM_SERVICE_ACCOUNT`, either a path relative to `backend/` (for example `secrets/firebase-service-account.json`, which is git-ignored) or the JSON itself (for a Kubernetes secret).
 - Only the worker sends pushes, when it stores a new warning. `POST /api/devices/test {client_id}` sends a test notification to a client's phones.
 
+## Speech models
+
+```bash
+cd backend
+python scripts/fetch_stt_models.py --indic-from <folder with the IndicConformer ONNX bundle>
+```
+
+- The models live in `backend/models/stt` (git-ignored, about 1 GB). Without them, speech recognition falls back to Groq only.
+- In containers, mount them at `/srv/models/stt`. With IndicConformer loaded, an API process uses about 1.3 GB more RAM, so the API pods request 1.5 Gi and are limited to 3 Gi.
+
 ## Load test
 
 ```bash

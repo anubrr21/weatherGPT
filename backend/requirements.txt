@@ -1,12 +1,14 @@
 SQLAlchemy==2.1.1
 aiosqlite==0.22.1
 asyncpg==0.31.0
+av==18.1.0
 cryptography==50.0.1
 fastapi==0.141.1
 httpx==0.28.1
 httptools==0.8.0
 numpy==2.5.3
 onnx==1.23.0
+onnxruntime==1.30.0
 paho-mqtt==2.1.0
 pybufrkit==0.2.25
 pydantic-settings==2.15.0

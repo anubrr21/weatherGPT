@@ -75,8 +75,17 @@ Phase 3a done:
 - API: `POST /api/devices`, `POST /api/devices/unregister`, `POST /api/devices/test`; push status in `/api/system/status`
 - Field note: on the campus WPA2-Enterprise Wi-Fi, FCM token registration failed with `SERVICE_NOT_AVAILABLE`, but it succeeded at once on mobile data. Register the demo phone on mobile data; the token persists
 
+Phase 3b done:
+- Speech recognition on our own server for all 12 Indian languages in the app (hi, bn, te, ta, mr, gu, kn, ml, or, pa, as, ur). It uses AI4Bharat's IndicConformer 600M multilingual, reusing iTantra's pure-ONNX export (preprocessor, int8 encoder, CTC decoder, per-language vocabulary masks). No PyTorch and no cloud
+- English runs through Groq's Whisper large-v3-turbo first and falls back to a local Whisper base.en. Indian languages run locally first and fall back to Groq. `STT_ENGINE=auto|local|cloud`
+- Measured on iTantra's real recordings: Hindi 0.0% WER, English 10.7% WER (local), about 0.1x real time on a laptop CPU. A phone's 5 s WebM/Opus recording is transcribed in about 0.6 s. Verified on a real phone through the Android app
+- Spoken language comes from the app's language menu. Automatic detection was tested and dropped: Whisper tiny got 14/19 and base 10/19 right on short clips, and IndicConformer writes any speech faithfully in any script, so its confidence cannot identify the language
+- Voice replies are sent as Ogg/Opus at 24 kbps when the device can play it (Android WebView and Chrome can). A Hindi sentence went from 176 KB WAV to 12 KB. Devices without Opus still get WAV
+- Recordings are decoded with PyAV (bundled ffmpeg), so the server needs no system ffmpeg
+- `scripts/fetch_stt_models.py` installs the models: Whisper base.en is downloaded from the sherpa-onnx releases, and the IndicConformer bundle is copied from an iTantra export because AI4Bharat's model is gated
+- Tests: Opus encoding and decoding, and Hindi and Telugu round trips (Piper speaks, IndicConformer transcribes)
+
 Still in Phase 3:
-- Server-side neural STT/TTS for Indian languages (reuse iTantra's IndicConformer / Piper work) so voice works on low-end phones and without Google speech
 - Low-bandwidth mode, offline last-known forecast, SMS/IVR fallback for feature phones
 
 ## Phase 4 — Maps and GIS

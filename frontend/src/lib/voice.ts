@@ -108,6 +108,8 @@ function browserSpeak(text: string, lang: string, onEnd: () => void) {
   }, 60)
 }
 
+const OPUS = typeof Audio !== 'undefined' && new Audio().canPlayType('audio/ogg; codecs="opus"') !== ''
+
 async function playWav(data: ArrayBuffer, onStart: () => void, onEnd: () => void) {
   audioCtx = audioCtx ?? new AudioContext()
   if (audioCtx.state === 'suspended') await audioCtx.resume()
@@ -187,7 +189,7 @@ export async function speak(text: string, menuLang: string, code: string, neural
       const response = await fetch(`${BASE}/api/tts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, language: code }),
+        body: JSON.stringify({ text, language: code, format: OPUS ? 'opus' : 'wav' }),
         signal: controller.signal,
       })
       if (!response.ok) throw new Error((await response.json().catch(() => ({}))).detail ?? `voice server error ${response.status}`)

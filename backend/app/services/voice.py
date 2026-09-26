@@ -1,4 +1,5 @@
 import array
+import asyncio
 import base64
 import difflib
 import hashlib
@@ -8,8 +9,10 @@ import re
 import unicodedata
 import wave
 
+import av
+
 from app.config import get_settings
-from app.services import local_tts, providers
+from app.services import local_stt, local_tts, providers
 from app.services.http import TTLCache, client
 
 TTS_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
@@ -280,7 +283,51 @@ async def synthesize(text: str, voice: str = "Kore", language: str | None = None
     return await _tts_cache.get_or_set(key, load)
 
 
-async def transcribe(audio: bytes, filename: str, content_type: str, language: str | None) -> dict:
+_opus_cache = TTLCache(ttl_s=3600)
+
+
+def to_opus(wav: bytes, bitrate: int = 24000) -> bytes:
+    source = av.open(io.BytesIO(wav))
+    buffer = io.BytesIO()
+    output = av.open(buffer, mode="w", format="ogg")
+    stream = output.add_stream("libopus", rate=24000)
+    stream.bit_rate = bitrate
+    stream.layout = "mono"
+    resampler = av.AudioResampler(format="s16", layout="mono", rate=24000)
+    try:
+        for frame in source.decode(audio=0):
+            for resampled in resampler.resample(frame):
+                output.mux(stream.encode(resampled))
+        for resampled in resampler.resample(None):
+            output.mux(stream.encode(resampled))
+        output.mux(stream.encode(None))
+    finally:
+        output.close()
+        source.close()
+    return buffer.getvalue()
+
+
+async def synthesize_as(text: str, voice: str, language: str | None, fmt: str) -> tuple[bytes, str]:
+    wav = await synthesize(text, voice, language)
+    if fmt != "opus":
+        return wav, "audio/wav"
+    key = hashlib.sha1(wav).hexdigest()
+
+    async def load() -> bytes:
+        return await asyncio.to_thread(to_opus, wav)
+
+    return await _opus_cache.get_or_set(key, load), "audio/ogg"
+
+
+INDIC_STT = {"hi", "bn", "te", "ta", "mr", "gu", "kn", "ml", "or", "pa", "as", "ur"}
+_local_gate = asyncio.Semaphore(2)
+
+
+def stt_available() -> bool:
+    return bool(get_settings().groq_api_key.strip()) or any(local_stt.available().values())
+
+
+async def _cloud_stt(audio: bytes, filename: str, content_type: str, language: str | None) -> dict:
     settings = get_settings()
     if not settings.groq_api_key.strip():
         raise VoiceError("No Groq key for speech recognition")
@@ -296,4 +343,39 @@ async def transcribe(audio: bytes, filename: str, content_type: str, language: s
     )
     if response.status_code >= 400:
         raise VoiceError(f"Speech recognition failed ({response.status_code}): {response.text[:200]}")
-    return {"text": (response.json().get("text") or "").strip(), "model": settings.stt_model, "language": data.get("language", "auto")}
+    return {"text": (response.json().get("text") or "").strip(), "engine": f"{settings.stt_model} (Groq)", "language": data.get("language", "auto")}
+
+
+async def _local_stt(audio: bytes, language: str) -> dict:
+    async with _local_gate:
+        try:
+            return await asyncio.to_thread(local_stt.transcribe, audio, language)
+        except local_stt.SpeechError as exc:
+            raise VoiceError(str(exc)) from exc
+
+
+def _local_ready(language: str | None) -> bool:
+    ready = local_stt.available()
+    return (language == "en" and ready["english"]) or (language in INDIC_STT and ready["indic"])
+
+
+async def transcribe(audio: bytes, filename: str, content_type: str, language: str | None) -> dict:
+    mode = get_settings().stt_engine
+    language = (language or "").split("-")[0].lower() or None
+    cloud = bool(get_settings().groq_api_key.strip()) and mode != "local"
+    local = mode != "cloud" and _local_ready(language)
+    order = ["cloud", "local"] if language == "en" or language is None else ["local", "cloud"]
+    errors = []
+    for engine in order:
+        if (engine == "local" and not local) or (engine == "cloud" and not cloud):
+            continue
+        try:
+            result = await (_local_stt(audio, language) if engine == "local" else _cloud_stt(audio, filename, content_type, language))
+        except VoiceError as exc:
+            errors.append(f"{engine}: {exc}")
+            log.warning("%s speech recognition failed: %s", engine, exc)
+            continue
+        if result.get("text"):
+            return result
+        errors.append(f"{engine}: empty transcript")
+    raise VoiceError("; ".join(errors) or "No speech recognition available for this language")

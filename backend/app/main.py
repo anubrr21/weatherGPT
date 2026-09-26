@@ -1,7 +1,7 @@
 import asyncio
 import json
 from contextlib import asynccontextmanager
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,7 +12,7 @@ from sqlalchemy import text
 from app.config import get_settings
 from app.db import Session, backend_name, init_db
 from app.routes_live import router as live_router
-from app.services import advisory, agent, alerts, ingest, knowledge, local_tts, providers, voice, weather, wis2
+from app.services import advisory, agent, alerts, ingest, knowledge, local_stt, local_tts, providers, voice, weather, wis2
 from app.services.fanout import fanout
 from app.services.http import close_client
 from app.services.tools import ChatContext
@@ -28,6 +28,8 @@ async def lifespan(_: FastAPI):
     if role in ("all", "api"):
         fanout.start()
         asyncio.get_running_loop().run_in_executor(None, local_tts.warm, ["hi", "en"])
+        if local_stt.indic.installed():
+            asyncio.get_running_loop().run_in_executor(None, local_stt.indic.languages)
     yield
     await fanout.stop()
     await wis2.subscriber.stop()
@@ -76,7 +78,8 @@ async def health():
             ("azure", bool(settings.azure_speech_key.strip())),
             ("gemini", bool(settings.gemini_api_key.strip())),
         ) if on],
-        "server_stt": bool(settings.groq_api_key.strip()),
+        "server_stt": voice.stt_available(),
+        "local_stt": local_stt.available(),
         "providers": [
             {"name": cls.name, "model": model, "cooling_s": round(providers.cooling(f"{cls.name}:{model}"))} for cls, model in providers.chain()
         ],
@@ -155,15 +158,16 @@ class SpeakRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=1500)
     voice: str = "Kore"
     language: str | None = None
+    format: Literal["wav", "opus"] = "wav"
 
 
 @app.post("/api/tts")
 async def tts(req: SpeakRequest):
     try:
-        audio = await voice.synthesize(req.text, req.voice, req.language)
+        audio, media_type = await voice.synthesize_as(req.text, req.voice, req.language, req.format)
     except voice.VoiceError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
-    return Response(content=audio, media_type="audio/wav", headers={"Cache-Control": "private, max-age=3600"})
+    return Response(content=audio, media_type=media_type, headers={"Cache-Control": "private, max-age=3600"})
 
 
 @app.post("/api/transcribe")

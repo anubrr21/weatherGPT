@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     azure_speech_key: str = ""
     azure_speech_region: str = "centralindia"
     stt_model: str = "whisper-large-v3-turbo"
+    stt_engine: str = "auto"
 
     @property
     def tts_models(self) -> list[str]:
