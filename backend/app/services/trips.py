@@ -113,19 +113,40 @@ def _rail() -> dict[str, Any] | None:
     if not path.exists():
         return None
     data = np.load(path)
-    coords = data["coords"].astype(np.float64)
-    adjacency: list[list[tuple[int, float]]] = [[] for _ in range(len(coords))]
-    for a, b, m in zip(data["src"].tolist(), data["dst"].tolist(), data["meters"].tolist()):
+    nodes = data["node_xy"].astype(np.float64)
+    adjacency: list[list[tuple[int, float]]] = [[] for _ in range(len(nodes))]
+    best_edge: dict[tuple[int, int], int] = {}
+    meters = data["edge_m"].tolist()
+    for e, (a, b, m) in enumerate(zip(data["edge_a"].tolist(), data["edge_b"].tolist(), meters)):
         adjacency[a].append((b, m))
         adjacency[b].append((a, m))
+        key = (min(a, b), max(a, b))
+        if key not in best_edge or m < meters[best_edge[key]]:
+            best_edge[key] = e
     names = json.loads((RAIL / "stations.json").read_text(encoding="utf-8"))
-    return {"coords": coords, "adj": adjacency, "stations": data["station_xy"].astype(np.float64), "names": names}
+    return {
+        "nodes": nodes, "adj": adjacency, "best_edge": best_edge, "edge_a": data["edge_a"], "geo_start": data["geo_start"], "geo_end": data["geo_end"],
+        "geo": data["geo_xy"].astype(np.float64), "stations": data["station_xy"].astype(np.float64), "station_node": data["station_node"], "names": names,
+    }
 
 
-def _nearest(points: np.ndarray, lat: float, lon: float) -> tuple[int, float]:
+MAJOR_STATION = re.compile(r"\b(junction|jn|central|terminus|city|cantt|cantonment)\b", re.IGNORECASE)
+
+
+def _station_for(graph: dict[str, Any], lat: float, lon: float) -> tuple[int, float]:
+    points = graph["stations"]
     d = (points[:, 0] - lat) ** 2 + ((points[:, 1] - lon) * math.cos(math.radians(lat))) ** 2
-    i = int(np.argmin(d))
-    return i, haversine((lat, lon), (float(points[i, 0]), float(points[i, 1])))
+    order = np.argsort(d)[:40]
+    ranked = []
+    for i in order.tolist():
+        km = haversine((lat, lon), (float(points[i, 0]), float(points[i, 1])))
+        bonus = 6000 if MAJOR_STATION.search(graph["names"][i]) else 0
+        ranked.append((km - bonus, km, i))
+    _, km, best = min(ranked)
+    nearest_km = min(r[1] for r in ranked)
+    if km > max(15000, nearest_km * 1.5):
+        best, km = min((r[2], r[1]) for r in ranked if r[1] == nearest_km)
+    return best, km
 
 
 def _dijkstra(adj: list[list[tuple[int, float]]], start: int, goal: int, coords: np.ndarray) -> list[int]:
@@ -157,16 +178,24 @@ def _rail_route(a: tuple[float, float], b: tuple[float, float]) -> Route:
     graph = _rail()
     if graph is None:
         raise TripError("The Indian railway network is still being built on this server; try road or flight")
-    sa, da = _nearest(graph["stations"], *a)
-    sb, db = _nearest(graph["stations"], *b)
+    sa, da = _station_for(graph, *a)
+    sb, db = _station_for(graph, *b)
     if da > 40000 or db > 40000:
         raise TripError("No railway station within 40 km of one of these places")
-    na, _ = _nearest(graph["coords"], *graph["stations"][sa])
-    nb, _ = _nearest(graph["coords"], *graph["stations"][sb])
-    path = _dijkstra(graph["adj"], na, nb, graph["coords"])
+    if sa == sb:
+        raise TripError(f"Both places are closest to {graph['names'][sa]} station; a train makes no sense for this trip")
+    na, nb = int(graph["station_node"][sa]), int(graph["station_node"][sb])
+    path = _dijkstra(graph["adj"], na, nb, graph["nodes"])
     if len(path) < 2:
         raise TripError(f"No continuous railway line found between {graph['names'][sa]} and {graph['names'][sb]} in OpenStreetMap")
-    coords = [(float(graph["coords"][i, 0]), float(graph["coords"][i, 1])) for i in path]
+    coords: list[tuple[float, float]] = []
+    for u, v in zip(path, path[1:]):
+        edge = graph["best_edge"][(min(u, v), max(u, v))]
+        segment = graph["geo"][graph["geo_start"][edge]:graph["geo_end"][edge]]
+        if int(graph["edge_a"][edge]) != u:
+            segment = segment[::-1]
+        points = [(float(x), float(y)) for x, y in segment]
+        coords.extend(points if not coords else points[1:])
     cum_m = cumulative(coords)
     speed = 55 / 3.6
     cum_s = [m / speed for m in cum_m]

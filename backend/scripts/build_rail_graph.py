@@ -1,111 +1,144 @@
 import json
+import math
 import sys
 import time
+from collections import defaultdict
 from pathlib import Path
 
-import httpx
 import numpy as np
+import osmium
 
-OUT = Path(__file__).resolve().parent.parent / "data" / "rail"
-OVERPASS = (
-    "https://overpass-api.de/api/interpreter",
-    "https://overpass.private.coffee/api/interpreter",
-    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
-    "https://overpass.kumi.systems/api/interpreter",
-)
-UA = {"User-Agent": "WeatherGPT/0.1 (rail graph builder)"}
-LAT_RANGE = (6.0, 37.5)
-LON_RANGE = (68.0, 97.5)
-STEP = 2.0
-WAYS = '[out:json][timeout:170];way["railway"="rail"]["usage"~"^(main|branch)$"][!"service"]({s},{w},{n},{e});out skel geom;'
-STATIONS = '[out:json][timeout:170];node["railway"="station"]["name"]({s},{w},{n},{e});out;'
-INDIA = [(8.0, 77.0), (13.0, 80.3), (19.0, 72.8), (22.5, 88.3), (28.6, 77.2), (26.1, 91.7), (23.0, 72.6), (17.4, 78.5), (21.2, 81.6), (30.7, 76.8), (34.1, 74.8), (11.0, 76.9), (25.6, 85.1), (20.3, 85.8), (26.9, 75.8)]
+DATA = Path(__file__).resolve().parent.parent / "data" / "rail"
+PBF = DATA / "india-latest.osm.pbf"
+SKIP_SERVICE = {"yard", "siding", "spur", "crossover"}
+SKIP_USAGE = {"industrial", "military", "test", "tourism", "freight"}
+SNAP_M = 1000
+CELL = 0.02
 
 
-def fetch(query: str) -> list[dict]:
-    attempt = 0
-    while True:
-        url = OVERPASS[(attempt + fetch.turn) % len(OVERPASS)]
-        fetch.turn += 1
-        try:
-            response = httpx.post(url, data={"data": query}, headers=UA, timeout=200)
-            if response.status_code == 200:
-                return response.json().get("elements", [])
-            print(f"  {url} -> {response.status_code}", flush=True)
-        except (httpx.HTTPError, ValueError) as exc:
-            print(f"  {url} -> {type(exc).__name__}", flush=True)
-        attempt += 1
-        wait = min(300, 20 * attempt)
-        print(f"  retrying in {wait}s", flush=True)
-        time.sleep(wait)
+def haversine(a: tuple[float, float], b: tuple[float, float]) -> float:
+    p1, p2 = math.radians(a[0]), math.radians(b[0])
+    h = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(math.radians(b[1] - a[1]) / 2) ** 2
+    return 6371000 * 2 * math.asin(math.sqrt(min(1.0, h)))
 
 
-fetch.turn = 0
+def rail_ways(pbf: Path) -> list[list[int]]:
+    ways = []
+    for way in osmium.FileProcessor(str(pbf), osmium.osm.WAY).with_filter(osmium.filter.TagFilter(("railway", "rail"))):
+        tags = way.tags
+        if tags.get("service") in SKIP_SERVICE or tags.get("usage") in SKIP_USAGE:
+            continue
+        refs = [n.ref for n in way.nodes]
+        if len(refs) >= 2:
+            ways.append(refs)
+    return ways
 
 
-def tiles():
-    lat = LAT_RANGE[0]
-    while lat < LAT_RANGE[1]:
-        lon = LON_RANGE[0]
-        while lon < LON_RANGE[1]:
-            s, w, n, e = lat, lon, min(lat + STEP, LAT_RANGE[1]), min(lon + STEP, LON_RANGE[1])
-            if any(s - 6 <= a <= n + 6 and w - 6 <= b <= e + 6 for a, b in INDIA):
-                yield s, w, n, e
-            lon += STEP
-        lat += STEP
+def stations(pbf: Path) -> list[tuple[str, float, float]]:
+    found = []
+    processor = osmium.FileProcessor(str(pbf), osmium.osm.NODE).with_filter(osmium.filter.TagFilter(("railway", "station"), ("railway", "halt")))
+    for node in processor:
+        tags = node.tags
+        name = tags.get("name:en") or tags.get("name")
+        if name and node.location.valid() and tags.get("station") not in ("subway", "light_rail", "monorail"):
+            found.append((name, node.location.lat, node.location.lon))
+    return found
+
+
+def locations(pbf: Path, ids: set[int]) -> dict[int, tuple[float, float]]:
+    out = {}
+    for node in osmium.FileProcessor(str(pbf), osmium.osm.NODE).with_filter(osmium.filter.IdFilter(ids)):
+        if node.location.valid():
+            out[node.id] = (node.location.lat, node.location.lon)
+    return out
 
 
 def main() -> None:
-    OUT.mkdir(parents=True, exist_ok=True)
-    cache = OUT / "tiles"
-    cache.mkdir(exist_ok=True)
-    boxes = list(tiles())
-    print(f"{len(boxes)} tiles", flush=True)
-    ways: dict[int, list[tuple[int, float, float]]] = {}
-    stations: dict[int, tuple[str, float, float]] = {}
-    for i, (s, w, n, e) in enumerate(boxes, 1):
-        path = cache / f"{s}_{w}.json"
-        if path.exists():
-            data = json.loads(path.read_text(encoding="utf-8"))
-        else:
-            data = {"ways": fetch(WAYS.format(s=s, w=w, n=n, e=e)), "stations": fetch(STATIONS.format(s=s, w=w, n=n, e=e))}
-            path.write_text(json.dumps(data), encoding="utf-8")
-            time.sleep(2)
-        for way in data["ways"]:
-            ways[way["id"]] = [(node, p["lat"], p["lon"]) for node, p in zip(way.get("nodes", []), way.get("geometry", [])) if p]
-        for node in data["stations"]:
-            name = node.get("tags", {}).get("name:en") or node.get("tags", {}).get("name")
-            if name:
-                stations[node["id"]] = (name, node["lat"], node["lon"])
-        print(f"[{i}/{len(boxes)}] {s},{w}: {len(data['ways'])} ways, {len(data['stations'])} stations (total {len(ways)} ways)", flush=True)
+    if not PBF.exists():
+        sys.exit(f"missing {PBF}; download https://download.geofabrik.de/asia/india-latest.osm.pbf there first")
+    started = time.perf_counter()
+    ways = rail_ways(PBF)
+    print(f"{len(ways):,} railway ways ({time.perf_counter() - started:.0f}s)", flush=True)
+    halts = stations(PBF)
+    print(f"{len(halts):,} named stations and halts ({time.perf_counter() - started:.0f}s)", flush=True)
+    needed = {ref for refs in ways for ref in refs}
+    where = locations(PBF, needed)
+    print(f"{len(where):,} track points located ({time.perf_counter() - started:.0f}s)", flush=True)
 
+    ways = [[r for r in refs if r in where] for refs in ways]
+    ways = [refs for refs in ways if len(refs) >= 2]
+    degree: dict[int, int] = defaultdict(int)
+    for refs in ways:
+        for a, b in zip(refs, refs[1:]):
+            degree[a] += 1
+            degree[b] += 1
+
+    grid: dict[tuple[int, int], list[int]] = defaultdict(list)
+    for ref in degree:
+        lat, lon = where[ref]
+        grid[(int(lat / CELL), int(lon / CELL))].append(ref)
+
+    snapped: list[tuple[str, float, float, int]] = []
+    for name, lat, lon in halts:
+        cx, cy = int(lat / CELL), int(lon / CELL)
+        best, best_d = None, float("inf")
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                for ref in grid.get((cx + dx, cy + dy), ()):
+                    d = haversine((lat, lon), where[ref])
+                    if d < best_d:
+                        best, best_d = ref, d
+        if best is not None and best_d <= SNAP_M:
+            snapped.append((name, lat, lon, best))
+
+    keep = {ref for ref, d in degree.items() if d != 2} | {refs[0] for refs in ways} | {refs[-1] for refs in ways} | {s[3] for s in snapped}
     index: dict[int, int] = {}
-    coords: list[tuple[float, float]] = []
-    edges: list[tuple[int, int, float]] = []
+    node_xy: list[tuple[float, float]] = []
 
-    def node_id(osm: int, lat: float, lon: float) -> int:
-        if osm not in index:
-            index[osm] = len(coords)
-            coords.append((lat, lon))
-        return index[osm]
+    def node(ref: int) -> int:
+        if ref not in index:
+            index[ref] = len(node_xy)
+            node_xy.append(where[ref])
+        return index[ref]
 
-    for points in ways.values():
-        for (a, alat, alon), (b, blat, blon) in zip(points, points[1:]):
-            ia, ib = node_id(a, alat, alon), node_id(b, blat, blon)
-            p1, p2 = np.radians([alat, blat])
-            dlat, dlon = p2 - p1, np.radians(blon - alon)
-            h = np.sin(dlat / 2) ** 2 + np.cos(p1) * np.cos(p2) * np.sin(dlon / 2) ** 2
-            edges.append((ia, ib, float(6371000 * 2 * np.arcsin(np.sqrt(h)))))
+    edge_a, edge_b, edge_m, geo_start, geo_end = [], [], [], [], []
+    geo_xy: list[tuple[float, float]] = []
+    for refs in ways:
+        segment = [refs[0]]
+        for ref in refs[1:]:
+            segment.append(ref)
+            if ref in keep:
+                points = [where[r] for r in segment]
+                meters = sum(haversine(p, q) for p, q in zip(points, points[1:]))
+                if meters > 0:
+                    edge_a.append(node(segment[0]))
+                    edge_b.append(node(segment[-1]))
+                    edge_m.append(meters)
+                    geo_start.append(len(geo_xy))
+                    geo_xy.extend(points)
+                    geo_end.append(len(geo_xy))
+                segment = [ref]
 
-    xy = np.asarray(coords, dtype=np.float32)
-    e = np.asarray(edges, dtype=np.float64)
-    names = [v[0] for v in stations.values()]
-    st = np.asarray([[v[1], v[2]] for v in stations.values()], dtype=np.float32)
-    np.savez_compressed(OUT / "india_rail.npz", coords=xy, src=e[:, 0].astype(np.int32), dst=e[:, 1].astype(np.int32), meters=e[:, 2].astype(np.float32), station_xy=st)
-    (OUT / "stations.json").write_text(json.dumps(names, ensure_ascii=False), encoding="utf-8")
-    km = e[:, 2].sum() / 1000 if len(e) else 0
-    print(f"graph: {len(coords)} nodes, {len(edges)} edges, {km:,.0f} km of track, {len(names)} stations", flush=True)
+    station_names = [s[0] for s in snapped]
+    np.savez_compressed(
+        DATA / "india_rail.npz",
+        node_xy=np.asarray(node_xy, dtype=np.float32),
+        edge_a=np.asarray(edge_a, dtype=np.int32),
+        edge_b=np.asarray(edge_b, dtype=np.int32),
+        edge_m=np.asarray(edge_m, dtype=np.float32),
+        geo_start=np.asarray(geo_start, dtype=np.int32),
+        geo_end=np.asarray(geo_end, dtype=np.int32),
+        geo_xy=np.asarray(geo_xy, dtype=np.float32),
+        station_xy=np.asarray([[s[1], s[2]] for s in snapped], dtype=np.float32),
+        station_node=np.asarray([node(s[3]) for s in snapped], dtype=np.int32),
+    )
+    (DATA / "stations.json").write_text(json.dumps(station_names, ensure_ascii=False), encoding="utf-8")
+    print(
+        f"graph: {len(node_xy):,} junction and station nodes, {len(edge_a):,} edges, {sum(edge_m) / 1000:,.0f} km of track, "
+        f"{len(snapped):,} stations on the network ({time.perf_counter() - started:.0f}s)",
+        flush=True,
+    )
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
