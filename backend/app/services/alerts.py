@@ -16,6 +16,15 @@ _cap_cache = TTLCache(ttl_s=86400, max_items=4096)
 _fetch_limit = asyncio.Semaphore(12)
 
 
+FOOTPRINT = re.compile(r"\b([a-z]+(?:_[a-z]+)*)_\d+_cap_footprint\b", re.IGNORECASE)
+
+
+def readable(text: str | None) -> str | None:
+    if not text:
+        return text
+    return FOOTPRINT.sub(lambda m: m.group(1).replace("_", " ").title() + " area", text)
+
+
 def _text(node: ET.Element | None, path: str) -> str | None:
     if node is None:
         return None
@@ -46,7 +55,7 @@ async def _fetch_cap(link: str, guid: str, fallback_title: str, author: str | No
             return None
         english = next((i for i in infos if (_text(i, "cap:language") or "").lower().startswith("en")), infos[0])
         localized = [
-            {"language": _text(i, "cap:language"), "headline": _text(i, "cap:headline")}
+            {"language": _text(i, "cap:language"), "headline": readable(_text(i, "cap:headline"))}
             for i in infos
             if i is not english and _text(i, "cap:headline")
         ]
@@ -62,7 +71,7 @@ async def _fetch_cap(link: str, guid: str, fallback_title: str, author: str | No
             "severity": _text(english, "cap:severity") or "Unknown",
             "urgency": _text(english, "cap:urgency"),
             "certainty": _text(english, "cap:certainty"),
-            "headline": _text(english, "cap:headline") or fallback_title,
+            "headline": readable(_text(english, "cap:headline")) or fallback_title,
             "description": _text(english, "cap:description"),
             "instruction": _text(english, "cap:instruction"),
             "effective": _text(english, "cap:effective"),

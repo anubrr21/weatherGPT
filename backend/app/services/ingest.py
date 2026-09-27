@@ -142,6 +142,7 @@ async def ingest_alerts() -> tuple[int, int, str | None]:
                 existing = await s.get(Alert, a["id"])
                 existing.last_seen_at = now
                 existing.expires = values["expires"]
+                existing.headline = values["headline"]
             else:
                 s.add(Alert(id=a["id"], first_seen_at=now, **values))
                 new_alerts.append(a)

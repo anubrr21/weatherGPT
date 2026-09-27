@@ -201,7 +201,8 @@ export default function App() {
   const noticeFeed = useNotices(liveState)
   noticeRef.current = (notice) => {
     noticeFeed.receive(notice)
-    if (notice.kind !== 'official') pushToast({ id: `n:${notice.id}`, severity: notice.severity, title: notice.title, body: notice.body }, () => openNotice(notice.id))
+    const fresh = Date.now() - new Date(notice.created_at).getTime() < 30 * 60 * 1000
+    if (notice.kind !== 'official' && fresh) pushToast({ id: `n:${notice.id}`, severity: notice.severity, title: notice.title, body: notice.body }, () => openNotice(notice.id))
   }
 
   const openNotice = (id: number) => {
