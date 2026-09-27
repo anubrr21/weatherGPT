@@ -9,6 +9,7 @@ import ForecastCard from './ForecastCard'
 import MarineCard from './MarineCard'
 import ModelsCard from './ModelsCard'
 import SourcesCard from './SourcesCard'
+import TripCard from './TripCard'
 import UrbanCard from './UrbanCard'
 
 export default function DataCard({ card }: { card: Card }) {
@@ -35,5 +36,7 @@ export default function DataCard({ card }: { card: Card }) {
       return <UrbanCard place={card.place} data={card.data} />
     case 'sources':
       return <SourcesCard data={card.data} />
+    case 'trip':
+      return <TripCard data={card.data} />
   }
 }

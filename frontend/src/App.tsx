@@ -1,4 +1,4 @@
-import { MapPin, MessageSquareText, RefreshCw, UserRound } from 'lucide-react'
+import { CloudSun, MapPin, MessageSquareText, RefreshCw, Route, UserRound } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import AlertRibbon from './components/AlertRibbon'
 import Chat from './components/Chat'
@@ -9,6 +9,7 @@ import { AlertToasts, LiveBell, type Toast } from './components/LiveAlerts'
 import Logo, { LogoMark, Wordmark } from './components/Logo'
 import LocationSearch from './components/LocationSearch'
 import NetBanner from './components/NetBanner'
+import TripPlanner from './components/trip/TripPlanner'
 import ProfileSheet from './components/ProfileSheet'
 import RadarGate from './components/RadarGate'
 import SkyCanvas from './components/SkyCanvas'
@@ -22,6 +23,7 @@ import { initNative, notifyAlert, promptNotificationsOnce, type AlertTap } from 
 import { loadPrefs, savePrefs, syncPrefs, useNotices, type Notice, type NotifyPrefs } from './lib/notices'
 import { loadDataMode, saveDataMode, useConnection, type DataMode } from './lib/connection'
 import { offlineAnswer, withCache } from './lib/offline'
+import type { TripResult } from './lib/trip'
 import { unlockAudio } from './lib/voice'
 import { momentAt, skyFor } from './lib/sky'
 import type { AlertsBundle, ChatEvent, Forecast, Insight, Message, Place, Profile } from './lib/types'
@@ -32,6 +34,7 @@ const STORE = 'weathergpt:v1'
 interface Saved {
   place?: Place
   language?: string
+  view?: 'weather' | 'trip'
 }
 
 function load(): Saved {
@@ -88,6 +91,13 @@ export default function App() {
   const [dataMode, setDataModeState] = useState<DataMode>(loadDataMode)
   const connection = useConnection(dataMode)
   const [staleAt, setStaleAt] = useState<number | null>(null)
+  const [view, setViewState] = useState<'weather' | 'trip'>(saved.view ?? 'weather')
+  const [tripBrief, setTripBrief] = useState<Record<string, unknown> | null>(null)
+  const [incomingTrip, setIncomingTrip] = useState<TripResult | null>(null)
+  const setView = (next: 'weather' | 'trip') => {
+    setViewState(next)
+    save({ view: next })
+  }
   const setDataMode = (mode: DataMode) => {
     saveDataMode(mode)
     setDataModeState(mode)
@@ -287,6 +297,16 @@ export default function App() {
   useEffect(() => initNative({ onBack: () => nativeRef.current.back(), onAlertTap: (t) => nativeRef.current.tap(t) }), [])
 
   useEffect(() => {
+    const open = (e: Event) => {
+      setIncomingTrip((e as CustomEvent<TripResult>).detail)
+      setView('trip')
+      if (window.matchMedia('(max-width: 999px)').matches) setChatOpen(false)
+    }
+    window.addEventListener('weathergpt:open-trip', open)
+    return () => window.removeEventListener('weathergpt:open-trip', open)
+  }, [])
+
+  useEffect(() => {
     if (!fc) return
     const id = window.setTimeout(() => void promptNotificationsOnce(), 1200)
     return () => clearTimeout(id)
@@ -340,6 +360,7 @@ export default function App() {
             place_label: place ? placeLabel(place) : undefined,
             language,
             profile,
+            trip: view === 'trip' ? tripBrief : null,
           },
           onEvent,
           controller.signal,
@@ -351,7 +372,7 @@ export default function App() {
         setBusy(false)
       }
     },
-    [busy, messages, place, language, profile, connection.online, fc, staleAt],
+    [busy, messages, place, language, profile, connection.online, fc, staleAt, view, tripBrief],
   )
 
   const subtitle = place
@@ -401,33 +422,55 @@ export default function App() {
             </button>
           </header>
 
+          <nav className="views" aria-label="Sections">
+            <button className={view === 'weather' ? 'on' : ''} onClick={() => setView('weather')} aria-pressed={view === 'weather'}>
+              <CloudSun size={15} /> Weather
+            </button>
+            <button className={view === 'trip' ? 'on' : ''} onClick={() => setView('trip')} aria-pressed={view === 'trip'}>
+              <Route size={15} /> Trip planner
+            </button>
+          </nav>
+
           <NetBanner connection={connection} staleAt={staleAt} onRetry={refresh} onLiteOff={() => setDataMode('off')} />
 
-          {loadError && (
-            <div className="ribbon severe">
-              <span>Could not load forecast: {loadError}. Is the backend running on port 8000?</span>
-            </div>
-          )}
-
-          {fc && moment ? (
-            <>
-              <Hud fc={fc} m={moment} savedAt={staleAt} />
-              <AlertRibbon bundle={alerts} onAsk={() => send(`What weather warnings are active for ${placeLabel(place ?? FALLBACK)} right now, and what should I do?`)} />
-              <InsightStrip items={insights} onAsk={(kind) => send((INSIGHT_QUESTIONS[kind] ?? INSIGHT_QUESTIONS.day)(placeLabel(place ?? FALLBACK)))} />
-              <TimeDial hours={fc.hourly} selected={hour} onSelect={setHour} />
-              <DayStrip days={fc.daily} />
-              {place && <RadarGate place={place} lite={connection.lite} online={connection.online} />}
-            </>
+          {view === 'trip' ? (
+            <TripPlanner
+              current={place && place.name !== 'Locating…' ? place : null}
+              online={connection.online}
+              lite={connection.lite}
+              incoming={incomingTrip}
+              onTrip={setTripBrief}
+              onAsk={(text) => send(text)}
+            />
           ) : (
-            !loadError && (
-              <div className="boot">
-                <span className="logo-lockup">
-                  <LogoMark size={120} />
-                  <Wordmark size={30} />
-                </span>
-                Reading the atmosphere…
-              </div>
-            )
+            <>
+              {loadError && (
+                <div className="ribbon severe">
+                  <span>Could not load forecast: {loadError}. Is the backend running on port 8000?</span>
+                </div>
+              )}
+
+              {fc && moment ? (
+                <>
+                  <Hud fc={fc} m={moment} savedAt={staleAt} />
+                  <AlertRibbon bundle={alerts} onAsk={() => send(`What weather warnings are active for ${placeLabel(place ?? FALLBACK)} right now, and what should I do?`)} />
+                  <InsightStrip items={insights} onAsk={(kind) => send((INSIGHT_QUESTIONS[kind] ?? INSIGHT_QUESTIONS.day)(placeLabel(place ?? FALLBACK)))} />
+                  <TimeDial hours={fc.hourly} selected={hour} onSelect={setHour} />
+                  <DayStrip days={fc.daily} />
+                  {place && <RadarGate place={place} lite={connection.lite} online={connection.online} />}
+                </>
+              ) : (
+                !loadError && (
+                  <div className="boot">
+                    <span className="logo-lockup">
+                      <LogoMark size={120} />
+                      <Wordmark size={30} />
+                    </span>
+                    Reading the atmosphere…
+                  </div>
+                )
+              )}
+            </>
           )}
 
           <button className="ask-fab" onClick={() => setChatOpen(true)}>

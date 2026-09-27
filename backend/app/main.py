@@ -1,6 +1,7 @@
 import asyncio
 import json
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
@@ -13,7 +14,7 @@ from sqlalchemy import text
 from app.config import get_settings
 from app.db import Session, backend_name, init_db
 from app.routes_live import router as live_router
-from app.services import advisory, agent, alerts, ingest, knowledge, local_stt, local_tts, providers, voice, weather, wis2
+from app.services import advisory, agent, alerts, ingest, knowledge, local_stt, local_tts, providers, trips, voice, weather, wis2
 from app.services.fanout import fanout
 from app.services.http import close_client
 from app.services.tools import ChatContext
@@ -163,6 +164,37 @@ class SpeakRequest(BaseModel):
     format: Literal["wav", "opus"] = "wav"
 
 
+class TripPlace(BaseModel):
+    name: str = Field(..., max_length=160)
+    lat: float = Field(..., ge=-90, le=90)
+    lon: float = Field(..., ge=-180, le=180)
+    district: str | None = None
+    state: str | None = None
+
+
+class TripRequest(BaseModel):
+    origin: TripPlace
+    destination: TripPlace
+    mode: Literal["car", "bike", "bus", "train", "flight", "trek"] = "car"
+    depart: datetime | None = None
+
+
+@app.post("/api/trip")
+async def plan_trip(req: TripRequest):
+    depart = req.depart
+    if depart is not None and depart.tzinfo is None:
+        depart = depart.replace(tzinfo=timezone(timedelta(hours=5, minutes=30)))
+    try:
+        trip = await trips.plan(req.origin.model_dump(), req.destination.model_dump(), req.mode, depart)
+    except trips.TripError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Route or weather service failed: {exc}") from exc
+    return fast_json(trip | {"briefs": [trips.brief(trip, i) for i in range(len(trip["routes"]))]})
+
+
 @app.post("/api/tts")
 async def tts(req: SpeakRequest):
     try:
@@ -199,11 +231,12 @@ class ChatRequest(BaseModel):
     place_label: str | None = None
     language: str = "en"
     profile: dict[str, Any] = {}
+    trip: dict[str, Any] | None = None
 
 
 @app.post("/api/chat")
 async def chat(req: ChatRequest):
-    ctx = ChatContext(lat=req.lat, lon=req.lon, place_name=req.place_name, place_label=req.place_label, language=req.language, profile=req.profile)
+    ctx = ChatContext(lat=req.lat, lon=req.lon, place_name=req.place_name, place_label=req.place_label, language=req.language, profile=req.profile, trip=req.trip)
 
     async def stream():
         async for event in agent.chat(req.message, [t.model_dump() for t in req.history], ctx):

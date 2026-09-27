@@ -53,6 +53,17 @@ def _profile_text(profile: dict[str, Any]) -> str:
     return "; ".join(parts) if parts else "nothing known yet"
 
 
+def _trip_text(trip: dict[str, Any] | None) -> str:
+    if not trip:
+        return ""
+    return (
+        "TRIP: the user has this trip open in the trip planner (times are UTC, convert to local time when you speak): "
+        + json.dumps(trip, ensure_ascii=False, default=str)[:4000]
+        + ". Answer questions about it from these facts, call search_knowledge for official guidance on the hazards along the way "
+        "(for example fog driving, lightning, floods, heat), and call plan_trip again if they change the mode, time or destination.\n"
+    )
+
+
 def system_prompt(ctx: tools.ChatContext) -> str:
     language = LANGUAGES.get(ctx.language, "English")
     where = (
@@ -69,7 +80,7 @@ LOCATION: the place currently shown on the user's screen is {screen}. When a que
 
 Current local date-time: {datetime.now().strftime('%A %d %B %Y, %H:%M')}. {where}.
 What you know about this user: {_profile_text(ctx.profile)}.
-
+{_trip_text(ctx.trip)}
 Rules:
 - Always call tools for real data. Never invent numbers. If a tool fails, say so plainly.
 - Use search_knowledge whenever the answer depends on official definitions, criteria, thresholds, warning colour codes, procedures or safety advice, and base those parts only on the passages it returns. Write specific, keyword-rich English queries using the vocabulary an IMD/NDMA document would use (e.g. 'colour coding hazardous conditions green yellow orange red level', 'warnings for fisheries criteria wind speed'). If the returned passages do not actually contain the answer, search once more with different wording before answering. End such answers with a short "Sources:" line naming the documents (publisher + title, page if given). Never cite a document you did not retrieve. If the library has nothing relevant, say so instead of guessing.
@@ -343,6 +354,7 @@ def _cache_key(message: str, history: list[dict[str, str]], ctx: tools.ChatConte
         str(ctx.profile.get("role")),
         json.dumps(crops),
         json.dumps(recent, ensure_ascii=False),
+        json.dumps(ctx.trip, sort_keys=True, default=str)[:2000] if ctx.trip else "",
     ]
     return hashlib.sha1("|".join(parts).encode()).hexdigest()
 

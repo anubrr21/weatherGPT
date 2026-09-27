@@ -1,10 +1,13 @@
 import asyncio
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from app.services import advisory, knowledge
 from app.services import alerts as alert_service
-from app.services import weather
+from app.services import trips, weather
+
+IST = timezone(timedelta(hours=5, minutes=30))
 
 
 @dataclass
@@ -17,6 +20,7 @@ class ChatContext:
     profile: dict[str, Any] = field(default_factory=dict)
     cards: list[dict[str, Any]] = field(default_factory=list)
     profile_updates: list[dict[str, Any]] = field(default_factory=list)
+    trip: dict[str, Any] | None = None
 
 
 class ToolError(Exception):
@@ -288,6 +292,24 @@ async def update_profile(
     return {"saved": patch or "nothing to save"}
 
 
+async def plan_trip(ctx: ChatContext, destination: str, origin: str | None = None, mode: str = "car", depart: str | None = None) -> dict[str, Any]:
+    start = await resolve_place(origin, ctx)
+    end = await resolve_place(destination, ctx)
+    when = None
+    if depart:
+        try:
+            parsed = datetime.fromisoformat(depart)
+            when = parsed if parsed.tzinfo else parsed.replace(tzinfo=IST)
+        except ValueError:
+            raise ToolError("depart must be an ISO date-time like 2026-09-28T06:00")
+    try:
+        trip = await trips.plan(start, end, mode if mode in trips.MODES else "car", when)
+    except trips.TripError as exc:
+        raise ToolError(str(exc)) from exc
+    ctx.cards.append({"kind": "trip", "place": end, "data": trip | {"briefs": [trips.brief(trip, i) for i in range(len(trip["routes"]))]}})
+    return trips.brief(trip)
+
+
 TOOL_FUNCTIONS = {
     "get_forecast": get_forecast,
     "get_alerts": get_alerts,
@@ -301,6 +323,7 @@ TOOL_FUNCTIONS = {
     "get_city_advisory": get_city_advisory,
     "update_profile": update_profile,
     "search_knowledge": search_knowledge,
+    "plan_trip": plan_trip,
 }
 
 _LOCATION = {
@@ -418,5 +441,18 @@ TOOL_DECLARATIONS = [
             "required": ["query"],
         },
     },
+    {
+        "name": "plan_trip",
+        "description": "Plan a journey and get the weather along the real route at the time the traveller will be at each point: rain, thunderstorms, fog, wind, heat or cold, official IMD/NDMA warnings along the way, the best time to leave, alternatives, and for flights the airport METARs and jet-level winds. Use it for any travel question between two places (road trip, bike ride, bus, train, flight, trek).",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "destination": {"type": "STRING", "description": "Where the user is going, e.g. 'Hyderabad'."},
+                "origin": {"type": "STRING", "description": "Where the trip starts. Omit to use the place on the user's screen."},
+                "mode": {"type": "STRING", "enum": ["car", "bike", "bus", "train", "flight", "trek"], "description": "car, bike (two-wheeler), bus, train, flight or trek (walking/hiking)."},
+                "depart": {"type": "STRING", "description": "Local departure date-time in ISO format, e.g. '2026-09-28T06:00'. Omit for now."},
+            },
+            "required": ["destination"],
+        },
+    },
 ]
-

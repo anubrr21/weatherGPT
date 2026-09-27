@@ -43,6 +43,7 @@ export interface ChatPayload {
   place_label?: string
   language: string
   profile: Profile
+  trip?: Record<string, unknown> | null
 }
 
 export async function streamChat(payload: ChatPayload, onEvent: (e: ChatEvent) => void, signal?: AbortSignal) {

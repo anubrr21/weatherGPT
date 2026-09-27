@@ -1,3 +1,5 @@
+import type { TripResult } from './trip'
+
 export type Sky = 'clear' | 'partly' | 'overcast' | 'fog' | 'drizzle' | 'rain' | 'heavy_rain' | 'snow' | 'thunder'
 
 export interface Condition {
@@ -298,6 +300,7 @@ export type Card =
   | { kind: 'fishing'; place: Place; data: FishingData }
   | { kind: 'urban'; place: Place; data: UrbanData }
   | { kind: 'sources'; place: Place; data: SourcesData }
+  | { kind: 'trip'; place: Place; data: TripResult }
 
 export type ChatEvent =
   | { type: 'status'; text: string; tool: string; args: Record<string, unknown> }
