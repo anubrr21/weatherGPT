@@ -14,7 +14,7 @@ from sqlalchemy import text
 from app.config import get_settings
 from app.db import Session, backend_name, init_db
 from app.routes_live import router as live_router
-from app.services import advisory, agent, alerts, ingest, knowledge, local_stt, local_tts, providers, trips, voice, weather, wis2
+from app.services import advisory, agent, alerts, ingest, knowledge, local_stt, local_tts, providers, ratings, trips, voice, weather, wis2
 from app.services.fanout import fanout
 from app.services.http import close_client
 from app.services.tools import ChatContext
@@ -82,6 +82,7 @@ async def health():
             ("gemini", bool(settings.gemini_api_key.strip())),
         ) if on],
         "server_stt": voice.stt_available(),
+        "google_ratings": ratings.enabled(),
         "local_stt": local_stt.available(),
         "providers": [
             {"name": cls.name, "model": model, "cooling_s": round(providers.cooling(f"{cls.name}:{model}"))} for cls, model in providers.chain()

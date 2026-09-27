@@ -4,6 +4,7 @@ import heapq
 import json
 import logging
 import math
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
@@ -13,6 +14,7 @@ from typing import Any
 import numpy as np
 
 from app.services import alerts as alert_service
+from app.services import ratings
 from app.services import weather
 from app.services.http import TTLCache, client, get_retry
 from app.services.wmo import describe
@@ -446,7 +448,6 @@ OVERNIGHT_AFTER = {"car": 10 * 3600, "bike": 8 * 3600}
 OVERPASS = (
     "https://overpass-api.de/api/interpreter",
     "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
-    "https://overpass.kumi.systems/api/interpreter",
 )
 IST = timezone(timedelta(hours=5, minutes=30))
 POI_QUERY = (
@@ -455,10 +456,10 @@ POI_QUERY = (
     'nwr["tourism"~"^(hotel|motel|guest_house)$"]({box}););out center tags;'
 )
 _poi_cache = TTLCache(ttl_s=24 * 3600)
-_poi_gate = asyncio.Semaphore(2)
+_poi_gate = asyncio.Semaphore(4)
 KIND_SCORE = {"services": 5.0, "rest_area": 4.0, "fuel": 3.0, "restaurant": 3.0, "fast_food": 2.5, "cafe": 2.0, "hotel": 1.0, "motel": 1.5, "guest_house": 0.5}
 OVERNIGHT_SCORE = {"hotel": 5.0, "motel": 5.0, "guest_house": 3.5, "services": 1.0}
-GENERIC_NAMES = {"house", "home", "hotel", "lodge", "restaurant", "dhaba", "hotel restaurant", "petrol bunk", "petrol pump", "fuel", "shop", "cafe", "tea stall", "bunk", "guest house", "guesthouse"}
+GENERIC_NAMES = {"highway", "highway services", "house", "home", "hotel", "lodge", "restaurant", "dhaba", "hotel restaurant", "petrol bunk", "petrol pump", "fuel", "shop", "cafe", "tea stall", "bunk", "guest house", "guesthouse"}
 
 
 def clean_name(name: str | None) -> str | None:
@@ -468,6 +469,15 @@ def clean_name(name: str | None) -> str | None:
     if len(name) < 3 or name.lower() in GENERIC_NAMES:
         return None
     return name.title() if name == name.lower() else name
+
+
+EATERY_WORDS = re.compile(r"tiffin|snack|meals|biryani|dhaba|mess|sweets|bakery|bhojanalay|canteen", re.IGNORECASE)
+
+
+def refine_kind(kind: str, name: str | None) -> str:
+    if kind in ("hotel", "motel", "guest_house") and name and EATERY_WORDS.search(name):
+        return "restaurant"
+    return kind
 
 
 def poi_kind(tags: dict[str, str]) -> str | None:
@@ -495,15 +505,15 @@ def rest_targets(route: Route, mode: str, depart: datetime) -> list[tuple[float,
     return targets
 
 
-async def _pois(box: tuple[float, float, float, float]) -> list[dict[str, Any]]:
-    key = ",".join(f"{v:.3f}" for v in box)
+async def _overpass(query: str, timeout: float = 35) -> list[dict[str, Any]]:
+    key = hashlib.sha1(query.encode()).hexdigest()
 
     async def load() -> list[dict[str, Any]]:
         problems = []
         async with _poi_gate:
             for attempt, url in enumerate(OVERPASS * 2):
                 try:
-                    response = await client().post(url, data={"data": POI_QUERY.format(box=key)}, headers=UA, timeout=35)
+                    response = await client().post(url, data={"data": query}, headers=UA, timeout=timeout)
                 except Exception as exc:
                     problems.append(type(exc).__name__)
                     continue
@@ -515,6 +525,131 @@ async def _pois(box: tuple[float, float, float, float]) -> list[dict[str, Any]]:
         raise TripError(f"OpenStreetMap place search is busy right now ({', '.join(problems[:3])})")
 
     return await _poi_cache.get_or_set(key, load)
+
+
+async def _pois(box: tuple[float, float, float, float]) -> list[dict[str, Any]]:
+    return await _overpass(POI_QUERY.format(box=",".join(f"{v:.3f}" for v in box)))
+
+
+CORRIDOR_KM = 30
+CORRIDOR_RADIUS = 1500
+PER_BUCKET = 4
+STAYS_PER_BUCKET = 2
+BUCKET_KM = 15
+
+
+def _chunks(route: Route) -> list[list[int]]:
+    out, current, start = [], [], 0.0
+    for i, m in enumerate(route.cum_m):
+        current.append(i)
+        if m - start >= CORRIDOR_KM * 1000:
+            out.append(current)
+            current, start = [i], m
+    if len(current) > 1 or not out:
+        out.append(current)
+    return out
+
+
+def _thin(indices: list[int], limit: int) -> list[int]:
+    step = max(1, len(indices) // limit)
+    kept = indices[::step]
+    if kept[-1] != indices[-1]:
+        kept.append(indices[-1])
+    return kept
+
+
+def place_details(element: dict[str, Any]) -> dict[str, Any] | None:
+    tags = element.get("tags", {})
+    kind = poi_kind(tags)
+    if not kind:
+        return None
+    lat = element.get("lat") or (element.get("center") or {}).get("lat")
+    lon = element.get("lon") or (element.get("center") or {}).get("lon")
+    if lat is None or lon is None:
+        return None
+    name = clean_name(tags.get("name:en")) or clean_name(tags.get("name")) or clean_name(tags.get("brand"))
+    if not name and kind not in ("services", "rest_area"):
+        return None
+    kind = refine_kind(kind, name)
+    return {
+        "name": name or ("Highway rest area" if kind == "rest_area" else "Highway services"),
+        "kind": kind,
+        "lat": round(lat, 6),
+        "lon": round(lon, 6),
+        "brand": tags.get("brand"),
+        "cuisine": tags.get("cuisine"),
+        "stars": tags.get("stars"),
+        "opening_hours": tags.get("opening_hours"),
+        "phone": tags.get("phone") or tags.get("contact:phone"),
+        "website": tags.get("website") or tags.get("contact:website"),
+        "osm": f"https://www.openstreetmap.org/{element['type']}/{element['id']}",
+        "_score": KIND_SCORE[kind] + (0.7 if tags.get("opening_hours") == "24/7" else 0) + (0.3 if tags.get("brand") or tags.get("operator") else 0),
+    }
+
+
+async def stops_along(route: Route, depart: datetime, breaks: list[dict[str, Any]] | None) -> dict[str, Any]:
+    chunks = _chunks(route)
+
+    async def one(indices: list[int]) -> list[dict[str, Any]]:
+        lats = [route.coords[i][0] for i in indices]
+        lons = [route.coords[i][1] for i in indices]
+        margin = CORRIDOR_RADIUS / 111000 + 0.002
+        return await _pois((min(lats) - margin, min(lons) - margin, max(lats) + margin, max(lons) + margin))
+
+    results = await asyncio.gather(*(one(c) for c in chunks), return_exceptions=True)
+    failed = sum(1 for r in results if isinstance(r, Exception))
+    raw = [element for batch in results if not isinstance(batch, Exception) for element in batch]
+    sample = _thin(list(range(len(route.coords))), 1500)
+    found: dict[tuple[str, float, float], dict[str, Any]] = {}
+    for batch in results:
+        if isinstance(batch, Exception):
+            continue
+        for element in batch:
+            place = place_details(element)
+            if not place:
+                continue
+            marker = (place["name"].lower(), round(place["lat"], 3), round(place["lon"], 3))
+            if marker in found:
+                continue
+            nearest = min(sample, key=lambda i: (route.coords[i][0] - place["lat"]) ** 2 + (route.coords[i][1] - place["lon"]) ** 2)
+            detour = haversine((place["lat"], place["lon"]), route.coords[nearest]) / 1000
+            if detour > CORRIDOR_RADIUS / 1000 + 0.5:
+                continue
+            place |= {
+                "km": round(route.cum_m[nearest] / 1000, 1),
+                "after_min": round(route.cum_s[nearest] / 60),
+                "eta": (depart + timedelta(seconds=route.cum_s[nearest])).isoformat(),
+                "detour_km": round(detour, 1),
+            }
+            place["_score"] -= detour * 0.6
+            found[marker] = place
+    buckets: dict[int, list[dict[str, Any]]] = {}
+    for place in found.values():
+        buckets.setdefault(int(place["km"] // BUCKET_KM), []).append(place)
+    kept: list[dict[str, Any]] = []
+    for bucket in buckets.values():
+        bucket.sort(key=lambda p: -p["_score"])
+        chosen: list[dict[str, Any]] = []
+        for group in (("services", "rest_area"), ("fuel",), ("restaurant", "fast_food", "cafe")):
+            chosen += [p for p in bucket if p["kind"] in group][:2]
+        kept += sorted(chosen, key=lambda p: -p["_score"])[:PER_BUCKET]
+        kept += [p for p in bucket if p["kind"] in ("hotel", "motel", "guest_house")][:STAYS_PER_BUCKET]
+    for place in kept:
+        place.pop("_score", None)
+    mark_breaks(kept, breaks)
+    kept.sort(key=lambda p: (p["km"], p["name"]))
+    counts: dict[str, int] = {}
+    for place in kept:
+        counts[place["kind"]] = counts.get(place["kind"], 0) + 1
+    return {"places": kept, "total_found": len(found), "counts": counts, "radius_km": CORRIDOR_RADIUS / 1000, "partial": failed > 0, "chunks": len(chunks), "_raw": raw}
+
+
+def mark_breaks(places: list[dict[str, Any]], breaks: list[dict[str, Any]] | None) -> None:
+    break_minutes = [b["after_min"] for b in breaks or []]
+    overnight_at = next((b["after_min"] for b in breaks or [] if b["reason"] == "overnight"), None)
+    for place in places:
+        place["near_break"] = any(abs(place["after_min"] - m) <= 15 for m in break_minutes)
+        place["after_overnight"] = overnight_at is not None and place["after_min"] > overnight_at
 
 
 def rank_places(elements: list[dict[str, Any]], window: list[tuple[float, float]], overnight: bool, limit: int = 4) -> list[dict[str, Any]]:
@@ -532,6 +667,7 @@ def rank_places(elements: list[dict[str, Any]], window: list[tuple[float, float]
         name = clean_name(tags.get("name:en")) or clean_name(tags.get("name")) or clean_name(tags.get("brand"))
         if not name and kind not in ("services", "rest_area"):
             continue
+        kind = refine_kind(kind, name)
         name = name or ("Highway rest area" if kind == "rest_area" else "Highway services")
         marker = (name.lower(), round(lat, 3), round(lon, 3))
         if marker in seen:
@@ -572,7 +708,7 @@ def rank_places(elements: list[dict[str, Any]], window: list[tuple[float, float]
     return variety[:limit]
 
 
-async def rest_stops_for(route: Route, mode: str, depart: datetime, points: list[dict[str, Any]], hazard_spans: list[dict[str, Any]]) -> list[dict[str, Any]]:
+async def rest_stops_for(route: Route, mode: str, depart: datetime, points: list[dict[str, Any]], hazard_spans: list[dict[str, Any]], elements: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
     targets = rest_targets(route, mode, depart)
 
     async def one(seconds: float, reason: str) -> dict[str, Any]:
@@ -605,7 +741,11 @@ async def rest_stops_for(route: Route, mode: str, depart: datetime, points: list
             "options": [],
         }
         try:
-            stop["options"] = rank_places(await _pois(box), window, reason == "overnight")
+            if reason == "break" and elements is not None:
+                nearby = [e for e in elements if box[0] <= (e.get("lat") or (e.get("center") or {}).get("lat") or 0) <= box[2] and box[1] <= (e.get("lon") or (e.get("center") or {}).get("lon") or 0) <= box[3]]
+            else:
+                nearby = await _pois(box)
+            stop["options"] = rank_places(nearby, window, reason == "overnight")
         except Exception as exc:
             stop["error"] = str(exc) if isinstance(exc, TripError) else "Place search unavailable right now"
         return stop
@@ -694,7 +834,23 @@ async def plan(origin: dict[str, Any], destination: dict[str, Any], mode: str, d
                 except Exception:
                     route.summary = "Main route"
             hazard_spans = spans(chosen["points"], mode, names)
-            stops = await rest_stops_for(route, mode, depart, chosen["points"], hazard_spans) if rest_stops and index == 0 and mode in REST_EVERY else None
+            stops = along = None
+            if rest_stops and index == 0 and mode in REST_EVERY:
+                try:
+                    along = await stops_along(route, depart, None)
+                except Exception as exc:
+                    along = {"places": [], "error": str(exc) if isinstance(exc, TripError) else "Place search unavailable right now", "_raw": None}
+                stops = await rest_stops_for(route, mode, depart, chosen["points"], hazard_spans, along.pop("_raw", None))
+                mark_breaks(along["places"], stops)
+                if ratings.enabled():
+                    options = [o for s in stops for o in s["options"]]
+                    await ratings.enrich(options, limit=16)
+                    by_osm = {o["osm"]: o.get("google") for o in options if o.get("google")}
+                    for place in along["places"]:
+                        if place["osm"] in by_osm:
+                            place["google"] = by_osm[place["osm"]]
+                    await ratings.enrich([p for p in along["places"] if "google" not in p], limit=24)
+                along["ratings"] = "google" if ratings.enabled() else None
             results.append({
                 "summary": route.summary,
                 "source": route.source,
@@ -706,6 +862,7 @@ async def plan(origin: dict[str, Any], destination: dict[str, Any], mode: str, d
                 "points": chosen["points"],
                 "hazards": hazard_spans,
                 "rest_stops": stops,
+                "stops_along": along,
                 "risk": {"score": chosen["score"], "label": risk_label(chosen["score"])},
                 "night_share": round(chosen["night"], 2),
                 "departures": departures,

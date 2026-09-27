@@ -89,6 +89,25 @@ export interface RestOption {
   phone: string | null
   website: string | null
   osm: string
+  google?: { rating: number; count: number; url: string | null; name: string | null }
+}
+
+export interface AlongPlace extends RestOption {
+  km: number
+  after_min: number
+  eta: string
+  near_break: boolean
+  after_overnight: boolean
+}
+
+export interface StopsAlong {
+  places: AlongPlace[]
+  total_found?: number
+  counts?: Record<string, number>
+  radius_km?: number
+  partial?: boolean
+  ratings?: 'google' | null
+  error?: string
 }
 
 export interface RestStop {
@@ -118,6 +137,7 @@ export interface TripRoute {
   points: TripPoint[]
   hazards: TripSpan[]
   rest_stops?: RestStop[] | null
+  stops_along?: StopsAlong | null
   risk: { score: number; label: string }
   night_share: number
   departures: TripDeparture[]

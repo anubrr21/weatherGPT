@@ -1,17 +1,7 @@
-import { BedDouble, Coffee, Fuel, MapPinned, Navigation, ParkingSquare, Phone, UtensilsCrossed } from 'lucide-react'
+import { MapPinned, Navigation, Phone } from 'lucide-react'
 import { HAZARD_LABELS, clock, directionsUrl, duration, type RestOption, type RestStop } from '../../lib/trip'
+import { GoogleRating, KIND } from './stopKinds'
 
-const KIND: Record<RestOption['kind'], { label: string; Icon: typeof Fuel }> = {
-  services: { label: 'Highway plaza', Icon: ParkingSquare },
-  rest_area: { label: 'Rest area', Icon: ParkingSquare },
-  fuel: { label: 'Fuel', Icon: Fuel },
-  restaurant: { label: 'Restaurant', Icon: UtensilsCrossed },
-  fast_food: { label: 'Quick food', Icon: UtensilsCrossed },
-  cafe: { label: 'Tea / café', Icon: Coffee },
-  hotel: { label: 'Hotel', Icon: BedDouble },
-  motel: { label: 'Motel', Icon: BedDouble },
-  guest_house: { label: 'Guest house', Icon: BedDouble },
-}
 
 function Option({ option }: { option: RestOption }) {
   const { label, Icon } = KIND[option.kind]
@@ -26,7 +16,9 @@ function Option({ option }: { option: RestOption }) {
     <li className={`rest-option ${option.kind}`}>
       <Icon size={15} />
       <span>
-        <b>{option.name}</b>
+        <b>
+          {option.name} <GoogleRating google={option.google} />
+        </b>
         <small>{details.join(' · ')}</small>
       </span>
       <nav>

@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     smart_poll_s: int = 600
     role: str = "all"
     fcm_service_account: str = ""
+    google_maps_api_key: str = ""
     workers_enabled: bool = True
     wis2_enabled: bool = True
     wis2_broker: str = "globalbroker.meteo.fr"

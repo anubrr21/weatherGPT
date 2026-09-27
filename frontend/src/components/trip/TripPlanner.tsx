@@ -18,11 +18,12 @@ import {
 } from '../../lib/trip'
 import type { Place } from '../../lib/types'
 import PlaceInput from './PlaceInput'
+import AllStops from './AllStops'
 import RestStops from './RestStops'
 import TripMap from './TripMap'
 
 const ICONS: Record<TripMode, typeof Car> = { car: Car, bike: Bike, bus: Bus, train: TrainFront, flight: Plane, trek: Footprints }
-const STEPS = ['Finding the real route…', 'Reading the forecast at each point for when you will be there…', 'Checking official IMD and NDMA warnings along the way…', 'Comparing departure times…']
+const STEPS = ['Finding the real route…', 'Reading the forecast at each point for when you will be there…', 'Checking official IMD and NDMA warnings along the way…', 'Comparing departure times…', 'Finding plazas, fuel, food and stays along the road…']
 
 interface Props {
   current: Place | null
@@ -288,7 +289,16 @@ export default function TripPlanner({ current, online, lite, incoming, onTrip, o
                 <Coffee size={15} /> Rest stops
               </h3>
               {route.rest_stops ? (
-                <RestStops stops={route.rest_stops} mode={trip.mode} />
+                <>
+                  <h4 className="trip-sub">Recommended breaks</h4>
+                  <RestStops stops={route.rest_stops} mode={trip.mode} />
+                  {route.stops_along && (
+                    <>
+                      <h4 className="trip-sub">All stops along the route</h4>
+                      <AllStops along={route.stops_along} mode={trip.mode} />
+                    </>
+                  )}
+                </>
               ) : (
                 <p className="rest-none">
                   Rest stops are planned on {trip.routes.find((r) => r.rest_stops)?.summary ?? 'the main route'}. Switch to it to see them.

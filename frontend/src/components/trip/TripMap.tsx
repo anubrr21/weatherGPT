@@ -2,7 +2,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Radar } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { clock, levelColor, type TripResult } from '../../lib/trip'
+import { clock, duration, levelColor, type TripResult } from '../../lib/trip'
 
 const BASEMAP = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
 const RAINVIEWER = 'https://api.rainviewer.com/public/weather-maps.json'
@@ -97,6 +97,13 @@ export default function TripMap({ trip, selected, onSelect, lite }: Props) {
     ends.forEach((end, k) =>
       L.circleMarker(end.at, { radius: 9, color: '#fff', weight: 3, fillColor: k ? '#ff6a3d' : '#3ddc97', fillOpacity: 1 })
         .bindTooltip(escape(end.label), { direction: 'top', permanent: false })
+        .addTo(layer),
+    )
+    const dots: Record<string, string> = { services: '#ffb45c', rest_area: '#ffb45c', fuel: '#6fe3ff', restaurant: '#ff8fb1', fast_food: '#ff8fb1', cafe: '#ff8fb1', hotel: '#c4b3ff', motel: '#c4b3ff', guest_house: '#c4b3ff' }
+    const along = route.stops_along?.places ?? []
+    along.forEach((place) =>
+      L.circleMarker([place.lat, place.lon], { radius: 3.5, color: '#0b0f16', weight: 1, fillColor: dots[place.kind] ?? '#ffffff', fillOpacity: 0.95 })
+        .bindTooltip(`${escape(place.name)}<br>after ${duration(place.after_min)} · km ${Math.round(place.km)}${place.google ? `<br>★ ${place.google.rating.toFixed(1)} on Google` : ''}`, { direction: 'top', className: 'trip-tip' })
         .addTo(layer),
     )
     const stops = route.rest_stops ?? []
