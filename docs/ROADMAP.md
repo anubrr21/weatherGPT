@@ -127,7 +127,7 @@ Trip planner (new tab next to Weather; the existing weather view is unchanged an
   - OSRM on OpenStreetMap for car, two-wheeler and bus, with up to 3 alternatives. Per-segment durations come from OSRM annotations; bus is about 30% and two-wheeler about 12% slower than car.
   - OSRM foot routing for treks.
   - Great-circle routing between the nearest scheduled airports (116 Indian airports from OurAirports), with live METAR/TAF and a 250 hPa tail/headwind estimate for flights.
-  - Indian railway lines from OpenStreetMap for trains, routed with A* between the nearest stations. The graph is built by `scripts/build_rail_graph.py`; the public Overpass servers were overloaded, so the build runs patiently in the background.
+  - Indian railway lines from OpenStreetMap for trains, routed with A* between the nearest stations. The graph is built by `scripts/build_rail_graph.py` from the Geofabrik India extract (1.7 GB) using pyosmium in about 45 s. Station tracks tagged as sidings or yards are kept so big terminals stay connected; only industrial spurs and freight, military or test lines are dropped, and only the main connected network is used. The result is 122,040 km of track, 125,840 junction and station nodes and 8,785 stations, and routes prefer Junction, Central, Terminus and City stations. Checked: Delhi → Chennai is 2,176 km via Jhansi, Itarsi and Warora, close to the 2,182 km of the Tamil Nadu Express; Mumbai LTT → Howrah is 1,946 km. Train time is estimated at 52 km/h for short trips and 62 km/h for long ones.
 - Weather comes from Open-Meteo at up to 32 checkpoints, each read for the hour the traveller reaches it (parallel batches).
 - Each checkpoint is rated for thunderstorm, rain, fog, wind, heat, cold and snow with mode-specific thresholds. Two-wheelers and treks are more exposed; trains are only really affected by fog and storms; flights are rated for convection and the jet stream at cruise.
 - Consecutive hazards merge into spans with the nearest real town and mode-specific advice. Official IMD/NDMA warnings are listed only for districts the route passes through.
@@ -141,7 +141,6 @@ Trip planner (new tab next to Weather; the existing weather view is unchanged an
 
 Still in Phase 3:
 - SMS/IVR fallback for feature phones
-- Train routing goes live once the railway graph build completes
 - 24/7 hosting (deferred on 2026-09-27). Until then the backend runs on the laptop, so automatic notifications stop when it sleeps.
   - The Oracle Cloud Always Free signup (Ampere A1, Hyderabad) failed Oracle's risk check, and a support case is open.
   - Plan once a VM exists:

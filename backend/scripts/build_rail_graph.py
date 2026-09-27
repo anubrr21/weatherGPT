@@ -10,7 +10,8 @@ import osmium
 
 DATA = Path(__file__).resolve().parent.parent / "data" / "rail"
 PBF = DATA / "india-latest.osm.pbf"
-SKIP_SERVICE = {"yard", "siding", "spur", "crossover"}
+SKIP_SERVICE = {"spur"}
+MIN_COMPONENT_KM = 300
 SKIP_USAGE = {"industrial", "military", "test", "tourism", "freight"}
 SNAP_M = 1000
 CELL = 0.02
@@ -72,6 +73,33 @@ def main() -> None:
         for a, b in zip(refs, refs[1:]):
             degree[a] += 1
             degree[b] += 1
+
+    parent: dict[int, int] = {}
+
+    def find(x: int) -> int:
+        parent.setdefault(x, x)
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    for refs in ways:
+        for a, b in zip(refs, refs[1:]):
+            ra, rb = find(a), find(b)
+            if ra != rb:
+                parent[ra] = rb
+    length: dict[int, float] = defaultdict(float)
+    for refs in ways:
+        root = find(refs[0])
+        length[root] += sum(haversine(where[p], where[q]) for p, q in zip(refs, refs[1:]))
+    big = {root for root, meters in length.items() if meters >= MIN_COMPONENT_KM * 1000}
+    ways = [refs for refs in ways if find(refs[0]) in big]
+    degree = defaultdict(int)
+    for refs in ways:
+        for a, b in zip(refs, refs[1:]):
+            degree[a] += 1
+            degree[b] += 1
+    print(f"{len(big)} connected networks of {MIN_COMPONENT_KM}+ km kept, largest {max(length.values()) / 1000:,.0f} km", flush=True)
 
     grid: dict[tuple[int, int], list[int]] = defaultdict(list)
     for ref in degree:

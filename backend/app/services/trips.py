@@ -31,7 +31,7 @@ MODES: dict[str, dict[str, Any]] = {
     "car": {"label": "Car", "router": "car", "factor": 1.0, "source": "OSRM road routing on OpenStreetMap"},
     "bus": {"label": "Bus", "router": "car", "factor": 1.3, "source": "OSRM road routing on OpenStreetMap, bus time about 30% slower than car"},
     "bike": {"label": "Two-wheeler", "router": "car", "factor": 1.12, "source": "OSRM road routing on OpenStreetMap, two-wheeler time about 12% slower than car"},
-    "train": {"label": "Train", "router": "rail", "factor": 1.0, "source": "OpenStreetMap Indian railway network, time at a typical 55 km/h express average"},
+    "train": {"label": "Train", "router": "rail", "factor": 1.0, "source": "Indian railway network from OpenStreetMap (Geofabrik extract); time estimated at typical express averages of 52 to 62 km/h, check the actual train timetable"},
     "flight": {"label": "Flight", "router": "air", "factor": 1.0, "source": "Great-circle route between the nearest scheduled airports, 780 km/h cruise adjusted for jet-level winds"},
     "trek": {"label": "Trek / walk", "router": "foot", "factor": 1.0, "source": "OSRM foot routing on OpenStreetMap"},
 }
@@ -197,7 +197,7 @@ def _rail_route(a: tuple[float, float], b: tuple[float, float]) -> Route:
         points = [(float(x), float(y)) for x, y in segment]
         coords.extend(points if not coords else points[1:])
     cum_m = cumulative(coords)
-    speed = 55 / 3.6
+    speed = (52 if cum_m[-1] < 400000 else 62) / 3.6
     cum_s = [m / speed for m in cum_m]
     extra = {
         "from_station": {"name": graph["names"][sa], "lat": float(graph["stations"][sa, 0]), "lon": float(graph["stations"][sa, 1]), "km_from_origin": round(da / 1000, 1)},
