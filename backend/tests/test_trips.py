@@ -65,3 +65,43 @@ def test_weather_is_read_at_the_hour_of_arrival():
     series = {"elevation": 20, "hourly": {"time": ["2026-09-27T00:00", "2026-09-27T01:00", "2026-09-27T02:00"], "temperature_2m": [20, 21, 22]}}
     assert trips._at(series, datetime(2026, 9, 27, 1, 20, tzinfo=timezone.utc))["temperature_2m"] == 21
     assert trips._at(series, datetime(2026, 9, 28, 1, 0, tzinfo=timezone.utc)) is None
+
+
+def _straight_route(hours: float):
+    coords = [(16.0 + i * 0.01, 80.0) for i in range(600)]
+    seconds = [i * hours * 3600 / 599 for i in range(600)]
+    return trips.Route(coords, trips.cumulative(coords), seconds, "x", "y")
+
+
+def test_breaks_every_two_hours_in_daylight():
+    depart = datetime(2026, 9, 28, 2, 30, tzinfo=timezone.utc)
+    targets = trips.rest_targets(_straight_route(7.6), "car", depart)
+    assert [(round(t / 3600, 1), r) for t, r in targets] == [(2.0, "break"), (4.0, "break"), (6.0, "break")]
+
+
+def test_late_night_drive_gets_an_overnight_stop():
+    depart = datetime(2026, 9, 28, 14, 30, tzinfo=timezone.utc)
+    targets = trips.rest_targets(_straight_route(7.6), "car", depart)
+    assert targets[0] == (2 * 3600, "overnight")
+    assert [r for _, r in targets].count("overnight") == 1
+
+
+def test_two_wheeler_breaks_are_more_frequent():
+    depart = datetime(2026, 9, 28, 2, 30, tzinfo=timezone.utc)
+    assert len(trips.rest_targets(_straight_route(6), "bike", depart)) == 3
+
+
+def test_rest_places_are_real_named_and_close():
+    window = [(16.5, 80.5), (16.51, 80.5)]
+    elements = [
+        {"type": "node", "id": 1, "lat": 16.5005, "lon": 80.5005, "tags": {"amenity": "fuel", "brand": "Indian Oil", "opening_hours": "24/7"}},
+        {"type": "node", "id": 2, "lat": 16.5010, "lon": 80.5010, "tags": {"amenity": "restaurant", "name": "maa palle ruchulu"}},
+        {"type": "node", "id": 3, "lat": 16.5010, "lon": 80.5012, "tags": {"tourism": "guest_house", "name": "house"}},
+        {"type": "node", "id": 4, "lat": 16.9000, "lon": 80.9000, "tags": {"amenity": "restaurant", "name": "Far Away Dhaba"}},
+        {"type": "way", "id": 5, "center": {"lat": 16.5020, "lon": 80.5020}, "tags": {"highway": "services"}},
+    ]
+    picked = trips.rank_places(elements, window, overnight=False)
+    names = [p["name"] for p in picked]
+    assert "Indian Oil" in names and "Maa Palle Ruchulu" in names and "Highway services" in names
+    assert "house" not in [n.lower() for n in names] and "Far Away Dhaba" not in names
+    assert all(p["osm"].startswith("https://www.openstreetmap.org/") for p in picked)

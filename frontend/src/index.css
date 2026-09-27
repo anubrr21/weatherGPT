@@ -4046,3 +4046,147 @@ button:disabled {
     margin-left: 0;
   }
 }
+
+.rest-stops {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rest-stops > li {
+  padding: 10px 12px;
+  border-radius: 14px;
+  border-left: 3px solid #ff9933;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.rest-stops > li.overnight {
+  border-left-color: #9b7bff;
+  background: rgba(155, 123, 255, 0.07);
+}
+
+.rest-stops header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.rest-stops header em {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ffb45c;
+}
+
+.rest-stops li.overnight header em {
+  color: #c4b3ff;
+}
+
+.rest-stops header b {
+  font-size: 14px;
+}
+
+.rest-stops header b small {
+  font-weight: 400;
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+.rest-weather {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.rest-why,
+.rest-wait,
+.rest-none,
+.rest-lodging {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.rest-wait {
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(255, 209, 102, 0.1);
+  color: #ffe2a3;
+}
+
+.rest-lodging a {
+  color: #9fd0ff;
+}
+
+.rest-stops ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rest-option {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.rest-option > svg {
+  color: #ffb45c;
+}
+
+.rest-option.fuel > svg {
+  color: #6fe3ff;
+}
+
+.rest-option.hotel > svg,
+.rest-option.motel > svg,
+.rest-option.guest_house > svg {
+  color: #c4b3ff;
+}
+
+.rest-option span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rest-option b {
+  font-size: 13.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rest-option small {
+  color: var(--ink-3);
+  font-size: 11.5px;
+}
+
+.rest-option nav {
+  display: flex;
+  gap: 4px;
+}
+
+.rest-option nav a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--line-2);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+}

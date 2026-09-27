@@ -99,6 +99,19 @@ export default function TripMap({ trip, selected, onSelect, lite }: Props) {
         .bindTooltip(escape(end.label), { direction: 'top', permanent: false })
         .addTo(layer),
     )
+    const stops = route.rest_stops ?? []
+    stops.forEach((stop, k) => {
+      stop.options.slice(0, 3).forEach((option) =>
+        L.circleMarker([option.lat, option.lon], { radius: 4, color: '#0b0f16', weight: 1, fillColor: '#6fe3ff', fillOpacity: 0.95 })
+          .bindTooltip(`${escape(option.name)}<br>${option.detour_km} km off route`, { direction: 'top', className: 'trip-tip' })
+          .addTo(layer),
+      )
+      const title = stop.reason === 'overnight' ? 'Overnight stay' : `Break ${k + 1}`
+      const lines = [`<b>${title}</b> · ${escape(stop.near ?? `km ${Math.round(stop.km)}`)}`, ...stop.options.slice(0, 3).map((o) => `• ${escape(o.name)}`)]
+      L.circleMarker([stop.lat, stop.lon], { radius: 9, color: '#ffffff', weight: 3, fillColor: stop.reason === 'overnight' ? '#9b7bff' : '#ff9933', fillOpacity: 1 })
+        .bindTooltip(lines.join('<br>'), { direction: 'top', className: 'trip-tip' })
+        .addTo(layer)
+    })
     const extras = [route.extra.from_airport, route.extra.to_airport, route.extra.from_station, route.extra.to_station].filter(Boolean)
     extras.forEach((spot) => {
       if (!spot) return

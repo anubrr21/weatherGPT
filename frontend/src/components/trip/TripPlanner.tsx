@@ -1,9 +1,10 @@
-import { ArrowDownUp, Bike, Bus, Car, Clock, Footprints, Loader2, MessageSquareText, Moon, Plane, ShieldAlert, TrainFront } from 'lucide-react'
+import { ArrowDownUp, Bike, Bus, Car, Clock, Coffee, Footprints, Loader2, MessageSquareText, Moon, Plane, ShieldAlert, TrainFront } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { savedAgo } from '../../lib/offline'
 import {
   HAZARD_LABELS,
   MODES,
+  REST_MODES,
   clock,
   dayClock,
   duration,
@@ -17,6 +18,7 @@ import {
 } from '../../lib/trip'
 import type { Place } from '../../lib/types'
 import PlaceInput from './PlaceInput'
+import RestStops from './RestStops'
 import TripMap from './TripMap'
 
 const ICONS: Record<TripMode, typeof Car> = { car: Car, bike: Bike, bus: Bus, train: TrainFront, flight: Plane, trek: Footprints }
@@ -37,6 +39,7 @@ export default function TripPlanner({ current, online, lite, incoming, onTrip, o
   const [to, setTo] = useState<Place | null>(saved?.result.destination ?? null)
   const [mode, setMode] = useState<TripMode>(saved?.result.mode ?? 'car')
   const [leaveNow, setLeaveNow] = useState(true)
+  const [restStops, setRestStops] = useState(() => Boolean(saved?.result.routes.some((r) => r.rest_stops)))
   const [when, setWhen] = useState(() => localInputValue(new Date(Date.now() + 3600 * 1000)))
   const [trip, setTrip] = useState<TripResult | null>(saved?.result ?? null)
   const [savedAt, setSavedAt] = useState<number | null>(saved?.savedAt ?? null)
@@ -73,7 +76,7 @@ export default function TripPlanner({ current, online, lite, incoming, onTrip, o
     setError(null)
     try {
       const depart = leaveNow ? null : `${when}:00+05:30`
-      const result = await planTrip(from, to, mode, depart)
+      const result = await planTrip(from, to, mode, depart, restStops && REST_MODES.includes(mode))
       setTrip(result)
       setSelected(0)
       setSavedAt(null)
@@ -126,6 +129,12 @@ export default function TripPlanner({ current, online, lite, incoming, onTrip, o
             <input type="checkbox" checked={leaveNow} onChange={(e) => setLeaveNow(e.target.checked)} />
             <span>Leave now</span>
           </label>
+          {REST_MODES.includes(mode) && (
+            <label className="switch">
+              <input type="checkbox" checked={restStops} onChange={(e) => setRestStops(e.target.checked)} />
+              <span>Plan rest stops</span>
+            </label>
+          )}
           {!leaveNow && (
             <input
               type="datetime-local"
@@ -272,6 +281,25 @@ export default function TripPlanner({ current, online, lite, incoming, onTrip, o
               </ul>
             )}
           </section>
+
+          {trip.routes.some((r) => r.rest_stops) && (
+            <section className="trip-card">
+              <h3>
+                <Coffee size={15} /> Rest stops
+              </h3>
+              {route.rest_stops ? (
+                <RestStops stops={route.rest_stops} mode={trip.mode} />
+              ) : (
+                <p className="rest-none">
+                  Rest stops are planned on {trip.routes.find((r) => r.rest_stops)?.summary ?? 'the main route'}. Switch to it to see them.
+                </p>
+              )}
+              <p className="trip-source">
+                Breaks every {trip.mode === 'bike' ? '1.5' : '2'} hours of {trip.mode === 'bike' ? 'riding' : 'driving'}, plus an overnight stop for very long or late-night drives. Times do not include
+                the breaks themselves. Places from OpenStreetMap; check they are open before relying on them.
+              </p>
+            </section>
+          )}
 
           {(route.extra.from_airport || route.extra.from_station) && (
             <section className="trip-card">

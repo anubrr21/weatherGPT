@@ -76,6 +76,37 @@ export interface Station {
   km_from_destination?: number
 }
 
+export interface RestOption {
+  name: string
+  kind: 'services' | 'rest_area' | 'fuel' | 'restaurant' | 'fast_food' | 'cafe' | 'hotel' | 'motel' | 'guest_house'
+  lat: number
+  lon: number
+  detour_km: number
+  brand: string | null
+  cuisine: string | null
+  stars: string | null
+  opening_hours: string | null
+  phone: string | null
+  website: string | null
+  osm: string
+}
+
+export interface RestStop {
+  reason: 'break' | 'overnight'
+  after_min: number
+  km: number
+  lat: number
+  lon: number
+  eta: string
+  near: string | null
+  weather: TripWeather | null
+  wait_out: { kind: string; severity: string; detail: string; near: string | null } | null
+  options: RestOption[]
+  after_overnight: boolean
+  lodging_nearby: (RestOption & { km: number; near: string | null }) | null
+  error?: string
+}
+
 export interface TripRoute {
   summary: string
   source: string
@@ -86,6 +117,7 @@ export interface TripRoute {
   geometry: [number, number][]
   points: TripPoint[]
   hazards: TripSpan[]
+  rest_stops?: RestStop[] | null
   risk: { score: number; label: string }
   night_share: number
   departures: TripDeparture[]
@@ -124,7 +156,7 @@ export const LEVEL_COLORS = ['#3ddc97', '#ffd166', '#ff8c42', '#ff4d6d']
 
 export const levelColor = (level: number) => LEVEL_COLORS[Math.min(3, Math.max(0, Math.floor(level)))]
 
-export async function planTrip(origin: Place, destination: Place, mode: TripMode, depart: string | null): Promise<TripResult> {
+export async function planTrip(origin: Place, destination: Place, mode: TripMode, depart: string | null, restStops = false): Promise<TripResult> {
   const response = await fetch(`${BASE}/api/trip`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -133,6 +165,7 @@ export async function planTrip(origin: Place, destination: Place, mode: TripMode
       destination: { name: destination.name, lat: destination.lat, lon: destination.lon, district: destination.district ?? null, state: destination.state ?? null },
       mode,
       depart,
+      rest_stops: restStops,
     }),
   })
   if (!response.ok) throw new Error((await response.json().catch(() => ({}))).detail ?? `Trip planning failed (${response.status})`)
@@ -159,6 +192,10 @@ export function loadLastTrip(): SavedTrip | null {
     return null
   }
 }
+
+export const REST_MODES: TripMode[] = ['car', 'bike']
+
+export const directionsUrl = (lat: number, lon: number) => `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`
 
 export const clock = (iso: string) => new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' })
 
