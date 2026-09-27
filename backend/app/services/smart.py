@@ -229,7 +229,8 @@ async def compose(kind: str, place: str, facts: dict[str, Any], language: str, r
             "Use only the facts given, never invent numbers, places or official warnings. Reply with JSON only: "
             '{"title": "...", "body": "..."}. Title: at most 55 characters, no emoji. Body: at most 170 characters, '
             "one or two short sentences with the key numbers and exactly one concrete action suited to the reader. "
-            f"Write in {LANGUAGE_NAMES.get(language, 'English')} using its native script; keep place names readable."
+            f"Write entirely in {LANGUAGE_NAMES.get(language, 'English')} using its native script. Translate every word, including weather condition names, "
+            "severity words and the official warning text; only numbers, units and place names may stay as they are."
         )
         reader = f"Reader: a {role}" + (f" growing {', '.join(str(c.get('name', c)) if isinstance(c, dict) else str(c) for c in crops)}" if crops else "")
         message = json.dumps({"kind": kind, "place": place, "facts": facts, "also": others, "reader": reader}, ensure_ascii=False)
@@ -366,10 +367,12 @@ async def official(new_alerts: list[dict[str, Any]]) -> list[Notice]:
                 seen.add((client, content))
                 severity = alert.get("severity") or "Moderate"
                 title = f"{severity} · {alert.get('event') or 'Weather warning'} — {place['name']}"
-                body = _official_text(alert, pref.language) or alert.get("headline") or ""
-                if pref.language != "en" and not _official_text(alert, pref.language):
-                    facts = {"event": alert.get("event"), "severity": severity, "official_text": alert.get("headline"), "issuer": alert.get("issuer") or alert.get("sender"), "valid_until": alert.get("expires")}
+                body = alert.get("headline") or ""
+                if pref.language != "en":
+                    official_text = _official_text(alert, pref.language) or body
+                    facts = {"event": alert.get("event"), "severity": severity, "official_text": official_text, "issuer": alert.get("issuer") or alert.get("sender"), "valid_until": alert.get("expires")}
                     title, body, _ = await compose("official", place["name"], facts, pref.language, pref.role, pref.crops)
+                    body = _official_text(alert, pref.language) or body
                 notice = await _store(
                     client, "official", severity, title, body, place,
                     {"alert_id": alert["id"], "event": alert.get("event"), "issuer": alert.get("issuer") or alert.get("sender"), "expires": alert.get("expires"), "original": alert.get("headline")},
