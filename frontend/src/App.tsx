@@ -8,8 +8,9 @@ import InsightStrip from './components/InsightStrip'
 import { AlertToasts, LiveBell, type Toast } from './components/LiveAlerts'
 import Logo, { LogoMark, Wordmark } from './components/Logo'
 import LocationSearch from './components/LocationSearch'
+import NetBanner from './components/NetBanner'
 import ProfileSheet from './components/ProfileSheet'
-import RadarMap from './components/RadarMap'
+import RadarGate from './components/RadarGate'
 import SkyCanvas from './components/SkyCanvas'
 import TimeDial from './components/TimeDial'
 import { api, streamChat, type Health } from './lib/api'
@@ -19,6 +20,8 @@ import { addPlace, applyPatch, loadProfile, removePlace, saveProfile } from './l
 import { syncSubscriptions, useLiveAlerts, type LiveAlert } from './lib/live'
 import { initNative, notifyAlert, promptNotificationsOnce, type AlertTap } from './lib/native'
 import { loadPrefs, savePrefs, syncPrefs, useNotices, type Notice, type NotifyPrefs } from './lib/notices'
+import { loadDataMode, saveDataMode, useConnection, type DataMode } from './lib/connection'
+import { offlineAnswer, withCache } from './lib/offline'
 import { unlockAudio } from './lib/voice'
 import { momentAt, skyFor } from './lib/sky'
 import type { AlertsBundle, ChatEvent, Forecast, Insight, Message, Place, Profile } from './lib/types'
@@ -82,6 +85,13 @@ export default function App() {
   const [bellOpen, setBellOpen] = useState(false)
   const [focusNotice, setFocusNotice] = useState<number | null>(null)
   const [notifyPrefs, setNotifyPrefs] = useState<NotifyPrefs>(loadPrefs)
+  const [dataMode, setDataModeState] = useState<DataMode>(loadDataMode)
+  const connection = useConnection(dataMode)
+  const [staleAt, setStaleAt] = useState<number | null>(null)
+  const setDataMode = (mode: DataMode) => {
+    saveDataMode(mode)
+    setDataModeState(mode)
+  }
   const abortRef = useRef<AbortController | null>(null)
 
   const locate = useCallback(() => {
@@ -125,21 +135,23 @@ export default function App() {
   const refresh = useCallback(() => {
     if (!place) return
     setLoadError(null)
-    api
-      .forecast(place.lat, place.lon)
-      .then((data) => {
-        setFc(data)
+    withCache('forecast', place.lat, place.lon, () => api.forecast(place.lat, place.lon), connection.online)
+      .then((result) => {
+        setFc(result.data)
+        setStaleAt(result.cached ? result.savedAt : null)
         setHour(null)
       })
-      .catch((e: Error) => setLoadError(e.message))
-    api.alerts(place.lat, place.lon).then(setAlerts).catch(() => setAlerts(null))
-  }, [place?.lat, place?.lon])
+      .catch((e: Error) => setLoadError(connection.online ? e.message : 'You are offline and nothing is saved for this place yet'))
+    withCache('alerts', place.lat, place.lon, () => api.alerts(place.lat, place.lon), connection.online)
+      .then((result) => setAlerts(result.data))
+      .catch(() => setAlerts(null))
+  }, [place?.lat, place?.lon, connection.online])
 
   useEffect(() => {
     refresh()
-    const id = setInterval(refresh, 10 * 60 * 1000)
+    const id = setInterval(refresh, (connection.lite ? 20 : 10) * 60 * 1000)
     return () => clearInterval(id)
-  }, [refresh])
+  }, [refresh, connection.lite])
 
   const setProfile = useCallback((next: Profile | ((p: Profile) => Profile)) => {
     setProfileState((prev) => {
@@ -152,7 +164,9 @@ export default function App() {
   const insightKey = `${profile.role}:${profile.crops[0]?.name ?? ''}:${profile.crops[0]?.stage ?? ''}`
   useEffect(() => {
     if (!place || !fc) return
-    api.insights(place.lat, place.lon, profile).then(setInsights).catch(() => setInsights(null))
+    withCache(`insights:${insightKey}`, place.lat, place.lon, () => api.insights(place.lat, place.lon, profile), connection.online)
+      .then((result) => setInsights(result.data))
+      .catch(() => setInsights(null))
   }, [place?.lat, place?.lon, fc?.current.time, insightKey])
 
   const pushToast = (toast: Toast, target: () => void) => {
@@ -288,6 +302,15 @@ export default function App() {
     async (text: string) => {
       if (busy) return
       setChatOpen(true)
+      if (!connection.online) {
+        const answer = fc && place ? offlineAnswer(fc, place.name, staleAt ?? Date.now()) : "You're offline and I have nothing saved for this place yet. Connect once and I'll keep a copy for offline use."
+        setMessages((all) => [
+          ...all,
+          { id: uid(), role: 'user', text, cards: [], steps: [] },
+          { id: uid(), role: 'assistant', text: answer, cards: [], steps: [] },
+        ])
+        return
+      }
       const history = messages.filter((m) => !m.pending && m.text).map((m) => ({ role: m.role, text: m.text }))
       setMessages((all) => [
         ...all,
@@ -328,7 +351,7 @@ export default function App() {
         setBusy(false)
       }
     },
-    [busy, messages, place, language, profile],
+    [busy, messages, place, language, profile, connection.online, fc, staleAt],
   )
 
   const subtitle = place
@@ -345,7 +368,7 @@ export default function App() {
   return (
     <PlaceContext.Provider value={placeControl}>
       <div className={`app ${chatOpen ? 'chat-open' : ''}`}>
-        <SkyCanvas target={sky} />
+        <SkyCanvas target={sky} lite={connection.lite || !connection.online} />
 
         <main className="stage">
           <header className="topbar">
@@ -378,6 +401,8 @@ export default function App() {
             </button>
           </header>
 
+          <NetBanner connection={connection} staleAt={staleAt} onRetry={refresh} onLiteOff={() => setDataMode('off')} />
+
           {loadError && (
             <div className="ribbon severe">
               <span>Could not load forecast: {loadError}. Is the backend running on port 8000?</span>
@@ -386,12 +411,12 @@ export default function App() {
 
           {fc && moment ? (
             <>
-              <Hud fc={fc} m={moment} />
+              <Hud fc={fc} m={moment} savedAt={staleAt} />
               <AlertRibbon bundle={alerts} onAsk={() => send(`What weather warnings are active for ${placeLabel(place ?? FALLBACK)} right now, and what should I do?`)} />
               <InsightStrip items={insights} onAsk={(kind) => send((INSIGHT_QUESTIONS[kind] ?? INSIGHT_QUESTIONS.day)(placeLabel(place ?? FALLBACK)))} />
               <TimeDial hours={fc.hourly} selected={hour} onSelect={setHour} />
               <DayStrip days={fc.daily} />
-              {place && <RadarMap place={place} />}
+              {place && <RadarGate place={place} lite={connection.lite} online={connection.online} />}
             </>
           ) : (
             !loadError && (
@@ -443,6 +468,9 @@ export default function App() {
             onChange={setProfile}
             prefs={notifyPrefs}
             onPrefsChange={setNotifyPrefs}
+            dataMode={dataMode}
+            liteReason={connection.reason}
+            onDataMode={setDataMode}
             onClose={() => setProfileOpen(false)}
             onPickPlace={(p) => {
               setPlace(p)

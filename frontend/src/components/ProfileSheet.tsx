@@ -1,6 +1,7 @@
-import { BellRing, Lock, MapPin, Plus, Send, Trash2, X } from 'lucide-react'
+import { BellRing, Gauge, Lock, MapPin, Plus, Send, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 import { CROPS, ROLES, STAGES, addPlace, removePlace } from '../lib/profile'
+import type { DataMode } from '../lib/connection'
 import { NOTICE_KINDS, sendTestNotice, type NotifyPrefs } from '../lib/notices'
 import type { Place, Profile } from '../lib/types'
 
@@ -10,11 +11,14 @@ interface Props {
   onChange: (p: Profile) => void
   prefs: NotifyPrefs
   onPrefsChange: (p: NotifyPrefs) => void
+  dataMode: DataMode
+  liteReason: string | null
+  onDataMode: (mode: DataMode) => void
   onPickPlace: (p: Place) => void
   onClose: () => void
 }
 
-export default function ProfileSheet({ profile, current, onChange, prefs, onPrefsChange, onPickPlace, onClose }: Props) {
+export default function ProfileSheet({ profile, current, onChange, prefs, onPrefsChange, dataMode, liteReason, onDataMode, onPickPlace, onClose }: Props) {
   const [testing, setTesting] = useState<string | null>(null)
   const toggleKind = (kind: NotifyPrefs['kinds'][number]) =>
     onPrefsChange({ ...prefs, kinds: prefs.kinds.includes(kind) ? prefs.kinds.filter((k) => k !== kind) : [...prefs.kinds, kind] })
@@ -178,6 +182,29 @@ export default function ProfileSheet({ profile, current, onChange, prefs, onPref
             <Send size={14} /> {testing === 'sending' ? 'Writing your briefing…' : 'Send me a briefing now'}
           </button>
           {testing && testing !== 'sending' && <p className="hint">{testing}</p>}
+        </section>
+
+        <section className="data-saver">
+          <h3>
+            <Gauge size={14} /> Data saver
+          </h3>
+          <div className="chips">
+            {(['auto', 'on', 'off'] as DataMode[]).map((mode) => (
+              <button key={mode} className={dataMode === mode ? 'on' : ''} onClick={() => onDataMode(mode)}>
+                {mode === 'auto' ? 'Automatic' : mode === 'on' ? 'Always on' : 'Off'}
+              </button>
+            ))}
+          </div>
+          <p className="hint">
+            {dataMode === 'auto'
+              ? liteReason
+                ? `On right now because ${liteReason}.`
+                : 'Switches on by itself on 2G, slow 3G or when your phone saves data.'
+              : dataMode === 'on'
+                ? 'Sky animation and radar paused, forecasts refresh every 20 minutes, voice replies compressed.'
+                : 'Full experience on every connection.'}{' '}
+            The last forecast for each place is always kept for offline use.
+          </p>
         </section>
 
         {profile.notes.length > 0 && (

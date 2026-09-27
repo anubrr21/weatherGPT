@@ -47,7 +47,7 @@ function boltPath(x: number, h: number) {
   return pts
 }
 
-export default function SkyCanvas({ target }: { target: SkyState | null }) {
+export default function SkyCanvas({ target, lite = false }: { target: SkyState | null; lite?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const targetRef = useRef<SkyState | null>(target)
   targetRef.current = target
@@ -57,7 +57,7 @@ export default function SkyCanvas({ target }: { target: SkyState | null }) {
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const reduced = lite || window.matchMedia('(prefers-reduced-motion: reduce)').matches
     let w = 0
     let h = 0
     let clouds: Cloud[] = []
@@ -283,7 +283,7 @@ export default function SkyCanvas({ target }: { target: SkyState | null }) {
       clearTimeout(timer)
       observer.disconnect()
     }
-  }, [])
+  }, [lite])
 
   return <canvas ref={canvasRef} className="sky-canvas" aria-hidden="true" />
 }

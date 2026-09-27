@@ -4,6 +4,15 @@ import type { CropEntry, Role } from './types'
 
 const BASE = import.meta.env.VITE_API_BASE ?? ''
 const PREFS_KEY = 'weathergpt:notify-prefs'
+const INBOX_KEY = 'weathergpt:inbox'
+
+function savedInbox(): { unread: number; notices: Notice[] } {
+  try {
+    return JSON.parse(localStorage.getItem(INBOX_KEY) ?? 'null') ?? { unread: 0, notices: [] }
+  } catch {
+    return { unread: 0, notices: [] }
+  }
+}
 
 export type NoticeKind = 'official' | 'rain_soon' | 'storm' | 'heavy_rain' | 'heat' | 'wind' | 'fog' | 'briefing'
 
@@ -81,8 +90,8 @@ export async function sendTestNotice(kind: NoticeKind = 'briefing') {
 }
 
 export function useNotices(live: LiveState) {
-  const [notices, setNotices] = useState<Notice[]>([])
-  const [unread, setUnread] = useState(0)
+  const [notices, setNotices] = useState<Notice[]>(() => savedInbox().notices)
+  const [unread, setUnread] = useState(() => savedInbox().unread)
   const busy = useRef(false)
 
   const refresh = useCallback(async () => {
@@ -94,6 +103,11 @@ export function useNotices(live: LiveState) {
       const data = (await response.json()) as { unread: number; notices: Notice[] }
       setNotices(data.notices)
       setUnread(data.unread)
+      try {
+        localStorage.setItem(INBOX_KEY, JSON.stringify(data))
+      } catch {
+        return
+      }
     } catch {
       return
     } finally {

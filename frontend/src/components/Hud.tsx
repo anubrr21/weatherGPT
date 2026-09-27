@@ -1,14 +1,17 @@
 import { Droplets, Gauge, Navigation, Sun, Thermometer, Wind } from 'lucide-react'
 import { round } from '../lib/format'
+import { savedAgo } from '../lib/offline'
 import type { Moment } from '../lib/sky'
 import type { Forecast } from '../lib/types'
 
-export default function Hud({ fc, m }: { fc: Forecast; m: Moment }) {
+export default function Hud({ fc, m, savedAt = null }: { fc: Forecast; m: Moment; savedAt?: number | null }) {
   const today = fc.daily[0]
   return (
     <section className="hud" aria-live="polite">
       <div className="hud-top">
-        <span className={`live-pill ${m.live ? 'on' : ''}`}>{m.live ? 'LIVE' : `+${hoursAhead(fc.current.time, m.time)}H`}</span>
+        <span className={`live-pill ${m.live && !savedAt ? 'on' : ''}`}>
+          {m.live ? (savedAt ? `SAVED ${savedAgo(savedAt).toUpperCase()}` : 'LIVE') : `+${hoursAhead(fc.current.time, m.time)}H`}
+        </span>
         <span className="hud-model">{fc.model_name} · {fc.timezone}</span>
       </div>
       <div className="hud-hero">

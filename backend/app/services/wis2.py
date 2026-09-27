@@ -178,7 +178,7 @@ class Wis2Subscriber:
             try:
                 response = await client().get(link, timeout=30)
                 response.raise_for_status()
-                obs = bufr_obs.decode_observation(response.content)
+                obs = await asyncio.to_thread(bufr_obs.decode_observation, response.content)
             except Exception as exc:
                 self.bufr_failed += 1
                 log.info("imd bufr decode failed for %s: %s", link, exc)

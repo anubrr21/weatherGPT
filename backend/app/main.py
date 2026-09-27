@@ -5,6 +5,7 @@ from typing import Any, Literal
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import DEFAULT_EXCLUDED_CONTENT_TYPES, GZipMiddleware
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import text
@@ -39,6 +40,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="WeatherGPT API", version="0.1.0", lifespan=lifespan)
 app.include_router(live_router)
+app.add_middleware(GZipMiddleware, minimum_size=800, compresslevel=6, exclude_content_types=(*DEFAULT_EXCLUDED_CONTENT_TYPES, "audio/ogg", "audio/wav"))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in get_settings().cors_origins.split(",")],
