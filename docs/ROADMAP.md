@@ -85,8 +85,40 @@ Phase 3b done:
 - `scripts/fetch_stt_models.py` installs the models: Whisper base.en is downloaded from the sherpa-onnx releases, and the IndicConformer bundle is copied from an iTantra export because AI4Bharat's model is gated
 - Tests: Opus encoding and decoding, and Hindi and Telugu round trips (Piper speaks, IndicConformer transcribes)
 
+Phase 3c, part 1 done (smart notifications):
+- The worker checks every saved place every 10 minutes:
+  - rain starting within 2 hours (Open-Meteo 15-minute nowcast, with minutes to start and intensity);
+  - thunderstorms;
+  - heavy rain at IMD thresholds;
+  - heat when the feels-like temperature peaks (sent in the morning);
+  - gusts of 50+ km/h;
+  - dense fog (sent the evening before);
+  - a morning briefing at each user's chosen time.
+- Official IMD/NDMA warnings go through the same pipeline and can't be switched off.
+- The text is written by the LLM chain from real facts only. It is fully in the user's chat language and includes one action suited to their role and crops. English templates are the fallback.
+- Behaviour:
+  - quiet hours (Severe and Extreme warnings still come through);
+  - at most 6 non-urgent notifications a day;
+  - deduplication;
+  - several hazards for one place are merged into one notification.
+- "Now" comes from the weather service's own clock, not the server's.
+- Delivery:
+  - data-only FCM push rendered natively on four Android channels (warnings, nowcast, alerts, briefing), with "Ask WeatherGPT" and "Radar" action buttons;
+  - live WebSocket;
+  - a stored history.
+- The bell is a notification centre with tabs, unread state, and Ask / Radar / Go to place actions. The profile has per-type toggles, the briefing time, quiet hours, and a "send me a briefing now" test.
+- API: `PUT /api/notifications/prefs`, `GET /api/notifications`, `POST /api/notifications/read`, `POST /api/notifications/test`.
+
 Still in Phase 3:
 - Low-bandwidth mode, offline last-known forecast, SMS/IVR fallback for feature phones
+- 24/7 hosting (deferred on 2026-09-27). Until then the backend runs on the laptop, so automatic notifications stop when it sleeps.
+  - The Oracle Cloud Always Free signup (Ampere A1, Hyderabad) failed Oracle's risk check, and a support case is open.
+  - Plan once a VM exists:
+    - Docker Compose with Caddy HTTPS on an sslip.io address;
+    - copy `.env`, `secrets/` and the models;
+    - rebuild the app with `--api https://...`;
+    - upgrade the account to Pay As You Go so idle free VMs aren't reclaimed.
+  - Fallback: $200 DigitalOcean credit from the GitHub Student Pack.
 
 ## Phase 4 — Maps and GIS
 
