@@ -109,8 +109,39 @@ Phase 3c, part 1 done (smart notifications):
 - The bell is a notification centre with tabs, unread state, and Ask / Radar / Go to place actions. The profile has per-type toggles, the briefing time, quiet hours, and a "send me a briefing now" test.
 - API: `PUT /api/notifications/prefs`, `GET /api/notifications`, `POST /api/notifications/read`, `POST /api/notifications/test`.
 
+Phase 3c, part 2 done (low bandwidth and offline):
+- The API gzips JSON: a forecast goes from 23.3 KB to 2.9 KB. Audio and event streams are left alone.
+- Data saver (Automatic / Always on / Off):
+  - Automatic follows the browser's effective connection type (2G or slow 3G) or the phone's data-saver flag. The raw downlink estimate was too noisy (Chrome reported "4g" at 0.15 Mbps), so it isn't used.
+  - Lite mode slows the sky animation, holds the radar behind "Load live radar", and refreshes every 20 minutes. Voice is already Opus.
+- Offline cache for the last forecast, warnings and insights of each place, plus the notification inbox:
+  - A banner distinguishes being offline from the server being unreachable.
+  - The HUD says "SAVED 12 MIN AGO" instead of LIVE.
+  - Chat answers offline from the saved forecast.
+  - Everything recovers by itself when the connection comes back.
+- A service worker keeps the web app shell and fonts available offline (production web builds only; the Android app bundles its assets).
+- Fixed: IMD BUFR decoding ran on the event loop and stalled requests for up to 43 s after startup. It now runs in a worker thread.
+
+Trip planner (new tab next to Weather; the existing weather view is unchanged and the same WeatherGPT chat stays on the right):
+- Real routes:
+  - OSRM on OpenStreetMap for car, two-wheeler and bus, with up to 3 alternatives. Per-segment durations come from OSRM annotations; bus is about 30% and two-wheeler about 12% slower than car.
+  - OSRM foot routing for treks.
+  - Great-circle routing between the nearest scheduled airports (116 Indian airports from OurAirports), with live METAR/TAF and a 250 hPa tail/headwind estimate for flights.
+  - Indian railway lines from OpenStreetMap for trains, routed with A* between the nearest stations. The graph is built by `scripts/build_rail_graph.py`; the public Overpass servers were overloaded, so the build runs patiently in the background.
+- Weather comes from Open-Meteo at up to 32 checkpoints, each read for the hour the traveller reaches it (parallel batches).
+- Each checkpoint is rated for thunderstorm, rain, fog, wind, heat, cold and snow with mode-specific thresholds. Two-wheelers and treks are more exposed; trains are only really affected by fog and storms; flights are rated for convection and the jet stream at cruise.
+- Consecutive hazards merge into spans with the nearest real town and mode-specific advice. Official IMD/NDMA warnings are listed only for districts the route passes through.
+- The best departure time is searched over the next 12 hours, and night travel is flagged.
+- The map colours the route by risk at the time of passage, shows grey alternatives you can tap, and has checkpoint tooltips and a RainViewer radar overlay. The view also has a risk strip, departure bars, hazards, airports or stations, and a timeline. The last trip is kept offline.
+- Chat integration:
+  - A `plan_trip` agent tool lets you plan a trip by chatting; it produces a trip card with "Open in trip planner".
+  - The open trip's briefing is sent as context so answers stay about that trip.
+  - search_knowledge is prompted for official hazard guidance.
+- Tests cover great-circle maths, sampling, mode-specific hazard levels, span merging, rail A* and arrival-hour lookup.
+
 Still in Phase 3:
-- Low-bandwidth mode, offline last-known forecast, SMS/IVR fallback for feature phones
+- SMS/IVR fallback for feature phones
+- Train routing goes live once the railway graph build completes
 - 24/7 hosting (deferred on 2026-09-27). Until then the backend runs on the laptop, so automatic notifications stop when it sleeps.
   - The Oracle Cloud Always Free signup (Ampere A1, Hyderabad) failed Oracle's risk check, and a support case is open.
   - Plan once a VM exists:

@@ -22,20 +22,22 @@ STATIONS = '[out:json][timeout:170];node["railway"="station"]["name"]({s},{w},{n
 INDIA = [(8.0, 77.0), (13.0, 80.3), (19.0, 72.8), (22.5, 88.3), (28.6, 77.2), (26.1, 91.7), (23.0, 72.6), (17.4, 78.5), (21.2, 81.6), (30.7, 76.8), (34.1, 74.8), (11.0, 76.9), (25.6, 85.1), (20.3, 85.8), (26.9, 75.8)]
 
 
-def fetch(query: str, attempt: int = 0) -> list[dict]:
-    url = OVERPASS[(attempt + fetch.turn) % len(OVERPASS)]
-    fetch.turn += 1
-    try:
-        response = httpx.post(url, data={"data": query}, headers=UA, timeout=200)
-        if response.status_code == 200:
-            return response.json().get("elements", [])
-        print(f"  {url} -> {response.status_code}", flush=True)
-    except (httpx.HTTPError, ValueError) as exc:
-        print(f"  {url} -> {type(exc).__name__}", flush=True)
-    if attempt >= 5:
-        raise RuntimeError("overpass kept failing")
-    time.sleep(15 * (attempt + 1))
-    return fetch(query, attempt + 1)
+def fetch(query: str) -> list[dict]:
+    attempt = 0
+    while True:
+        url = OVERPASS[(attempt + fetch.turn) % len(OVERPASS)]
+        fetch.turn += 1
+        try:
+            response = httpx.post(url, data={"data": query}, headers=UA, timeout=200)
+            if response.status_code == 200:
+                return response.json().get("elements", [])
+            print(f"  {url} -> {response.status_code}", flush=True)
+        except (httpx.HTTPError, ValueError) as exc:
+            print(f"  {url} -> {type(exc).__name__}", flush=True)
+        attempt += 1
+        wait = min(300, 20 * attempt)
+        print(f"  retrying in {wait}s", flush=True)
+        time.sleep(wait)
 
 
 fetch.turn = 0
