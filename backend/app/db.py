@@ -127,17 +127,40 @@ class Device(Base):
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
-class PushDelivery(Base):
-    __tablename__ = "push_deliveries"
-    __table_args__ = (UniqueConstraint("alert_id", "token", name="uq_push_delivery"),)
+
+class NotifyPrefs(Base):
+    __tablename__ = "notify_prefs"
+
+    client_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    language: Mapped[str] = mapped_column(String(8), default="en")
+    role: Mapped[str] = mapped_column(String(32), default="general")
+    crops: Mapped[list[Any]] = mapped_column(JSON, default=list)
+    briefing_at: Mapped[str | None] = mapped_column(String(5), default="06:30")
+    quiet_from: Mapped[str | None] = mapped_column(String(5), default="22:00")
+    quiet_to: Mapped[str | None] = mapped_column(String(5), default="06:00")
+    kinds: Mapped[list[Any]] = mapped_column(JSON, default=list)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class Notice(Base):
+    __tablename__ = "notices"
+    __table_args__ = (UniqueConstraint("client_id", "dedup_key", name="uq_notice"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    alert_id: Mapped[str] = mapped_column(ForeignKey("alerts.id"), index=True)
-    token: Mapped[str] = mapped_column(String(512), index=True)
-    client_id: Mapped[str] = mapped_column(String(64))
-    sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-    ok: Mapped[bool] = mapped_column(default=True)
-    detail: Mapped[str | None] = mapped_column(Text)
+    client_id: Mapped[str] = mapped_column(String(64), index=True)
+    kind: Mapped[str] = mapped_column(String(24), index=True)
+    severity: Mapped[str] = mapped_column(String(16), default="Info")
+    title: Mapped[str] = mapped_column(String(200))
+    body: Mapped[str] = mapped_column(Text)
+    place_name: Mapped[str] = mapped_column(String(160))
+    lat: Mapped[float] = mapped_column(Float)
+    lon: Mapped[float] = mapped_column(Float)
+    data: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    dedup_key: Mapped[str] = mapped_column(String(160))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    pushed: Mapped[bool] = mapped_column(default=False)
+    streamed: Mapped[bool] = mapped_column(default=False)
 
 
 def database_url() -> str:

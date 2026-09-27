@@ -109,6 +109,7 @@ async def _post_stream(url: str, headers: dict[str, str], payload: dict[str, Any
 
 class Gemini:
     name = "gemini"
+    plain = False
 
     def __init__(self, model: str, system: str, history: list[dict[str, str]], message: str, retries: list[float]):
         settings = get_settings()
@@ -126,9 +127,10 @@ class Gemini:
 
     async def turn(self) -> AsyncIterator[tuple[str, Any]]:
         parts: list[dict[str, Any]] = []
-        async for chunk in _post_stream(
-            GEMINI_URL.format(model=self.model), {"x-goog-api-key": self.key}, {**self.base, "contents": self.contents}, {"alt": "sse"}, "Gemini", self.retries
-        ):
+        body = {**self.base, "contents": self.contents}
+        if self.plain:
+            body.pop("tools", None)
+        async for chunk in _post_stream(GEMINI_URL.format(model=self.model), {"x-goog-api-key": self.key}, body, {"alt": "sse"}, "Gemini", self.retries):
             data = json.loads(chunk)
             for candidate in data.get("candidates", [])[:1]:
                 for part in candidate.get("content", {}).get("parts", []):
@@ -159,6 +161,7 @@ OPENAI_TOOLS = [
 
 class OpenAICompatible:
     name = "openai"
+    plain = False
     title = "OpenAI-compatible"
     url = ""
 
@@ -173,7 +176,9 @@ class OpenAICompatible:
         self.pending_ids: list[str] = []
 
     def payload(self) -> dict[str, Any]:
-        body: dict[str, Any] = {"model": self.model, "messages": self.messages, "tools": OPENAI_TOOLS, "tool_choice": "auto", "temperature": 0.4, "stream": True}
+        body: dict[str, Any] = {"model": self.model, "messages": self.messages, "temperature": 0.4, "stream": True}
+        if not self.plain:
+            body |= {"tools": OPENAI_TOOLS, "tool_choice": "auto"}
         if "gpt-oss" in self.model and self.name in ("groq", "cerebras"):
             body["reasoning_effort"] = "low"
         return body
@@ -290,3 +295,26 @@ def available() -> list[tuple[type, str]]:
 def soonest_free() -> float | None:
     waits = [cooling(f"{cls.name}:{model}") for cls, model in chain()]
     return min(waits) if waits else None
+
+
+async def complete(system: str, message: str, limit: int = 3) -> tuple[str, str]:
+    errors: list[str] = []
+    for cls, model in available()[:limit]:
+        key = f"{cls.name}:{model}"
+        provider = cls(model, system, [], message, [1.0])
+        provider.plain = True
+        try:
+            text = "".join([chunk async for kind, chunk in provider.turn() if kind == "text"]).strip()
+        except ProviderError as exc:
+            bench(key, exc)
+            errors.append(f"{key}: {exc}")
+            continue
+        except Exception as exc:
+            errors.append(f"{key}: {type(exc).__name__}")
+            continue
+        succeeded(key)
+        if text:
+            return text, provider.label
+        errors.append(f"{key}: empty")
+    raise ProviderError("; ".join(errors) or "no language model available")
+

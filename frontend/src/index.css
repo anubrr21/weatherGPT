@@ -2896,7 +2896,7 @@ button:disabled {
   gap: 4px;
 }
 
-.bell-panel li button {
+.bell-panel li .notice-head {
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -2908,15 +2908,15 @@ button:disabled {
   background: rgba(255, 255, 255, 0.04);
 }
 
-.bell-panel li.moderate button {
+.bell-panel li.moderate .notice-head {
   border-left-color: var(--moderate);
 }
 
-.bell-panel li.severe button {
+.bell-panel li.severe .notice-head {
   border-left-color: var(--severe);
 }
 
-.bell-panel li.extreme button {
+.bell-panel li.extreme .notice-head {
   border-left-color: var(--extreme);
 }
 
@@ -3017,4 +3017,202 @@ button:disabled {
     transform: translateY(-14px);
     opacity: 0;
   }
+}
+
+.bell-panel li.info .notice-head {
+  border-left-color: #6fb7ff;
+}
+
+.bell-panel li.read .notice-head {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.bell-panel li.read .notice-head b {
+  color: var(--ink-2);
+}
+
+.bell-panel li.unread .notice-head {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.bell-panel li.open .notice-head small {
+  display: block;
+  -webkit-line-clamp: unset;
+  white-space: normal;
+}
+
+.bell-panel .notice-head small {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.bell-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.notice-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--saffron, #ff9933);
+  box-shadow: 0 0 0 3px rgba(255, 153, 51, 0.18);
+  flex: none;
+}
+
+.notice-tag {
+  margin-left: auto;
+  font-style: normal;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(255, 110, 80, 0.16);
+  color: #ffb4a0;
+  letter-spacing: 0.06em;
+}
+
+.bell-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 2px 4px 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.bell-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  background: rgba(255, 255, 255, 0.05);
+  white-space: nowrap;
+}
+
+.bell-tabs button.on {
+  color: #0b0f16;
+  background: #f7f0e3;
+  font-weight: 600;
+}
+
+.bell-tabs i {
+  font-style: normal;
+  font-size: 10.5px;
+  min-width: 17px;
+  padding: 0 5px;
+  border-radius: 999px;
+  text-align: center;
+  background: var(--saffron, #ff9933);
+  color: #0b0f16;
+  font-weight: 700;
+}
+
+.bell-panel li .notice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 4px 6px 14px;
+}
+
+.bell-panel li .notice-actions button {
+  width: auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid var(--line-2);
+  border-left: 1px solid var(--line-2);
+  border-radius: 999px;
+  font-size: 12.5px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.bell-panel li .notice-actions button:first-child {
+  background: linear-gradient(135deg, #ffb45c, #ff7a3d);
+  border-color: transparent;
+  color: #1a0d05;
+  font-weight: 600;
+}
+
+.bell-panel header .icon-btn + .icon-btn {
+  margin-left: 2px;
+}
+
+.toast.info {
+  border-left-color: #6fb7ff;
+}
+
+.notify-prefs h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.notify-prefs .hint {
+  margin: 4px 0 10px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  line-height: 1.45;
+}
+
+.notify-prefs .chips button:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.notify-prefs .chips button svg {
+  vertical-align: -1px;
+}
+
+.time-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin-top: 12px;
+}
+
+.time-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.time-row input[type='time'] {
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--line-2);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+  color-scheme: dark;
+  font: inherit;
+  font-size: 13px;
+}
+
+.time-row input[type='time']:disabled {
+  opacity: 0.45;
+}
+
+.time-row .switch input {
+  accent-color: #ff9933;
+  width: 16px;
+  height: 16px;
+}
+
+.time-row .quiet {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.time-row .quiet em {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--ink-3);
 }

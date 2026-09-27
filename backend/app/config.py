@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     alert_poll_s: int = 120
     observation_poll_s: int = 900
     warm_poll_s: int = 1800
+    smart_poll_s: int = 600
     role: str = "all"
     fcm_service_account: str = ""
     workers_enabled: bool = True

@@ -15,7 +15,10 @@ export const isNative = Capacitor.isNativePlatform()
 export type Permission = 'granted' | 'denied' | 'prompt' | 'unsupported'
 
 export interface AlertTap {
-  alertId: string
+  alertId: string | null
+  noticeId: number | null
+  kind: string | null
+  action: 'open' | 'ask' | 'radar'
   place: string
   lat: number
   lon: number
@@ -44,11 +47,22 @@ function numericId(text: string) {
 }
 
 function toTap(data: Record<string, unknown> | undefined): AlertTap | null {
-  if (!data || typeof data.alert_id !== 'string') return null
+  if (!data) return null
+  const alertId = typeof data.alert_id === 'string' ? data.alert_id : null
+  const noticeId = Number(data.notice_id)
   const lat = Number(data.lat)
   const lon = Number(data.lon)
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null
-  return { alertId: data.alert_id, place: String(data.place ?? ''), lat, lon }
+  if ((!alertId && !Number.isFinite(noticeId)) || !Number.isFinite(lat) || !Number.isFinite(lon)) return null
+  const action = data.action === 'ask' || data.action === 'radar' ? data.action : 'open'
+  return {
+    alertId,
+    noticeId: Number.isFinite(noticeId) ? noticeId : null,
+    kind: typeof data.kind === 'string' ? data.kind : null,
+    action,
+    place: String(data.place ?? ''),
+    lat,
+    lon,
+  }
 }
 
 export async function notificationPermission(): Promise<Permission> {

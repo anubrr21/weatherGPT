@@ -1,17 +1,25 @@
-import { MapPin, Plus, Trash2, X } from 'lucide-react'
+import { BellRing, Lock, MapPin, Plus, Send, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 import { CROPS, ROLES, STAGES, addPlace, removePlace } from '../lib/profile'
+import { NOTICE_KINDS, sendTestNotice, type NotifyPrefs } from '../lib/notices'
 import type { Place, Profile } from '../lib/types'
 
 interface Props {
   profile: Profile
   current: Place | null
   onChange: (p: Profile) => void
+  prefs: NotifyPrefs
+  onPrefsChange: (p: NotifyPrefs) => void
   onPickPlace: (p: Place) => void
   onClose: () => void
 }
 
-export default function ProfileSheet({ profile, current, onChange, onPickPlace, onClose }: Props) {
+export default function ProfileSheet({ profile, current, onChange, prefs, onPrefsChange, onPickPlace, onClose }: Props) {
+  const [testing, setTesting] = useState<string | null>(null)
+  const toggleKind = (kind: NotifyPrefs['kinds'][number]) =>
+    onPrefsChange({ ...prefs, kinds: prefs.kinds.includes(kind) ? prefs.kinds.filter((k) => k !== kind) : [...prefs.kinds, kind] })
+  const briefingOn = prefs.kinds.includes('briefing') && Boolean(prefs.briefing_at)
+  const quietOn = Boolean(prefs.quiet_from && prefs.quiet_to)
   const [crop, setCrop] = useState(CROPS[0])
   const [stage, setStage] = useState('mid')
   const currentSaved = current ? profile.places.some((p) => Math.abs(p.lat - current.lat) < 0.01 && Math.abs(p.lon - current.lon) < 0.01) : true
@@ -106,6 +114,70 @@ export default function ProfileSheet({ profile, current, onChange, onPickPlace, 
               <Plus size={15} /> Save {current.name}
             </button>
           )}
+        </section>
+
+        <section className="notify-prefs">
+          <h3>
+            <BellRing size={14} /> Smart notifications
+          </h3>
+          <p className="hint">Worked out from 15-minute rain nowcasts and hourly forecasts for your saved places, written in your language, for you.</p>
+          <div className="chips">
+            {NOTICE_KINDS.map((k) => (
+              <button
+                key={k.kind}
+                className={prefs.kinds.includes(k.kind) || k.locked ? 'on' : ''}
+                disabled={k.locked}
+                onClick={() => toggleKind(k.kind)}
+                title={k.hint}
+                aria-pressed={prefs.kinds.includes(k.kind) || Boolean(k.locked)}
+              >
+                {k.locked && <Lock size={11} />} {k.label}
+              </button>
+            ))}
+          </div>
+          <div className="time-row">
+            <label>
+              <span>Morning briefing</span>
+              <input
+                type="time"
+                value={prefs.briefing_at ?? ''}
+                disabled={!prefs.kinds.includes('briefing')}
+                onChange={(e) => onPrefsChange({ ...prefs, briefing_at: e.target.value || null })}
+              />
+            </label>
+            <label className="switch">
+              <input
+                type="checkbox"
+                checked={quietOn}
+                onChange={(e) => onPrefsChange({ ...prefs, quiet_from: e.target.checked ? '22:00' : null, quiet_to: e.target.checked ? '06:00' : null })}
+              />
+              <span>Quiet hours</span>
+            </label>
+            {quietOn && (
+              <span className="quiet">
+                <input type="time" value={prefs.quiet_from ?? ''} onChange={(e) => onPrefsChange({ ...prefs, quiet_from: e.target.value || null })} aria-label="Quiet from" />
+                <em>to</em>
+                <input type="time" value={prefs.quiet_to ?? ''} onChange={(e) => onPrefsChange({ ...prefs, quiet_to: e.target.value || null })} aria-label="Quiet until" />
+              </span>
+            )}
+          </div>
+          <p className="hint">Severe and extreme warnings always come through, even in quiet hours.</p>
+          <button
+            className="add-btn wide"
+            disabled={testing === 'sending' || !briefingOn}
+            onClick={async () => {
+              setTesting('sending')
+              try {
+                const result = await sendTestNotice('briefing')
+                setTesting(result.created ? 'Sent. Check your notifications.' : result.note ?? 'Nothing to send right now.')
+              } catch {
+                setTesting('Could not reach WeatherGPT.')
+              }
+            }}
+          >
+            <Send size={14} /> {testing === 'sending' ? 'Writing your briefing…' : 'Send me a briefing now'}
+          </button>
+          {testing && testing !== 'sending' && <p className="hint">{testing}</p>}
         </section>
 
         {profile.notes.length > 0 && (

@@ -5,7 +5,7 @@ import Chat from './components/Chat'
 import DayStrip from './components/DayStrip'
 import Hud from './components/Hud'
 import InsightStrip from './components/InsightStrip'
-import { AlertToasts, LiveBell } from './components/LiveAlerts'
+import { AlertToasts, LiveBell, type Toast } from './components/LiveAlerts'
 import Logo, { LogoMark, Wordmark } from './components/Logo'
 import LocationSearch from './components/LocationSearch'
 import ProfileSheet from './components/ProfileSheet'
@@ -18,6 +18,7 @@ import { PlaceContext } from './lib/placeContext'
 import { addPlace, applyPatch, loadProfile, removePlace, saveProfile } from './lib/profile'
 import { syncSubscriptions, useLiveAlerts, type LiveAlert } from './lib/live'
 import { initNative, notifyAlert, promptNotificationsOnce, type AlertTap } from './lib/native'
+import { loadPrefs, savePrefs, syncPrefs, useNotices, type Notice, type NotifyPrefs } from './lib/notices'
 import { unlockAudio } from './lib/voice'
 import { momentAt, skyFor } from './lib/sky'
 import type { AlertsBundle, ChatEvent, Forecast, Insight, Message, Place, Profile } from './lib/types'
@@ -76,9 +77,11 @@ export default function App() {
   const [profile, setProfileState] = useState<Profile>(loadProfile)
   const [profileOpen, setProfileOpen] = useState(false)
   const [insights, setInsights] = useState<Insight[] | null>(null)
-  const [inbox, setInbox] = useState<LiveAlert[]>([])
-  const [toasts, setToasts] = useState<LiveAlert[]>([])
-  const [unread, setUnread] = useState(0)
+  const [toasts, setToasts] = useState<Toast[]>([])
+  const toastTargets = useRef(new Map<string, () => void>())
+  const [bellOpen, setBellOpen] = useState(false)
+  const [focusNotice, setFocusNotice] = useState<number | null>(null)
+  const [notifyPrefs, setNotifyPrefs] = useState<NotifyPrefs>(loadPrefs)
   const abortRef = useRef<AbortController | null>(null)
 
   const locate = useCallback(() => {
@@ -152,15 +155,72 @@ export default function App() {
     api.insights(place.lat, place.lon, profile).then(setInsights).catch(() => setInsights(null))
   }, [place?.lat, place?.lon, fc?.current.time, insightKey])
 
-  const liveState = useLiveAlerts((incoming) => {
-    setInbox((all) => (all.some((a) => a.alert.id === incoming.alert.id) ? all : [incoming, ...all].slice(0, 50)))
-    setToasts((all) => (all.some((a) => a.alert.id === incoming.alert.id) ? all : [incoming, ...all]))
-    setUnread((n) => n + 1)
-    notifyAlert(incoming)
-    if (place && Math.abs(incoming.place.lat - place.lat) < 0.05 && Math.abs(incoming.place.lon - place.lon) < 0.05) {
-      api.alerts(place.lat, place.lon).then(setAlerts).catch(() => undefined)
+  const pushToast = (toast: Toast, target: () => void) => {
+    toastTargets.current.set(toast.id, target)
+    setToasts((all) => (all.some((t) => t.id === toast.id) ? all : [toast, ...all]))
+  }
+
+  const noticeRef = useRef<(n: Notice) => void>(() => undefined)
+  const liveState = useLiveAlerts(
+    (incoming) => {
+      pushToast(
+        { id: `a:${incoming.alert.id}`, severity: incoming.alert.severity, title: `${incoming.alert.event ?? 'Weather alert'} · ${incoming.place.name}`, body: incoming.alert.headline },
+        () => askAboutAlert(incoming),
+      )
+      notifyAlert(incoming)
+      if (place && Math.abs(incoming.place.lat - place.lat) < 0.05 && Math.abs(incoming.place.lon - place.lon) < 0.05) {
+        api.alerts(place.lat, place.lon).then(setAlerts).catch(() => undefined)
+      }
+    },
+    (notice) => noticeRef.current(notice),
+  )
+  const noticeFeed = useNotices(liveState)
+  noticeRef.current = (notice) => {
+    noticeFeed.receive(notice)
+    if (notice.kind !== 'official') pushToast({ id: `n:${notice.id}`, severity: notice.severity, title: notice.title, body: notice.body }, () => openNotice(notice.id))
+  }
+
+  const openNotice = (id: number) => {
+    setBellOpen(true)
+    setFocusNotice(null)
+    window.setTimeout(() => setFocusNotice(id), 0)
+  }
+
+  const goToNotice = async (n: Notice) => {
+    setBellOpen(false)
+    setUsingDevice(false)
+    try {
+      const resolved = await api.reverse(n.place.lat, n.place.lon)
+      const next = { ...resolved, name: n.place.name || resolved.name }
+      setPlace(next)
+      save({ place: next })
+    } catch {
+      setPlace({ name: n.place.name, lat: n.place.lat, lon: n.place.lon })
     }
-  })
+  }
+
+  const askNotice = (n: Notice) => {
+    setBellOpen(false)
+    noticeFeed.markRead([n.id])
+    const original = typeof n.data.original === 'string' ? n.data.original : null
+    send(
+      n.kind === 'official' && original
+        ? `IMD has issued "${String(n.data.event ?? n.title)}" (${n.severity}) for ${n.place.name}: ${original} What exactly should I do?`
+        : `I got this WeatherGPT alert for ${n.place.name}: "${n.title.replace(/^[^\p{L}\p{N}]+/u, '')}. ${n.body}" What should I do, and how sure is it?`,
+    )
+  }
+
+  const radarNotice = async (n: Notice) => {
+    noticeFeed.markRead([n.id])
+    await goToNotice(n)
+    window.setTimeout(() => document.querySelector('.radar')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 700)
+  }
+
+  useEffect(() => {
+    savePrefs(notifyPrefs)
+    const id = setTimeout(() => syncPrefs(notifyPrefs, language, profile.role, profile.crops).catch(() => undefined), 800)
+    return () => clearTimeout(id)
+  }, [JSON.stringify(notifyPrefs), language, profile.role, JSON.stringify(profile.crops), liveState === 'live'])
 
   const placesKey = JSON.stringify([place, ...profile.places].filter(Boolean).map((p) => [p!.lat.toFixed(3), p!.lon.toFixed(3)]))
   useEffect(() => {
@@ -176,12 +236,26 @@ export default function App() {
   const nativeRef = useRef<{ back: () => boolean; tap: (tap: AlertTap) => void | Promise<void> }>({ back: () => false, tap: () => undefined })
   nativeRef.current.back = () => {
     if (searchOpen) setSearchOpen(false)
+    else if (bellOpen) setBellOpen(false)
     else if (profileOpen) setProfileOpen(false)
     else if (chatOpen) setChatOpen(false)
     else return false
     return true
   }
   nativeRef.current.tap = async (tap: AlertTap) => {
+    if (tap.noticeId !== null) {
+      await noticeFeed.refresh()
+      const stub: Notice = {
+        id: tap.noticeId, kind: (tap.kind ?? 'official') as Notice['kind'], severity: 'Info', title: '', body: '', place: { name: tap.place, lat: tap.lat, lon: tap.lon },
+        data: {}, created_at: new Date().toISOString(), read: false, channel: '',
+      }
+      const found = noticeFeed.notices.find((n) => n.id === tap.noticeId) ?? stub
+      if (tap.action === 'radar') return radarNotice(found)
+      if (tap.action === 'ask' && found.title) return askNotice(found)
+      await goToNotice(found)
+      openNotice(tap.noticeId)
+      return
+    }
     try {
       const history = await api.alertHistory(tap.lat, tap.lon)
       const alert = history.alerts.find((a) => a.id === tap.alertId)
@@ -286,7 +360,19 @@ export default function App() {
             <button className="icon-btn glass" onClick={refresh} aria-label="Refresh">
               <RefreshCw size={16} />
             </button>
-            <LiveBell state={liveState} inbox={inbox} unread={unread} onOpen={() => setUnread(0)} onAsk={askAboutAlert} />
+            <LiveBell
+              state={liveState}
+              notices={noticeFeed.notices}
+              unread={noticeFeed.unread}
+              open={bellOpen}
+              focus={focusNotice}
+              onOpenChange={setBellOpen}
+              onSeen={(ids) => noticeFeed.markRead(ids)}
+              onMarkAll={() => noticeFeed.markRead()}
+              onAsk={askNotice}
+              onRadar={radarNotice}
+              onGo={goToNotice}
+            />
             <button className={`icon-btn glass ${profile.role !== 'general' ? 'active' : ''}`} onClick={() => setProfileOpen(true)} aria-label="Your profile">
               <UserRound size={17} />
             </button>
@@ -341,16 +427,22 @@ export default function App() {
           />
         </aside>
 
-        <AlertToasts toasts={toasts} onDismiss={(id) => setToasts((all) => all.filter((t) => t.alert.id !== id))} onAsk={(a) => {
-          setToasts((all) => all.filter((t) => t.alert.id !== a.alert.id))
-          askAboutAlert(a)
-        }} />
+        <AlertToasts
+          toasts={bellOpen ? [] : toasts}
+          onDismiss={(id) => setToasts((all) => all.filter((t) => t.id !== id))}
+          onOpen={(id) => {
+            setToasts((all) => all.filter((t) => t.id !== id))
+            toastTargets.current.get(id)?.()
+          }}
+        />
 
         {profileOpen && (
           <ProfileSheet
             profile={profile}
             current={place}
             onChange={setProfile}
+            prefs={notifyPrefs}
+            onPrefsChange={setNotifyPrefs}
             onClose={() => setProfileOpen(false)}
             onPickPlace={(p) => {
               setPlace(p)

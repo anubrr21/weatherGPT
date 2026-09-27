@@ -542,3 +542,24 @@ async def satellite_rain_frames(count: int = 8) -> dict[str, Any]:
         }
 
     return await _gibs_cache.get_or_set("imerg", load)
+
+
+_nowcast_cache = TTLCache(ttl_s=600)
+
+
+async def nowcast(lat: float, lon: float) -> list[dict[str, Any]]:
+    async def load() -> list[dict[str, Any]]:
+        response = await get_retry(
+            FORECAST_URL,
+            params={
+                "latitude": f"{lat:.4f}",
+                "longitude": f"{lon:.4f}",
+                "minutely_15": "precipitation,weather_code",
+                "forecast_minutely_15": 12,
+                "timezone": "auto",
+            },
+        )
+        response.raise_for_status()
+        return _zip_series(response.json().get("minutely_15", {}), ["precipitation", "weather_code"])
+
+    return await _nowcast_cache.get_or_set(coord_key(lat, lon, "nowcast"), load)

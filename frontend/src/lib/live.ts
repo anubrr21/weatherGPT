@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { Notice } from './notices'
 import type { OfficialAlert, Place } from './types'
 
 const BASE = import.meta.env.VITE_API_BASE ?? ''
@@ -45,10 +46,12 @@ export async function syncSubscriptions(places: Place[]) {
   })
 }
 
-export function useLiveAlerts(onAlert: (alert: LiveAlert) => void) {
+export function useLiveAlerts(onAlert: (alert: LiveAlert) => void, onNotice?: (notice: Notice) => void) {
   const [state, setState] = useState<LiveState>('connecting')
   const handler = useRef(onAlert)
   handler.current = onAlert
+  const noticeHandler = useRef(onNotice)
+  noticeHandler.current = onNotice
 
   useEffect(() => {
     let socket: WebSocket | null = null
@@ -69,6 +72,7 @@ export function useLiveAlerts(onAlert: (alert: LiveAlert) => void) {
         try {
           const data = JSON.parse(event.data as string)
           if (data.type === 'alert') handler.current({ receivedAt: Date.now(), place: data.place, match: data.match, alert: data.alert })
+          else if (data.type === 'notice') noticeHandler.current?.(data.notice as Notice)
         } catch {
           return
         }

@@ -2,15 +2,16 @@ import asyncio
 import json
 import math
 from datetime import timedelta
+from typing import Any
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select, update
 
 from app.config import get_settings
-from app.db import Alert, Device, Observation, Session, Subscription, utcnow
+from app.db import Alert, Device, Notice, NotifyPrefs, Observation, Session, Subscription, utcnow
 from app.services import alerts as alert_service
-from app.services import ingest, weather, wis2
+from app.services import ingest, smart, weather, wis2
 from app.services.fanout import fanout
 from app.services.http import TTLCache, coord_key
 from app.services.push import push
@@ -83,6 +84,67 @@ async def unregister_device(body: DeviceOut):
 @router.post("/api/devices/test")
 async def test_push(body: ClientIn):
     return await push.test(body.client_id)
+
+
+class PrefsIn(BaseModel):
+    client_id: str = Field(..., min_length=8, max_length=64)
+    language: str = Field("en", max_length=8)
+    role: str = Field("general", max_length=32)
+    crops: list[Any] = Field(default_factory=list, max_length=12)
+    briefing_at: str | None = Field("06:30", pattern=r"^\d{2}:\d{2}$")
+    quiet_from: str | None = Field("22:00", pattern=r"^\d{2}:\d{2}$")
+    quiet_to: str | None = Field("06:00", pattern=r"^\d{2}:\d{2}$")
+    kinds: list[str] = Field(default_factory=list, max_length=12)
+
+
+class ReadIn(BaseModel):
+    client_id: str = Field(..., min_length=8, max_length=64)
+    ids: list[int] = Field(default_factory=list, max_length=500)
+    all: bool = False
+
+
+class TestNoticeIn(BaseModel):
+    client_id: str = Field(..., min_length=8, max_length=64)
+    kind: str = Field("briefing", pattern="^(briefing|rain_soon|storm|heavy_rain|heat|wind|fog)$")
+
+
+@router.put("/api/notifications/prefs")
+async def put_prefs(body: PrefsIn):
+    kinds = [k for k in body.kinds if k in smart.ALL_KINDS]
+    async with Session() as s:
+        prefs = await s.get(NotifyPrefs, body.client_id) or NotifyPrefs(client_id=body.client_id)
+        prefs.language, prefs.role, prefs.crops = body.language, body.role, body.crops
+        prefs.briefing_at, prefs.quiet_from, prefs.quiet_to, prefs.kinds = body.briefing_at, body.quiet_from, body.quiet_to, kinds
+        prefs.updated_at = utcnow()
+        s.add(prefs)
+        await s.commit()
+    return {"saved": True, "kinds": kinds or list(smart.ALL_KINDS)}
+
+
+@router.get("/api/notifications")
+async def list_notifications(client_id: str = Query(..., min_length=8, max_length=64), limit: int = Query(50, ge=1, le=200)):
+    async with Session() as s:
+        rows = (await s.scalars(select(Notice).where(Notice.client_id == client_id).order_by(Notice.id.desc()).limit(limit))).all()
+        unread = await s.scalar(select(func.count()).select_from(Notice).where(Notice.client_id == client_id, Notice.read_at.is_(None)))
+    return {"unread": unread or 0, "notices": [smart.notice_payload(n) for n in rows]}
+
+
+@router.post("/api/notifications/read")
+async def mark_read(body: ReadIn):
+    async with Session() as s:
+        query = update(Notice).where(Notice.client_id == body.client_id, Notice.read_at.is_(None))
+        if not body.all:
+            query = query.where(Notice.id.in_(body.ids or [-1]))
+        result = await s.execute(query.values(read_at=utcnow()))
+        await s.commit()
+    return {"marked": result.rowcount or 0}
+
+
+@router.post("/api/notifications/test")
+async def test_notice(body: TestNoticeIn):
+    created = await smart.run(force_client=body.client_id, force_kinds=(body.kind,))
+    result = await smart.deliver(created)
+    return result | {"kinds": [n.kind for n in created], "note": None if created else f"no {body.kind} conditions in the forecast right now"}
 
 
 @router.get("/api/alerts/history")

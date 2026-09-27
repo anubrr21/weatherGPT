@@ -17,14 +17,16 @@ import java.util.Map;
 
 public class WeatherMessagingService extends MessagingService {
 
-    static final String CHANNEL = "warnings";
+    static final String WARNINGS = "warnings";
+    static final String NOWCAST = "nowcast";
+    static final String BRIEFING = "briefing";
+    static final String ALERTS = "alerts";
 
     @Override
     public void onMessageReceived(@NonNull RemoteMessage remoteMessage) {
         super.onMessageReceived(remoteMessage);
         Map<String, String> data = remoteMessage.getData();
-        String title = data.get("title");
-        if (title == null || remoteMessage.getNotification() != null) {
+        if (data.get("title") == null || remoteMessage.getNotification() != null) {
             return;
         }
         show(this, remoteMessage.getMessageId(), data);
@@ -40,52 +42,76 @@ public class WeatherMessagingService extends MessagingService {
         return (int) (Math.abs((long) hash) % 2_000_000_000L);
     }
 
-    static void ensureChannel(Context context) {
+    static void ensureChannels(Context context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             return;
         }
         NotificationManager manager = context.getSystemService(NotificationManager.class);
-        if (manager == null || manager.getNotificationChannel(CHANNEL) != null) {
+        if (manager == null) {
             return;
         }
-        NotificationChannel channel = new NotificationChannel(CHANNEL, "Weather warnings", NotificationManager.IMPORTANCE_HIGH);
-        channel.setDescription("Official IMD and NDMA warnings for your saved places");
-        channel.enableLights(true);
+        channel(manager, WARNINGS, "Weather warnings", "Official IMD and NDMA warnings for your saved places", NotificationManager.IMPORTANCE_HIGH);
+        channel(manager, NOWCAST, "Rain and storm nowcast", "Rain or thunderstorms starting soon where you are", NotificationManager.IMPORTANCE_HIGH);
+        channel(manager, ALERTS, "Weather alerts", "Heat, heavy rain, strong wind and fog ahead", NotificationManager.IMPORTANCE_DEFAULT);
+        channel(manager, BRIEFING, "Morning briefing", "Your daily weather summary", NotificationManager.IMPORTANCE_LOW);
+    }
+
+    private static void channel(NotificationManager manager, String id, String name, String description, int importance) {
+        if (manager.getNotificationChannel(id) != null) {
+            return;
+        }
+        NotificationChannel channel = new NotificationChannel(id, name, importance);
+        channel.setDescription(description);
         channel.setLightColor(0xFFFF9933);
-        channel.enableVibration(true);
+        channel.enableLights(importance >= NotificationManager.IMPORTANCE_HIGH);
+        channel.enableVibration(importance >= NotificationManager.IMPORTANCE_HIGH);
         manager.createNotificationChannel(channel);
+    }
+
+    private static PendingIntent open(Context context, String messageId, Map<String, String> data, String action, int requestCode) {
+        Intent intent = new Intent(context, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        intent.putExtra("google.message_id", messageId);
+        for (Map.Entry<String, String> entry : data.entrySet()) {
+            intent.putExtra(entry.getKey(), entry.getValue());
+        }
+        intent.putExtra("action", action);
+        return PendingIntent.getActivity(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
     static void show(Context context, String messageId, Map<String, String> data) {
         if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) {
             return;
         }
-        ensureChannel(context);
-        String key = data.containsKey("alert_id") ? data.get("alert_id") : String.valueOf(System.currentTimeMillis());
+        ensureChannels(context);
+        String alertId = data.get("alert_id");
+        String noticeId = data.get("notice_id");
+        String key = alertId != null ? alertId : "notice:" + (noticeId != null ? noticeId : String.valueOf(System.currentTimeMillis()));
         int id = notificationId(key);
-
-        Intent open = new Intent(context, MainActivity.class);
-        open.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        open.putExtra("google.message_id", messageId != null ? messageId : key);
-        for (Map.Entry<String, String> entry : data.entrySet()) {
-            open.putExtra(entry.getKey(), entry.getValue());
-        }
-        PendingIntent tap = PendingIntent.getActivity(context, id, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
+        String message = messageId != null ? messageId : key;
+        String kind = data.containsKey("kind") ? data.get("kind") : "alert";
+        String channel = data.containsKey("channel") ? data.get("channel") : WARNINGS;
+        String severity = data.get("severity");
+        boolean urgent = "Extreme".equals(severity) || "Severe".equals(severity);
         String body = data.containsKey("body") ? data.get("body") : "";
-        boolean urgent = "Extreme".equals(data.get("severity")) || "Severe".equals(data.get("severity"));
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL)
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_stat_weathergpt)
             .setColor(ContextCompat.getColor(context, R.color.weathergpt_saffron))
             .setLargeIcon(BitmapFactory.decodeResource(context.getResources(), R.drawable.weathergpt_notification_large))
             .setContentTitle(data.get("title"))
             .setContentText(body)
+            .setSubText(data.get("place"))
             .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
-            .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setPriority(urgent ? NotificationCompat.PRIORITY_MAX : NotificationCompat.PRIORITY_HIGH)
+            .setCategory(BRIEFING.equals(channel) ? NotificationCompat.CATEGORY_RECOMMENDATION : NotificationCompat.CATEGORY_ALARM)
+            .setPriority(urgent ? NotificationCompat.PRIORITY_MAX : BRIEFING.equals(channel) ? NotificationCompat.PRIORITY_LOW : NotificationCompat.PRIORITY_HIGH)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setAutoCancel(true)
-            .setContentIntent(tap);
+            .setContentIntent(open(context, message, data, "open", id))
+            .addAction(0, "Ask WeatherGPT", open(context, message, data, "ask", id + 1));
+        if ("rain_soon".equals(kind) || "storm".equals(kind)) {
+            builder.addAction(0, "Radar", open(context, message, data, "radar", id + 2));
+        }
         try {
             NotificationManagerCompat.from(context).notify(id, builder.build());
         } catch (SecurityException ignored) {

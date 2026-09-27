@@ -51,12 +51,14 @@ class Fanout:
 
     async def dispatch(self, clients: list[str] | None = None) -> int:
         from app.services.ingest import notify_client
+        from app.services.smart import stream
 
         targets = hub.client_ids() if clients is None else [c for c in clients if hub.online(c)]
         pushed = 0
         for client_id in targets:
             try:
                 pushed += await notify_client(client_id)
+                pushed += await stream(client_id)
             except Exception as exc:
                 log.info("dispatch to %s failed: %s", client_id, exc)
         return pushed

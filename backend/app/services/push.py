@@ -2,7 +2,7 @@ import base64
 import json
 import logging
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -11,8 +11,7 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from sqlalchemy import delete, select
 
 from app.config import get_settings
-from app.db import Alert, Device, PushDelivery, Session, Subscription, utcnow
-from app.services import alerts as alert_service
+from app.db import Device, Session
 from app.services.http import client
 
 log = logging.getLogger("weathergpt.push")
@@ -48,10 +47,6 @@ def signed_assertion(account: dict[str, Any], now: int) -> str:
     return f"{signing_input}.{_b64(signature)}"
 
 
-def content_key(alert: dict[str, Any]) -> tuple[str, str]:
-    return (" ".join((alert.get("headline") or "").lower().split()), str(alert.get("expires") or "")[:16])
-
-
 def _ttl_seconds(expires: str | None) -> int:
     if not expires:
         return 6 * 3600
@@ -62,6 +57,25 @@ def _ttl_seconds(expires: str | None) -> int:
     if end.tzinfo is None:
         end = end.replace(tzinfo=timezone.utc)
     return int(max(60, min(28 * 86400, (end - datetime.now(timezone.utc)).total_seconds())))
+
+
+def build_notice_message(token: str, notice: dict[str, Any]) -> dict[str, Any]:
+    place = notice["place"]
+    data = {
+        "kind": notice["kind"],
+        "notice_id": str(notice["id"]),
+        "title": notice["title"][:120],
+        "body": notice["body"][:600],
+        "severity": notice["severity"],
+        "channel": notice.get("channel", "alerts"),
+        "place": place["name"],
+        "lat": f"{place['lat']:.4f}",
+        "lon": f"{place['lon']:.4f}",
+    }
+    alert_id = (notice.get("data") or {}).get("alert_id")
+    if alert_id:
+        data["alert_id"] = str(alert_id)
+    return {"message": {"token": token, "data": data, "android": {"priority": "high", "ttl": f"{notice.get('ttl', 6 * 3600)}s", "collapse_key": data["notice_id"]}}}
 
 
 def build_message(token: str, alert: dict[str, Any], place: dict[str, Any]) -> dict[str, Any]:
@@ -151,50 +165,28 @@ class Push:
             await s.commit()
         self.removed_tokens += len(tokens)
 
-    async def notify_new_alerts(self, alerts: list[dict[str, Any]]) -> int:
-        if not alerts or not self.enabled:
-            return 0
+    async def deliver(self, notices: list[dict[str, Any]]) -> set[int]:
+        if not notices or not self.enabled:
+            return set()
+        clients = {n["client_id"] for n in notices}
         async with Session() as s:
-            devices = (await s.scalars(select(Device))).all()
-            if not devices:
-                return 0
-            clients = {d.client_id for d in devices}
-            subs = (await s.scalars(select(Subscription).where(Subscription.client_id.in_(clients)))).all()
-            since = utcnow() - timedelta(days=3)
-            history = (await s.execute(
-                select(PushDelivery.token, Alert.headline, Alert.expires)
-                .join(Alert, Alert.id == PushDelivery.alert_id)
-                .where(PushDelivery.sent_at >= since, PushDelivery.ok.is_(True))
-            )).all()
-            pushed_ids = set((await s.execute(select(PushDelivery.alert_id, PushDelivery.token).where(PushDelivery.sent_at >= since))).all())
-        places: dict[str, list[dict[str, Any]]] = {}
-        for sub in subs:
-            places.setdefault(sub.client_id, []).append({"name": sub.name, "district": sub.district, "state": sub.state, "lat": sub.lat, "lon": sub.lon})
-        seen: dict[str, set[tuple[str, str]]] = {}
-        for token, headline, expires in history:
-            seen.setdefault(token, set()).add(content_key({"headline": headline, "expires": expires.isoformat() if expires else None}))
-        sent = 0
-        gone: set[str] = set()
-        records: list[PushDelivery] = []
+            devices = (await s.scalars(select(Device).where(Device.client_id.in_(clients)))).all()
+        by_client: dict[str, list[Device]] = {}
         for device in devices:
-            keys = seen.setdefault(device.token, set())
-            for place in places.get(device.client_id, []):
-                for alert in alert_service.alerts_for_place(alerts, place):
-                    key = content_key({"headline": alert.get("headline"), "expires": _normalise(alert.get("expires"))})
-                    if (alert["id"], device.token) in pushed_ids or key in keys or device.token in gone:
-                        continue
-                    keys.add(key)
-                    pushed_ids.add((alert["id"], device.token))
-                    ok, detail, is_gone = await self.send(build_message(device.token, alert, place))
-                    records.append(PushDelivery(alert_id=alert["id"], token=device.token, client_id=device.client_id, ok=ok, detail=detail))
-                    sent += ok
-                    if is_gone:
-                        gone.add(device.token)
-        async with Session() as s:
-            s.add_all(records)
-            await s.commit()
+            by_client.setdefault(device.client_id, []).append(device)
+        delivered: set[int] = set()
+        gone: set[str] = set()
+        for notice in notices:
+            for device in by_client.get(notice["client_id"], []):
+                if device.token in gone:
+                    continue
+                ok, _, is_gone = await self.send(build_notice_message(device.token, notice))
+                if ok:
+                    delivered.add(notice["id"])
+                if is_gone:
+                    gone.add(device.token)
         await self._forget(gone)
-        return sent
+        return delivered
 
     async def test(self, client_id: str) -> dict[str, Any]:
         if not self.enabled:
@@ -226,16 +218,6 @@ class Push:
             "removed_tokens": self.removed_tokens,
             "last_error": self.last_error,
         }
-
-
-def _normalise(expires: str | None) -> str | None:
-    if not expires:
-        return None
-    try:
-        value = datetime.fromisoformat(expires.replace("Z", "+00:00"))
-    except ValueError:
-        return expires
-    return (value if value.tzinfo else value.replace(tzinfo=timezone.utc)).astimezone(timezone.utc).isoformat()
 
 
 push = Push()
