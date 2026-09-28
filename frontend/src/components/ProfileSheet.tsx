@@ -1,5 +1,6 @@
 import { BellRing, Gauge, Lock, MapPin, Plus, Send, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
+import FamilyPhones from './FamilyPhones'
 import { CROPS, ROLES, STAGES, addPlace, removePlace } from '../lib/profile'
 import type { DataMode } from '../lib/connection'
 import { NOTICE_KINDS, sendTestNotice, type NotifyPrefs } from '../lib/notices'
@@ -183,6 +184,8 @@ export default function ProfileSheet({ profile, current, onChange, prefs, onPref
           </button>
           {testing && testing !== 'sending' && <p className="hint">{testing}</p>}
         </section>
+
+        <FamilyPhones places={profile.places} current={current} />
 
         <section className="data-saver">
           <h3>

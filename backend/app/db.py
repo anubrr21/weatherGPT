@@ -163,6 +163,46 @@ class Notice(Base):
     streamed: Mapped[bool] = mapped_column(default=False)
 
 
+class PhoneSubscriber(Base):
+    __tablename__ = "phone_subscribers"
+
+    phone: Mapped[str] = mapped_column(String(20), primary_key=True)
+    place_name: Mapped[str | None] = mapped_column(String(160))
+    district: Mapped[str | None] = mapped_column(String(160))
+    state: Mapped[str | None] = mapped_column(String(160))
+    lat: Mapped[float | None] = mapped_column(Float)
+    lon: Mapped[float | None] = mapped_column(Float)
+    language: Mapped[str] = mapped_column(String(8), default="hi")
+    sms: Mapped[bool] = mapped_column(default=True)
+    voice: Mapped[bool] = mapped_column(default=True)
+    briefing: Mapped[bool] = mapped_column(default=True)
+    confirmed: Mapped[bool] = mapped_column(default=False)
+    active: Mapped[bool] = mapped_column(default=True)
+    added_by: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class PhoneMessage(Base):
+    __tablename__ = "phone_messages"
+    __table_args__ = (UniqueConstraint("phone", "dedup_key", name="uq_phone_message"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    phone: Mapped[str] = mapped_column(String(20), index=True)
+    direction: Mapped[str] = mapped_column(String(3))
+    channel: Mapped[str] = mapped_column(String(8))
+    kind: Mapped[str] = mapped_column(String(24), default="reply")
+    text: Mapped[str] = mapped_column(Text)
+    segments: Mapped[int] = mapped_column(Integer, default=1)
+    encoding: Mapped[str] = mapped_column(String(8), default="gsm7")
+    provider: Mapped[str] = mapped_column(String(16), default="simulator")
+    status: Mapped[str] = mapped_column(String(16), default="sent")
+    provider_id: Mapped[str | None] = mapped_column(String(80))
+    dedup_key: Mapped[str | None] = mapped_column(String(160))
+    data: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
 def database_url() -> str:
     url = get_settings().database_url.strip()
     if url:

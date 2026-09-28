@@ -15,7 +15,7 @@ from app.services import alerts as alert_service
 from app.services import weather
 from app.services.http import get_retry
 from app.services.fanout import fanout
-from app.services import smart
+from app.services import phone, smart
 from app.services.realtime import hub
 
 log = logging.getLogger("weathergpt.ingest")
@@ -151,7 +151,13 @@ async def ingest_alerts() -> tuple[int, int, str | None]:
         return len(feed), 0, None
     await fanout.publish()
     result = await smart.deliver(await smart.official(new_alerts))
-    return len(feed), len(new_alerts), f"{len(new_alerts)} new alerts fanned out, {result['created']} notices, {result['pushed']} pushed to phones"
+    texted = await phone.alert_subscribers(new_alerts)
+    return len(feed), len(new_alerts), f"{len(new_alerts)} new alerts fanned out, {result['created']} notices, {result['pushed']} pushed to phones, {texted['sms']} SMS, {texted['calls']} calls"
+
+
+async def ingest_phone() -> tuple[int, int, str | None]:
+    sent = await phone.morning_briefings()
+    return sent, sent, f"{sent} morning SMS" if sent else None
 
 
 async def ingest_smart() -> tuple[int, int, str | None]:
@@ -207,6 +213,7 @@ JOBS: dict[str, tuple[Callable[[], Awaitable[tuple[int, int, str | None]]], Call
     "observations": (ingest_observations, lambda: get_settings().observation_poll_s),
     "warm": (warm_forecasts, lambda: get_settings().warm_poll_s),
     "smart": (ingest_smart, lambda: get_settings().smart_poll_s),
+    "phone": (ingest_phone, lambda: get_settings().phone_poll_s),
 }
 
 

@@ -139,8 +139,50 @@ Trip planner (new tab next to Weather; the existing weather view is unchanged an
   - search_knowledge is prompted for official hazard guidance.
 - Tests cover great-circle maths, sampling, mode-specific hazard levels, span merging, rail A* and arrival-hour lookup.
 
+SMS and IVR for feature phones (Phase 3c, part 3, 2026-09-28):
+- The phone layer doesn't depend on one provider. It runs in simulator mode until a telecom account is connected, and a Twilio adapter is included:
+  - REST for SMS and calls;
+  - TwiML for the voice menu;
+  - every webhook checks the X-Twilio-Signature (HMAC-SHA1) against `PUBLIC_BASE_URL`.
+  - In India, real SMS also needs DLT registration of the sender ID and templates.
+- SMS commands work in English, Hindi and Indic scripts:
+  - `WEATHER <PIN or village>` returns today's forecast;
+  - `JOIN <place>` subscribes to warnings and a 06:30 briefing;
+  - `LANG <code or name>` changes the language;
+  - `STOP` and `HELP`;
+  - any other text is a question answered by the WeatherGPT agent.
+  - PIN codes are resolved with the India Post API and matched to a geocoded place in the same state.
+- Replies are written in the subscriber's language and trimmed at sentence boundaries to at most 3 SMS. Segments are counted by GSM-7 / UCS-2 rules.
+- Translation has safeguards:
+  - A translation is rejected if it is a refusal, loses or changes a number or placeholder, is not mainly in the target script, or is too short.
+  - After two failed attempts the English text is used.
+  - Menus are translated sentence by sentence, and place names are filled in after translation.
+- Voice helpline (IVR) flow:
+  1. A language menu is spoken in each language's own voice.
+  2. The caller keys in a 6-digit PIN code.
+  3. The main menu: 1 today's weather, 2 official warnings, 3 farm advice (spray window and irrigation), 4 join warnings on this phone, 5 change place, 9 language.
+  - Prompts are local Piper TTS concatenated into 16 kHz WAV and cached.
+  - Silence is handled: the prompt repeats, and the call hangs up after three misses.
+- Automatic delivery:
+  - New IMD/NDMA warnings that match a subscriber's district go out by SMS, in the language the issuer published if available, otherwise translated.
+  - Severe and Extreme warnings also place a voice call that reads the warning and offers 1 repeat, 2 today's weather, 8 stop calls.
+  - Everything is deduplicated per warning text.
+  - The worker's `phone` job sends the morning briefings.
+- A family member can add a parent's keypad phone from the profile ("Basic phones in the family"). The parent gets an SMS and joins by replying YES. Numbers are masked in the app and removed by an opaque reference.
+- The keypad phone simulator at `/phone` has:
+  - an SMS thread;
+  - a green/red call key and keypad with real DTMF tones driving the IVR, with prompts played as audio;
+  - incoming warning calls with Answer/Reject;
+  - a clearly labelled "practice warning" drill (simulator mode only).
+- API endpoints:
+  - `POST /api/phone/sim/sms`, `GET /api/phone/sim/thread`, `POST /api/phone/sim/call`, `POST /api/phone/sim/drill`
+  - `GET /api/ivr/audio/{key}.wav`
+  - `POST|GET /api/phone/family`, `POST /api/phone/family/remove`
+  - `POST /api/sms/twilio`, `POST /api/ivr/twilio`
+  - `GET /api/phone/status`
+
 Still in Phase 3:
-- SMS/IVR fallback for feature phones
+- Connect a real SMS/voice provider (needs an account and DLT registration)
 - 24/7 hosting (deferred on 2026-09-27). Until then the backend runs on the laptop, so automatic notifications stop when it sleeps.
   - The Oracle Cloud Always Free signup (Ampere A1, Hyderabad) failed Oracle's risk check, and a support case is open.
   - Plan once a VM exists:

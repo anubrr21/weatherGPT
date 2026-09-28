@@ -35,6 +35,12 @@ class Settings(BaseSettings):
     role: str = "all"
     fcm_service_account: str = ""
     google_maps_api_key: str = ""
+    phone_provider: str = "simulator"
+    twilio_account_sid: str = ""
+    twilio_auth_token: str = ""
+    twilio_from: str = ""
+    public_base_url: str = ""
+    phone_poll_s: int = 600
     workers_enabled: bool = True
     wis2_enabled: bool = True
     wis2_broker: str = "globalbroker.meteo.fr"

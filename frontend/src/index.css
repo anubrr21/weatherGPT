@@ -4326,3 +4326,36 @@ button:disabled {
   font-weight: 400;
   color: var(--ink-3);
 }
+
+.phone-input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 7px 10px;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+.family-phones h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.family-phones .hint {
+  margin: 4px 0 10px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  line-height: 1.45;
+}
+
+.family-phones .add-row + .hint {
+  margin-top: 10px;
+}
+
+.family-phones .hint a {
+  color: var(--accent-2);
+}
