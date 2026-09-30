@@ -251,6 +251,18 @@ Lightning tab (done 2026-10-01):
   - Strikes within 10 km in the last 10 minutes send a `lightning` notice once an hour per place, respecting the Thunderstorms/Lightning toggles.
 - The chat agent has a `get_lightning` tool.
 
+Accuracy tab (done 2026-10-01, the forecast-verification part of evaluation):
+- Nine models are verified against observations: WeatherGPT's own blend (Open-Meteo best match), ECMWF IFS, NOAA GFS, DWD ICON, UK Met Office, JMA, Météo-France, Canada GEM and CMA GRAPES.
+  - Forecasts are what each model said 1 and 2 days earlier, from the Open-Meteo previous-runs archive.
+  - Observations are METAR reports from the nearest IMD airport met offices within 250 km (up to 3 stations with at least 24 hours of data), from the Iowa Environmental Mesonet archive, over 7, 10, 14 or 30 days.
+- Scores:
+  - temperature, dew point and wind: MAE, bias and RMSE by lead day;
+  - rain or no rain per hour, from METAR present weather against forecast precipitation of at least 0.2 mm: POD, FAR, CSI and Heidke skill score;
+  - the ranking uses each model's error relative to the middle model.
+- Checked around Amaravati over 10 days: models miss temperature by 1.0–1.9 °C, errors grow from day 1 to day 2, GFS ranks last, and the blend catches 78% of rainy hours with 34% false alarms.
+- The chart shows measured temperature against the blend, ECMWF, GFS and ICON, with the hours when rain was observed shaded.
+- The chat agent has a `get_forecast_accuracy` tool.
+
 ## Phase 5 — Maps and GIS
 
 - Radar/satellite and model field layers (rain, wind, temperature) on a map

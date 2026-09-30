@@ -325,6 +325,13 @@ async def get_lightning(ctx: ChatContext, location: str | None = None) -> dict[s
     return await lightning.status_for_agent(place["lat"], place["lon"], _label(place))
 
 
+async def get_forecast_accuracy(ctx: ChatContext, location: str | None = None) -> dict[str, Any]:
+    from app.services import verify
+
+    place = await resolve_place(location, ctx)
+    return await verify.summary_for_agent(place["lat"], place["lon"], _label(place))
+
+
 TOOL_FUNCTIONS = {
     "get_forecast": get_forecast,
     "get_alerts": get_alerts,
@@ -341,6 +348,7 @@ TOOL_FUNCTIONS = {
     "plan_trip": plan_trip,
     "get_cyclones": get_cyclones,
     "get_lightning": get_lightning,
+    "get_forecast_accuracy": get_forecast_accuracy,
 }
 
 _LOCATION = {
@@ -367,6 +375,11 @@ TOOL_DECLARATIONS = [
     {
         "name": "get_alerts",
         "description": "Official live IMD/NDMA CAP warnings for the place plus model-derived advisories (heavy rain, heat wave, cold wave, strong winds, thunderstorm, fog) computed with IMD thresholds. Use for any safety, warning, cyclone, flood, storm or 'is it safe' question.",
+        "parameters": {"type": "OBJECT", "properties": {"location": _LOCATION}},
+    },
+    {
+        "name": "get_forecast_accuracy",
+        "description": "How accurate the forecasts have been for this area over the last 10 days: each weather model (ECMWF, GFS, ICON, UK Met Office, JMA, Météo-France, GEM, CMA and WeatherGPT's own blend) is verified against METAR observations at the nearest IMD airport stations, with average temperature, dew point and wind errors, bias, and rain hit rate/false alarms/skill. Use when asked which model to trust, how reliable the forecast is, or about forecast accuracy or verification.",
         "parameters": {"type": "OBJECT", "properties": {"location": _LOCATION}},
     },
     {

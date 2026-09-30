@@ -16,6 +16,7 @@ from app.db import Session, backend_name, init_db
 from app.routes_live import router as live_router
 from app.routes_cyclones import router as cyclones_router
 from app.routes_lightning import router as lightning_router
+from app.routes_verify import router as verify_router
 from app.routes_phone import router as phone_router
 from app.services import advisory, agent, alerts, ingest, knowledge, lightning, local_stt, local_tts, providers, ratings, trips, voice, weather, wis2
 from app.services.fanout import fanout
@@ -49,6 +50,7 @@ app.include_router(live_router)
 app.include_router(phone_router)
 app.include_router(cyclones_router)
 app.include_router(lightning_router)
+app.include_router(verify_router)
 app.add_middleware(GZipMiddleware, minimum_size=800, compresslevel=6, exclude_content_types=(*DEFAULT_EXCLUDED_CONTENT_TYPES, "audio/ogg", "audio/wav"))
 app.add_middleware(
     CORSMiddleware,

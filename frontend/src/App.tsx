@@ -1,4 +1,4 @@
-import { CloudSun, MapPin, MessageSquareText, RefreshCw, Route, Tornado, UserRound, Zap } from 'lucide-react'
+import { CloudSun, MapPin, MessageSquareText, RefreshCw, Route, Target, Tornado, UserRound, Zap } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import AlertRibbon from './components/AlertRibbon'
 import Chat from './components/Chat'
@@ -13,6 +13,7 @@ import TripPlanner from './components/trip/TripPlanner'
 import CycloneView from './components/cyclones/CycloneView'
 import ErrorBoundary from './components/ErrorBoundary'
 import LightningView from './components/lightning/LightningView'
+import AccuracyView from './components/accuracy/AccuracyView'
 import ProfileSheet from './components/ProfileSheet'
 import RadarGate from './components/RadarGate'
 import SkyCanvas from './components/SkyCanvas'
@@ -34,7 +35,7 @@ import type { AlertsBundle, ChatEvent, Forecast, Insight, Message, Place, Profil
 const FALLBACK: Place = { name: 'Amaravati', district: 'Guntur', state: 'Andhra Pradesh', lat: 16.514, lon: 80.516 }
 const STORE = 'weathergpt:v1'
 
-type View = 'weather' | 'trip' | 'cyclones' | 'lightning'
+type View = 'weather' | 'trip' | 'cyclones' | 'lightning' | 'accuracy'
 
 interface Saved {
   place?: Place
@@ -441,11 +442,18 @@ export default function App() {
             <button className={view === 'lightning' ? 'on' : ''} onClick={() => setView('lightning')} aria-pressed={view === 'lightning'}>
               <Zap size={15} /> Lightning
             </button>
+            <button className={view === 'accuracy' ? 'on' : ''} onClick={() => setView('accuracy')} aria-pressed={view === 'accuracy'}>
+              <Target size={15} /> Accuracy
+            </button>
           </nav>
 
           <NetBanner connection={connection} staleAt={staleAt} onRetry={refresh} onLiteOff={() => setDataMode('off')} />
 
-          {view === 'lightning' ? (
+          {view === 'accuracy' ? (
+            <ErrorBoundary label="The accuracy view">
+              <AccuracyView place={place && place.name !== 'Locating…' ? place : null} online={connection.online} onAsk={(text) => send(text)} />
+            </ErrorBoundary>
+          ) : view === 'lightning' ? (
             <ErrorBoundary label="The lightning view">
               <LightningView place={place && place.name !== 'Locating…' ? place : null} online={connection.online} language={language} onAsk={(text) => send(text)} />
             </ErrorBoundary>
