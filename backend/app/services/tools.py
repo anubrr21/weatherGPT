@@ -318,6 +318,13 @@ async def get_cyclones(ctx: ChatContext, location: str | None = None) -> dict[st
     return await cyclones.status_for_agent(place["lat"], place["lon"], _label(place))
 
 
+async def get_lightning(ctx: ChatContext, location: str | None = None) -> dict[str, Any]:
+    from app.services import lightning
+
+    place = await resolve_place(location, ctx)
+    return await lightning.status_for_agent(place["lat"], place["lon"], _label(place))
+
+
 TOOL_FUNCTIONS = {
     "get_forecast": get_forecast,
     "get_alerts": get_alerts,
@@ -333,6 +340,7 @@ TOOL_FUNCTIONS = {
     "search_knowledge": search_knowledge,
     "plan_trip": plan_trip,
     "get_cyclones": get_cyclones,
+    "get_lightning": get_lightning,
 }
 
 _LOCATION = {
@@ -359,6 +367,11 @@ TOOL_DECLARATIONS = [
     {
         "name": "get_alerts",
         "description": "Official live IMD/NDMA CAP warnings for the place plus model-derived advisories (heavy rain, heat wave, cold wave, strong winds, thunderstorm, fog) computed with IMD thresholds. Use for any safety, warning, cyclone, flood, storm or 'is it safe' question.",
+        "parameters": {"type": "OBJECT", "properties": {"location": _LOCATION}},
+    },
+    {
+        "name": "get_lightning",
+        "description": "Lightning and thunderstorms right now and in the next 36 hours: whether an official IMD/SDMA lightning or thunderstorm warning polygon covers the place and until when, live lightning strikes within 150 km in the last hour (nearest strike, counts within 10/20/30 km, storm movement and ETA), and the model thunderstorm outlook by hour. Use for lightning, thunder, 'is it safe to go out/work in the field', thunderstorm timing questions.",
         "parameters": {"type": "OBJECT", "properties": {"location": _LOCATION}},
     },
     {

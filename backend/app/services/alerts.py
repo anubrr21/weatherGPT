@@ -60,6 +60,7 @@ async def _fetch_cap(link: str, guid: str, fallback_title: str, author: str | No
             if i is not english and _text(i, "cap:headline")
         ]
         areas = [a for a in (_text(area, "cap:areaDesc") for area in english.findall("cap:area", CAP_NS)) if a]
+        polygon_url = next((_text(p, "cap:value") for p in english.findall("cap:parameter", CAP_NS) if (_text(p, "cap:valueName") or "").strip().lower() == "polygon url"), None)
         return {
             "id": guid,
             "source": "IMD / NDMA SACHET (CAP)",
@@ -77,6 +78,7 @@ async def _fetch_cap(link: str, guid: str, fallback_title: str, author: str | No
             "effective": _text(english, "cap:effective"),
             "expires": _text(english, "cap:expires"),
             "areas": areas,
+            "polygon_url": polygon_url,
             "localized": localized,
             "link": link,
         }

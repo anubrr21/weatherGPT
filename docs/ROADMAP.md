@@ -234,6 +234,23 @@ Cyclones tab (done 2026-09-30):
 - The chat agent has a `get_cyclones` tool.
 - The dev API now runs without auto-reload. On Windows the reloader hung while browsers held WebSockets open and kept serving old code.
 
+Lightning tab (done 2026-10-01):
+- Official warnings (primary):
+  - live IMD nowcast and state SDMA lightning and thunderstorm CAP alerts from SACHET, drawn with their own "Polygon URL" boundaries (mandal- or district-level, simplified to at most 120 points per ring);
+  - point-in-polygon tells you whether your place is inside one and until when, with the headline in your language when the issuer published it (e.g. AP SDMA's Telugu `TL`).
+- Live strikes (supplementary):
+  - Blitzortung.org's volunteer network over a WebSocket, identified as WeatherGPT and used under its non-commercial terms;
+  - the feed is compressed and decoded in the backend, and the India region's last 3 h is kept in memory;
+  - shown: strikes by age, counts within 10/20/30 km, the nearest strike, and storm-cell motion (speed, heading, ETA) from how the nearest cluster moved over 20 minutes;
+  - the app says clearly that detectors over India are sparse (it missed the AP strikes that the SDMA network reported). A production feed would come from IITM's Damini network through IMD, and IMD's nowcast APIs need the caller's IP to be whitelisted.
+- Model risk: a 6-hour thunderstorm-risk grid (0.75°, 81 cells) and a 36-hour hourly outlook for the place, from Open-Meteo thunderstorm codes, CAPE and lifted index.
+- Safety: the 30/30 rule with a live "stay indoors until" timer after a strike within 10 km, and NDMA do's and don'ts including crouch position and CPR.
+- Automatic alerts:
+  - The worker's `lightning` job runs every 2 minutes.
+  - When an official polygon covers a saved place, it sends a push notice (deduplicated with the existing official-warning notices) and an SMS to subscribed phones.
+  - Strikes within 10 km in the last 10 minutes send a `lightning` notice once an hour per place, respecting the Thunderstorms/Lightning toggles.
+- The chat agent has a `get_lightning` tool.
+
 ## Phase 5 — Maps and GIS
 
 - Radar/satellite and model field layers (rain, wind, temperature) on a map

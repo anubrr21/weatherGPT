@@ -1,4 +1,4 @@
-import { CloudSun, MapPin, MessageSquareText, RefreshCw, Route, Tornado, UserRound } from 'lucide-react'
+import { CloudSun, MapPin, MessageSquareText, RefreshCw, Route, Tornado, UserRound, Zap } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import AlertRibbon from './components/AlertRibbon'
 import Chat from './components/Chat'
@@ -12,6 +12,7 @@ import NetBanner from './components/NetBanner'
 import TripPlanner from './components/trip/TripPlanner'
 import CycloneView from './components/cyclones/CycloneView'
 import ErrorBoundary from './components/ErrorBoundary'
+import LightningView from './components/lightning/LightningView'
 import ProfileSheet from './components/ProfileSheet'
 import RadarGate from './components/RadarGate'
 import SkyCanvas from './components/SkyCanvas'
@@ -33,7 +34,7 @@ import type { AlertsBundle, ChatEvent, Forecast, Insight, Message, Place, Profil
 const FALLBACK: Place = { name: 'Amaravati', district: 'Guntur', state: 'Andhra Pradesh', lat: 16.514, lon: 80.516 }
 const STORE = 'weathergpt:v1'
 
-type View = 'weather' | 'trip' | 'cyclones'
+type View = 'weather' | 'trip' | 'cyclones' | 'lightning'
 
 interface Saved {
   place?: Place
@@ -437,11 +438,18 @@ export default function App() {
             <button className={view === 'cyclones' ? 'on' : ''} onClick={() => setView('cyclones')} aria-pressed={view === 'cyclones'}>
               <Tornado size={15} /> Cyclones
             </button>
+            <button className={view === 'lightning' ? 'on' : ''} onClick={() => setView('lightning')} aria-pressed={view === 'lightning'}>
+              <Zap size={15} /> Lightning
+            </button>
           </nav>
 
           <NetBanner connection={connection} staleAt={staleAt} onRetry={refresh} onLiteOff={() => setDataMode('off')} />
 
-          {view === 'cyclones' ? (
+          {view === 'lightning' ? (
+            <ErrorBoundary label="The lightning view">
+              <LightningView place={place && place.name !== 'Locating…' ? place : null} online={connection.online} language={language} onAsk={(text) => send(text)} />
+            </ErrorBoundary>
+          ) : view === 'cyclones' ? (
             <ErrorBoundary label="The cyclone view">
               <CycloneView place={place && place.name !== 'Locating…' ? place : null} online={connection.online} onAsk={(text) => send(text)} />
             </ErrorBoundary>

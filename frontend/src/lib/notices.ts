@@ -14,7 +14,7 @@ function savedInbox(): { unread: number; notices: Notice[] } {
   }
 }
 
-export type NoticeKind = 'cyclone' | 'official' | 'rain_soon' | 'storm' | 'heavy_rain' | 'heat' | 'wind' | 'fog' | 'briefing'
+export type NoticeKind = 'lightning' | 'cyclone' | 'official' | 'rain_soon' | 'storm' | 'heavy_rain' | 'heat' | 'wind' | 'fog' | 'briefing'
 
 export interface Notice {
   id: number
@@ -41,6 +41,7 @@ export const NOTICE_KINDS: { kind: NoticeKind; label: string; hint: string; lock
   { kind: 'cyclone', label: 'Cyclone warnings', hint: 'Always on', locked: true },
   { kind: 'rain_soon', label: 'Rain starting soon', hint: '15-minute nowcast' },
   { kind: 'storm', label: 'Thunderstorms', hint: 'Lightning ahead' },
+  { kind: 'lightning', label: 'Lightning strikes nearby', hint: 'Within 10 km' },
   { kind: 'heavy_rain', label: 'Heavy rain', hint: 'IMD thresholds' },
   { kind: 'heat', label: 'Heat', hint: 'Feels-like peaks' },
   { kind: 'wind', label: 'Strong wind', hint: 'Gusts 50+ km/h' },

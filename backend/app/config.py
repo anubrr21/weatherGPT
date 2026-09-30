@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     public_base_url: str = ""
     phone_poll_s: int = 600
     cyclone_poll_s: int = 900
+    lightning_poll_s: int = 120
     workers_enabled: bool = True
     wis2_enabled: bool = True
     wis2_broker: str = "globalbroker.meteo.fr"
