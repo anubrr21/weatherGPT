@@ -1,4 +1,4 @@
-import { CloudSun, MapPin, MessageSquareText, RefreshCw, Route, Target, Tornado, UserRound, Zap } from 'lucide-react'
+import { CloudSun, Map as MapIcon, MapPin, MessageSquareText, RefreshCw, Route, Target, Tornado, UserRound, Zap } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import AlertRibbon from './components/AlertRibbon'
 import Chat from './components/Chat'
@@ -14,6 +14,7 @@ import CycloneView from './components/cyclones/CycloneView'
 import ErrorBoundary from './components/ErrorBoundary'
 import LightningView from './components/lightning/LightningView'
 import AccuracyView from './components/accuracy/AccuracyView'
+import MapsView from './components/maps/MapsView'
 import ProfileSheet from './components/ProfileSheet'
 import RadarGate from './components/RadarGate'
 import SkyCanvas from './components/SkyCanvas'
@@ -35,7 +36,7 @@ import type { AlertsBundle, ChatEvent, Forecast, Insight, Message, Place, Profil
 const FALLBACK: Place = { name: 'Amaravati', district: 'Guntur', state: 'Andhra Pradesh', lat: 16.514, lon: 80.516 }
 const STORE = 'weathergpt:v1'
 
-type View = 'weather' | 'trip' | 'cyclones' | 'lightning' | 'accuracy'
+type View = 'weather' | 'trip' | 'maps' | 'cyclones' | 'lightning' | 'accuracy'
 
 interface Saved {
   place?: Place
@@ -436,6 +437,9 @@ export default function App() {
             <button className={view === 'trip' ? 'on' : ''} onClick={() => setView('trip')} aria-pressed={view === 'trip'}>
               <Route size={15} /> Trip planner
             </button>
+            <button className={view === 'maps' ? 'on' : ''} onClick={() => setView('maps')} aria-pressed={view === 'maps'}>
+              <MapIcon size={15} /> Maps
+            </button>
             <button className={view === 'cyclones' ? 'on' : ''} onClick={() => setView('cyclones')} aria-pressed={view === 'cyclones'}>
               <Tornado size={15} /> Cyclones
             </button>
@@ -449,7 +453,11 @@ export default function App() {
 
           <NetBanner connection={connection} staleAt={staleAt} onRetry={refresh} onLiteOff={() => setDataMode('off')} />
 
-          {view === 'accuracy' ? (
+          {view === 'maps' ? (
+            <ErrorBoundary label="The weather map">
+              <MapsView place={place && place.name !== 'Locating…' ? place : null} online={connection.online} lite={connection.lite} />
+            </ErrorBoundary>
+          ) : view === 'accuracy' ? (
             <ErrorBoundary label="The accuracy view">
               <AccuracyView place={place && place.name !== 'Locating…' ? place : null} online={connection.online} onAsk={(text) => send(text)} />
             </ErrorBoundary>

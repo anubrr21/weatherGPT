@@ -263,12 +263,16 @@ Accuracy tab (done 2026-10-01, the forecast-verification part of evaluation):
 - The chart shows measured temperature against the blend, ECMWF, GFS and ICON, with the hours when rain was observed shaded.
 - The chat agent has a `get_forecast_accuracy` tool.
 
-## Phase 5 — Maps and GIS
+Maps tab (done 2026-10-01, replaces the old Phase 5 "Maps and GIS" plan):
+- An animated weather map of India with wind, temperature, rain (mm per 3 h), cloud and sea-level pressure over the next 48 hours in 3-hour steps.
+  - Data: Open-Meteo best match on a 1.5° grid (529 points), fetched in parallel batches and cached for 3 hours to stay within the free API budget.
+  - Drawing: the field is drawn on a canvas inside its own Leaflet pane, with bilinear interpolation and colour scales, between the base map and the overlays.
+  - Wind is shown as moving particle trails, slowed down for data-saver users and people who prefer reduced motion.
+  - Hovering shows all values at that point, and there is a play/pause time slider starting at the current hour.
+- The national warnings map shows every live SACHET alert (IMD, CWC floods, state SDMAs) with its own polygon, coloured by severity, with counts by type and a list.
+- The old radar/satellite item was already covered by the RainViewer radar on the home screen. Cyclone tracks and the warning map are now done in their own tabs.
 
-- Radar/satellite and model field layers (rain, wind, temperature) on a map
-- Cyclone track visualisation; district-level warning map
-
-## Phase 6 — Evaluation
+## Phase 5 — Evaluation
 
 - Accuracy: forecast verification against observations; answer grounding checks
 - Latency: measured p50/p95 for first token and full answer
