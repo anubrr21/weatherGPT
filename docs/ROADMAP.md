@@ -200,7 +200,7 @@ Still in Phase 3:
     - upgrade the account to Pay As You Go so idle free VMs aren't reclaimed.
   - Fallback: $200 DigitalOcean credit from the GitHub Student Pack.
 
-## Phase 4 — Hazard tabs (in progress, 2026-09-30)
+## Phase 4 — Hazard tabs (done, 2026-10-01)
 
 The app gets its own tab per hazard next to Weather and Trip planner. The weather view stays unchanged.
 
@@ -274,6 +274,6 @@ Maps tab (done 2026-10-01, replaces the old Phase 5 "Maps and GIS" plan):
 
 ## Phase 5 — Evaluation
 
-- Accuracy: forecast verification against observations; answer grounding checks
+- Accuracy: forecast verification against observations is done in the Accuracy tab; answer grounding checks remain
 - Latency: measured p50/p95 for first token and full answer
 - Multilingual quality review with native speakers
