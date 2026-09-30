@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     twilio_from: str = ""
     public_base_url: str = ""
     phone_poll_s: int = 600
+    cyclone_poll_s: int = 900
     workers_enabled: bool = True
     wis2_enabled: bool = True
     wis2_broker: str = "globalbroker.meteo.fr"

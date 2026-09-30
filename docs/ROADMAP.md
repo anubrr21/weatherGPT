@@ -200,12 +200,46 @@ Still in Phase 3:
     - upgrade the account to Pay As You Go so idle free VMs aren't reclaimed.
   - Fallback: $200 DigitalOcean credit from the GitHub Student Pack.
 
-## Phase 4 — Maps and GIS
+## Phase 4 — Hazard tabs (in progress, 2026-09-30)
+
+The app gets its own tab per hazard next to Weather and Trip planner. The weather view stays unchanged.
+
+Cyclones tab (done 2026-09-30):
+- Live storms in the Bay of Bengal and Arabian Sea come from GDACS (JTWC advisories):
+  - every advisory fix with wind, gusts, pressure, 34-kt wind radii and population in gale winds;
+  - forecast track, uncertainty cone and 60/90/120 km/h wind zones;
+  - ECMWF/GFS storm-surge height.
+- Official outlooks:
+  - the JTWC Indian Ocean advisory, parsed, including its validity time;
+  - IMD RSMC New Delhi bulletins, read from the PDFs, with "NIL" recognised;
+  - SACHET CAP cyclone warnings for the place.
+- For your place:
+  - distance and direction now, closest approach with time, whether you are inside the cone or a wind zone;
+  - the IMD four-stage warning (watch 72 h, alert 48 h, warning 24 h, post-landfall 12 h) that matches the lead time;
+  - a 3½-day gust, rain and pressure outlook from Open-Meteo.
+- History: 466 storms from 1980 to 2026 from IBTrACS v04r01 North Indian Ocean, built by `scripts/build_cyclone_history.py`.
+  - IMD 3-minute winds are used where IMD reported them; otherwise JTWC 1-minute winds are converted with a 0.93 factor.
+  - Storms are graded on IMD's D, DD, CS, SCS, VSCS, ESCS and SuCS scale.
+  - For any place: storms within 100, 150 or 250 km, how often a cyclonic storm passes, months, decades, landfalls, and the strongest and most recent storms with tracks on the map.
+  - Checked: Hudhud passed 3 km from Visakhapatnam, the 1990 super cyclone passed near Amaravati, and Puri sees a cyclonic storm about every 2.9 years.
+- Basin climatology by month for the Bay of Bengal and the Arabian Sea.
+- Shelters come from a local index, `scripts/build_shelters.py`, built from the Geofabrik India extract in about 90 s:
+  - designated cyclone and relief shelters and assembly points mapped in OpenStreetMap (few are mapped);
+  - 15,366 schools, colleges and community halls within 120 km of historical landfalls, labelled as commonly used relief camps;
+  - helplines 1070, 1077 and 112.
+- Automatic alerts:
+  - The worker's `cyclones` job runs every 15 minutes. When an active storm's forecast reaches a saved place, it sends push notices (kind `cyclone`, always on) in the user's language.
+  - Subscribed feature phones get an SMS for each stage and a voice call from the cyclone-alert stage onwards.
+  - Everything is deduplicated per storm and stage.
+- The chat agent has a `get_cyclones` tool.
+- The dev API now runs without auto-reload. On Windows the reloader hung while browsers held WebSockets open and kept serving old code.
+
+## Phase 5 — Maps and GIS
 
 - Radar/satellite and model field layers (rain, wind, temperature) on a map
 - Cyclone track visualisation; district-level warning map
 
-## Phase 5 — Evaluation
+## Phase 6 — Evaluation
 
 - Accuracy: forecast verification against observations; answer grounding checks
 - Latency: measured p50/p95 for first token and full answer

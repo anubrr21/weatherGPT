@@ -311,6 +311,13 @@ async def plan_trip(ctx: ChatContext, destination: str, origin: str | None = Non
     return trips.brief(trip)
 
 
+async def get_cyclones(ctx: ChatContext, location: str | None = None) -> dict[str, Any]:
+    from app.services import cyclones
+
+    place = await resolve_place(location, ctx)
+    return await cyclones.status_for_agent(place["lat"], place["lon"], _label(place))
+
+
 TOOL_FUNCTIONS = {
     "get_forecast": get_forecast,
     "get_alerts": get_alerts,
@@ -325,6 +332,7 @@ TOOL_FUNCTIONS = {
     "update_profile": update_profile,
     "search_knowledge": search_knowledge,
     "plan_trip": plan_trip,
+    "get_cyclones": get_cyclones,
 }
 
 _LOCATION = {
@@ -351,6 +359,11 @@ TOOL_DECLARATIONS = [
     {
         "name": "get_alerts",
         "description": "Official live IMD/NDMA CAP warnings for the place plus model-derived advisories (heavy rain, heat wave, cold wave, strong winds, thunderstorm, fog) computed with IMD thresholds. Use for any safety, warning, cyclone, flood, storm or 'is it safe' question.",
+        "parameters": {"type": "OBJECT", "properties": {"location": _LOCATION}},
+    },
+    {
+        "name": "get_cyclones",
+        "description": "Tropical cyclones and depressions over the Bay of Bengal and Arabian Sea: live storms with position, IMD grade, forecast track, closest approach to the place, whether it is inside the forecast cone or gale zone, modelled storm surge, the IMD warning stage for that lead time, official IMD/JTWC outlooks, and the place's cyclone history since 1980 (how many storms passed within 150 km, when, how strong, which months). Use for any cyclone, depression, landfall, storm surge or cyclone season question.",
         "parameters": {"type": "OBJECT", "properties": {"location": _LOCATION}},
     },
     {

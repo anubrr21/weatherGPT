@@ -4472,3 +4472,502 @@ button:disabled {
   color: #0b0f16;
   font: 700 11px/1 var(--sans);
 }
+
+.views {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.views::-webkit-scrollbar {
+  display: none;
+}
+
+.views button {
+  flex: none;
+  white-space: nowrap;
+}
+
+.cy {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-bottom: 90px;
+}
+
+.cy-head {
+  position: relative;
+  padding-right: 48px;
+}
+
+.cy-head .icon-btn {
+  position: absolute;
+  top: 6px;
+  right: 0;
+}
+
+.cy-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 38px;
+  padding: 3px 7px;
+  border-radius: 8px;
+  font: 700 11px/1 var(--mono);
+  font-style: normal;
+  letter-spacing: 0.02em;
+}
+
+.cy-calm {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(95, 211, 154, 0.35);
+  background: rgba(95, 211, 154, 0.08);
+}
+
+.cy-calm > svg {
+  flex: none;
+  color: var(--calm);
+  margin-top: 2px;
+}
+
+.cy-calm b {
+  display: block;
+  font-size: 15px;
+}
+
+.cy-calm p {
+  margin: 6px 0 0;
+  font-size: 13.5px;
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+
+.cy-calm p.dim {
+  color: var(--ink-3);
+}
+
+.cy-calm small {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.cy-official {
+  display: grid;
+  gap: 8px;
+}
+
+.cy-official article {
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 77, 109, 0.5);
+  background: rgba(255, 77, 109, 0.12);
+}
+
+.cy-official em {
+  font: 600 11px var(--mono);
+  font-style: normal;
+  color: var(--extreme);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.cy-official b {
+  display: block;
+  margin: 4px 0;
+}
+
+.cy-official p,
+.cy-official small {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+
+.cy-storm {
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--line-2);
+  background: rgba(10, 16, 28, 0.55);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  cursor: pointer;
+}
+
+.cy-storm.live {
+  border-color: rgba(255, 107, 74, 0.6);
+  background: linear-gradient(135deg, rgba(255, 107, 74, 0.16), rgba(10, 16, 28, 0.6));
+}
+
+.cy-storm.on {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25);
+}
+
+.cy-storm header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cy-storm header > svg {
+  color: var(--accent);
+  flex: none;
+}
+
+.cy-storm header span {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.cy-storm header small {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+.cy-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin: 12px 0 4px;
+}
+
+.cy-stats span {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.cy-stats small {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.cy-stats b {
+  font-size: 16px;
+}
+
+.cy-stats em {
+  font-style: normal;
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+
+.cy-impact p {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  margin: 6px 0 0;
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+
+.cy-impact p svg {
+  flex: none;
+  align-self: center;
+}
+
+.cy-impact p.warn {
+  color: var(--moderate);
+}
+
+.cy-stage {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 200, 87, 0.12);
+  color: var(--moderate) !important;
+}
+
+.cy-stage.warning,
+.cy-stage.post_landfall {
+  background: rgba(255, 77, 109, 0.14);
+  color: var(--extreme) !important;
+}
+
+.cy-pop {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
+.cy-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--accent-2);
+}
+
+.cy-recent {
+  display: grid;
+  gap: 8px;
+}
+
+.cy-recent .cy-storm {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: none;
+}
+
+.cy-bulletin pre {
+  white-space: pre-wrap;
+  font: 12px/1.5 var(--mono);
+  color: var(--ink-2);
+  max-height: 280px;
+  overflow: auto;
+  margin: 0;
+}
+
+.cy-chart {
+  width: 100%;
+  height: 150px;
+  margin-top: 8px;
+}
+
+.cy-chart-gust {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.2;
+  vector-effect: non-scaling-stroke;
+}
+
+.cy-chart-rain {
+  fill: rgba(111, 183, 255, 0.55);
+}
+
+.cy-chart-rule {
+  stroke: rgba(255, 255, 255, 0.18);
+  stroke-dasharray: 4 5;
+  vector-effect: non-scaling-stroke;
+}
+
+.cy-chart-note,
+.cy-chart-day {
+  fill: var(--ink-3);
+  font: 10px var(--mono);
+}
+
+.cy-bars {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 4px;
+  height: 110px;
+  align-items: end;
+}
+
+.cy-bars span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  gap: 3px;
+}
+
+.cy-bars i {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 4px 4px 0 0;
+  background: var(--accent);
+  opacity: 0.75;
+}
+
+.cy-bars span.now i {
+  opacity: 1;
+  box-shadow: 0 0 0 1px #fff;
+}
+
+.cy-bars b {
+  font: 600 10px var(--mono);
+  color: var(--ink-2);
+}
+
+.cy-bars small {
+  font: 10px var(--mono);
+  color: var(--ink-3);
+}
+
+.cy-bars span.now small {
+  color: var(--ink);
+}
+
+.cy-radius {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.cy-history,
+.cy-shelters {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.cy-history button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  text-align: left;
+}
+
+.cy-history button:hover,
+.cy-history button.on {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.cy-history span,
+.cy-shelters span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cy-history small,
+.cy-shelters small {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+.cy-shelters li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.cy-shelters a {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(143, 211, 255, 0.14);
+  color: var(--accent-2);
+}
+
+.cy-helplines {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.cy-helplines a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.cy-helplines b {
+  color: var(--ink);
+}
+
+.cy-steps {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 10px;
+}
+
+.cy-steps b {
+  display: block;
+}
+
+.cy-steps small {
+  color: var(--accent);
+  font-size: 12px;
+}
+
+.cy-steps p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.cy-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.cy-table td {
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-2);
+}
+
+.cy-table td:first-child {
+  width: 52px;
+}
+
+.cyclone-legend {
+  flex-wrap: wrap;
+  border-radius: 12px;
+  right: 60px;
+}
+
+.cyclone-legend i {
+  width: 12px;
+}
+
+.cyclone-legend i.dash {
+  background: repeating-linear-gradient(90deg, #fff 0 4px, transparent 4px 7px);
+}
+
+.cyclone-eye {
+  display: grid;
+  place-items: center;
+}
+
+.cyclone-eye i {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, rgba(255, 255, 255, 0.95), rgba(255, 107, 74, 0.2), rgba(255, 255, 255, 0.95), rgba(255, 107, 74, 0.2), rgba(255, 255, 255, 0.95));
+  -webkit-mask: radial-gradient(circle, transparent 5px, #000 6px);
+  mask: radial-gradient(circle, transparent 5px, #000 6px);
+  animation: cyclone-spin 2.4s linear infinite;
+}
+
+@keyframes cyclone-spin {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cyclone-eye i {
+    animation: none;
+  }
+}
+
+.link-btn {
+  color: var(--accent-2);
+  text-decoration: underline;
+  font: inherit;
+}

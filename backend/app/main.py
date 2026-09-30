@@ -14,6 +14,7 @@ from sqlalchemy import text
 from app.config import get_settings
 from app.db import Session, backend_name, init_db
 from app.routes_live import router as live_router
+from app.routes_cyclones import router as cyclones_router
 from app.routes_phone import router as phone_router
 from app.services import advisory, agent, alerts, ingest, knowledge, local_stt, local_tts, providers, ratings, trips, voice, weather, wis2
 from app.services.fanout import fanout
@@ -43,6 +44,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="WeatherGPT API", version="0.1.0", lifespan=lifespan)
 app.include_router(live_router)
 app.include_router(phone_router)
+app.include_router(cyclones_router)
 app.add_middleware(GZipMiddleware, minimum_size=800, compresslevel=6, exclude_content_types=(*DEFAULT_EXCLUDED_CONTENT_TYPES, "audio/ogg", "audio/wav"))
 app.add_middleware(
     CORSMiddleware,

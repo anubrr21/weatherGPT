@@ -19,8 +19,8 @@ log = logging.getLogger("weathergpt.smart")
 SEVERITY = {"Info": 0, "Minor": 1, "Moderate": 2, "Severe": 3, "Extreme": 4}
 URGENT = {"Severe", "Extreme"}
 ALL_KINDS = ("official", "rain_soon", "storm", "heavy_rain", "heat", "wind", "fog", "briefing")
-ICON = {"official": "⚠️", "rain_soon": "🌧️", "storm": "⛈️", "heavy_rain": "🌧️", "heat": "🌡️", "wind": "💨", "fog": "🌫️", "briefing": "☀️"}
-CHANNEL = {"official": "warnings", "rain_soon": "nowcast", "storm": "nowcast", "briefing": "briefing"}
+ICON = {"cyclone": "🌀", "official": "⚠️", "rain_soon": "🌧️", "storm": "⛈️", "heavy_rain": "🌧️", "heat": "🌡️", "wind": "💨", "fog": "🌫️", "briefing": "☀️"}
+CHANNEL = {"cyclone": "warnings", "official": "warnings", "rain_soon": "nowcast", "storm": "nowcast", "briefing": "briefing"}
 DAILY_CAP = 6
 LANGUAGE_NAMES = {
     "en": "English", "hi": "Hindi", "bn": "Bengali", "te": "Telugu", "ta": "Tamil", "mr": "Marathi", "gu": "Gujarati",

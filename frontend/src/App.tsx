@@ -1,4 +1,4 @@
-import { CloudSun, MapPin, MessageSquareText, RefreshCw, Route, UserRound } from 'lucide-react'
+import { CloudSun, MapPin, MessageSquareText, RefreshCw, Route, Tornado, UserRound } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import AlertRibbon from './components/AlertRibbon'
 import Chat from './components/Chat'
@@ -10,6 +10,8 @@ import Logo, { LogoMark, Wordmark } from './components/Logo'
 import LocationSearch from './components/LocationSearch'
 import NetBanner from './components/NetBanner'
 import TripPlanner from './components/trip/TripPlanner'
+import CycloneView from './components/cyclones/CycloneView'
+import ErrorBoundary from './components/ErrorBoundary'
 import ProfileSheet from './components/ProfileSheet'
 import RadarGate from './components/RadarGate'
 import SkyCanvas from './components/SkyCanvas'
@@ -31,10 +33,12 @@ import type { AlertsBundle, ChatEvent, Forecast, Insight, Message, Place, Profil
 const FALLBACK: Place = { name: 'Amaravati', district: 'Guntur', state: 'Andhra Pradesh', lat: 16.514, lon: 80.516 }
 const STORE = 'weathergpt:v1'
 
+type View = 'weather' | 'trip' | 'cyclones'
+
 interface Saved {
   place?: Place
   language?: string
-  view?: 'weather' | 'trip'
+  view?: View
 }
 
 function load(): Saved {
@@ -91,10 +95,10 @@ export default function App() {
   const [dataMode, setDataModeState] = useState<DataMode>(loadDataMode)
   const connection = useConnection(dataMode)
   const [staleAt, setStaleAt] = useState<number | null>(null)
-  const [view, setViewState] = useState<'weather' | 'trip'>(saved.view ?? 'weather')
+  const [view, setViewState] = useState<View>(saved.view ?? 'weather')
   const [tripBrief, setTripBrief] = useState<Record<string, unknown> | null>(null)
   const [incomingTrip, setIncomingTrip] = useState<TripResult | null>(null)
-  const setView = (next: 'weather' | 'trip') => {
+  const setView = (next: View) => {
     setViewState(next)
     save({ view: next })
   }
@@ -430,11 +434,18 @@ export default function App() {
             <button className={view === 'trip' ? 'on' : ''} onClick={() => setView('trip')} aria-pressed={view === 'trip'}>
               <Route size={15} /> Trip planner
             </button>
+            <button className={view === 'cyclones' ? 'on' : ''} onClick={() => setView('cyclones')} aria-pressed={view === 'cyclones'}>
+              <Tornado size={15} /> Cyclones
+            </button>
           </nav>
 
           <NetBanner connection={connection} staleAt={staleAt} onRetry={refresh} onLiteOff={() => setDataMode('off')} />
 
-          {view === 'trip' ? (
+          {view === 'cyclones' ? (
+            <ErrorBoundary label="The cyclone view">
+              <CycloneView place={place && place.name !== 'Locating…' ? place : null} online={connection.online} onAsk={(text) => send(text)} />
+            </ErrorBoundary>
+          ) : view === 'trip' ? (
             <TripPlanner
               current={place && place.name !== 'Locating…' ? place : null}
               online={connection.online}

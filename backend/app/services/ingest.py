@@ -160,6 +160,14 @@ async def ingest_phone() -> tuple[int, int, str | None]:
     return sent, sent, f"{sent} morning SMS" if sent else None
 
 
+async def ingest_cyclones() -> tuple[int, int, str | None]:
+    from app.services import cyclones
+
+    result = await cyclones.notify()
+    sent = result["notices"] + result["sms"] + result["calls"]
+    return sent, result["pushed"], f"{result['notices']} cyclone notices, {result['pushed']} pushed, {result['sms']} SMS, {result['calls']} calls" if sent else None
+
+
 async def ingest_smart() -> tuple[int, int, str | None]:
     created = await smart.run()
     result = await smart.deliver(created)
@@ -214,6 +222,7 @@ JOBS: dict[str, tuple[Callable[[], Awaitable[tuple[int, int, str | None]]], Call
     "warm": (warm_forecasts, lambda: get_settings().warm_poll_s),
     "smart": (ingest_smart, lambda: get_settings().smart_poll_s),
     "phone": (ingest_phone, lambda: get_settings().phone_poll_s),
+    "cyclones": (ingest_cyclones, lambda: get_settings().cyclone_poll_s),
 }
 
 
