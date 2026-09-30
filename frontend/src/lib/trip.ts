@@ -126,6 +126,16 @@ export interface RestStop {
   error?: string
 }
 
+export interface TripVia {
+  name: string
+  district?: string | null
+  state?: string | null
+  lat: number
+  lon: number
+  km: number
+  eta: string
+}
+
 export interface TripRoute {
   summary: string
   source: string
@@ -135,6 +145,7 @@ export interface TripRoute {
   arrive: string
   geometry: [number, number][]
   points: TripPoint[]
+  vias?: TripVia[]
   hazards: TripSpan[]
   rest_stops?: RestStop[] | null
   stops_along?: StopsAlong | null
@@ -148,6 +159,10 @@ export interface TripRoute {
     to_airport?: Airport
     from_station?: Station
     to_station?: Station
+    via_airports?: Airport[]
+    via_stations?: Station[]
+    legs?: number
+    layover_min?: number
     winds?: { tailwind_kmh: number; adjusted_minutes: number; samples: number }
     great_circle_km?: number
   }
@@ -158,6 +173,7 @@ export interface TripResult {
   mode_label: string
   origin: Place
   destination: Place
+  vias?: Place[]
   generated_at: string
   routes: TripRoute[]
   briefs: Record<string, unknown>[]
@@ -176,13 +192,18 @@ export const LEVEL_COLORS = ['#3ddc97', '#ffd166', '#ff8c42', '#ff4d6d']
 
 export const levelColor = (level: number) => LEVEL_COLORS[Math.min(3, Math.max(0, Math.floor(level)))]
 
-export async function planTrip(origin: Place, destination: Place, mode: TripMode, depart: string | null, restStops = false): Promise<TripResult> {
+export const MAX_VIAS = 8
+
+const placeBody = (p: Place) => ({ name: p.name, lat: p.lat, lon: p.lon, district: p.district ?? null, state: p.state ?? null })
+
+export async function planTrip(origin: Place, destination: Place, mode: TripMode, depart: string | null, restStops = false, vias: Place[] = []): Promise<TripResult> {
   const response = await fetch(`${BASE}/api/trip`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      origin: { name: origin.name, lat: origin.lat, lon: origin.lon, district: origin.district ?? null, state: origin.state ?? null },
-      destination: { name: destination.name, lat: destination.lat, lon: destination.lon, district: destination.district ?? null, state: destination.state ?? null },
+      origin: placeBody(origin),
+      destination: placeBody(destination),
+      vias: vias.map(placeBody),
       mode,
       depart,
       rest_stops: restStops,

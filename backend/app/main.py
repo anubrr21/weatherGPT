@@ -178,6 +178,7 @@ class TripPlace(BaseModel):
 class TripRequest(BaseModel):
     origin: TripPlace
     destination: TripPlace
+    vias: list[TripPlace] = Field(default_factory=list, max_length=8)
     mode: Literal["car", "bike", "bus", "train", "flight", "trek"] = "car"
     depart: datetime | None = None
     rest_stops: bool = False
@@ -189,7 +190,7 @@ async def plan_trip(req: TripRequest):
     if depart is not None and depart.tzinfo is None:
         depart = depart.replace(tzinfo=timezone(timedelta(hours=5, minutes=30)))
     try:
-        trip = await trips.plan(req.origin.model_dump(), req.destination.model_dump(), req.mode, depart, req.rest_stops)
+        trip = await trips.plan(req.origin.model_dump(), req.destination.model_dump(), req.mode, depart, req.rest_stops, [v.model_dump() for v in req.vias])
     except trips.TripError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except HTTPException:

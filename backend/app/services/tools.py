@@ -292,9 +292,10 @@ async def update_profile(
     return {"saved": patch or "nothing to save"}
 
 
-async def plan_trip(ctx: ChatContext, destination: str, origin: str | None = None, mode: str = "car", depart: str | None = None, rest_stops: bool = False) -> dict[str, Any]:
+async def plan_trip(ctx: ChatContext, destination: str, origin: str | None = None, mode: str = "car", depart: str | None = None, rest_stops: bool = False, via: list[str] | None = None) -> dict[str, Any]:
     start = await resolve_place(origin, ctx)
     end = await resolve_place(destination, ctx)
+    stops = [await resolve_place(name, ctx) for name in (via or [])[:8] if name and name.strip()]
     when = None
     if depart:
         try:
@@ -303,7 +304,7 @@ async def plan_trip(ctx: ChatContext, destination: str, origin: str | None = Non
         except ValueError:
             raise ToolError("depart must be an ISO date-time like 2026-09-28T06:00")
     try:
-        trip = await trips.plan(start, end, mode if mode in trips.MODES else "car", when, bool(rest_stops))
+        trip = await trips.plan(start, end, mode if mode in trips.MODES else "car", when, bool(rest_stops), stops)
     except trips.TripError as exc:
         raise ToolError(str(exc)) from exc
     ctx.cards.append({"kind": "trip", "place": end, "data": trip | {"briefs": [trips.brief(trip, i) for i in range(len(trip["routes"]))]}})
@@ -449,6 +450,7 @@ TOOL_DECLARATIONS = [
             "properties": {
                 "destination": {"type": "STRING", "description": "Where the user is going, e.g. 'Hyderabad'."},
                 "origin": {"type": "STRING", "description": "Where the trip starts. Omit to use the place on the user's screen."},
+                "via": {"type": "ARRAY", "items": {"type": "STRING"}, "description": "Places to pass through on the way, in order, e.g. ['Nellore', 'Ongole']. Omit for a direct trip."},
                 "mode": {"type": "STRING", "enum": ["car", "bike", "bus", "train", "flight", "trek"], "description": "car, bike (two-wheeler), bus, train, flight or trek (walking/hiking)."},
                 "depart": {"type": "STRING", "description": "Local departure date-time in ISO format, e.g. '2026-09-28T06:00'. Omit for now."},
                 "rest_stops": {"type": "BOOLEAN", "description": "True to suggest real rest stops (highway plazas, fuel stations, dhabas, hotels for overnight) for car or two-wheeler trips, when the user asks about breaks, food, fuel or where to stay."},

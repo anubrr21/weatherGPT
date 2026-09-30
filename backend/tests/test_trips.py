@@ -1,6 +1,7 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import numpy as np
+import pytest
 
 from app.services import trips
 
@@ -105,3 +106,29 @@ def test_rest_places_are_real_named_and_close():
     assert "Indian Oil" in names and "Maa Palle Ruchulu" in names and "Highway services" in names
     assert "house" not in [n.lower() for n in names] and "Far Away Dhaba" not in names
     assert all(p["osm"].startswith("https://www.openstreetmap.org/") for p in picked)
+
+
+def _line(points, speed=20.0):
+    coords = list(points)
+    cum_m = trips.cumulative(coords)
+    return trips.Route(coords, cum_m, [m / speed for m in cum_m], "", "")
+
+
+def test_legs_join_into_one_route_with_stops_and_pauses():
+    first = _line([(16.5, 80.6), (16.4, 80.5), (16.3, 80.4)])
+    second = _line([(16.3, 80.4), (16.1, 80.2)])
+    joined = trips.join_legs([first, second], pause_s=600)
+    assert len(joined.coords) == 4
+    assert joined.stops == [2]
+    assert joined.cum_m[-1] == pytest.approx(first.meters + second.meters)
+    assert joined.cum_s[-1] == pytest.approx(first.seconds + 600 + second.seconds)
+    assert trips.sample(joined).count(2) == 1
+
+
+def test_via_marks_give_distance_and_arrival_time():
+    route = trips.join_legs([_line([(16.5, 80.6), (16.3, 80.4)]), _line([(16.3, 80.4), (16.1, 80.2)])])
+    depart = datetime(2026, 9, 30, 6, tzinfo=timezone.utc)
+    marks = trips.via_marks(route, [{"name": "Guntur", "lat": 16.3, "lon": 80.4}], depart)
+    assert marks[0]["name"] == "Guntur"
+    assert marks[0]["km"] == round(route.cum_m[1] / 1000, 1)
+    assert marks[0]["eta"] == (depart + timedelta(seconds=route.cum_s[1])).isoformat()

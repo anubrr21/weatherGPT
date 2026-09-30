@@ -138,6 +138,14 @@ Trip planner (new tab next to Weather; the existing weather view is unchanged an
   - The open trip's briefing is sent as context so answers stay about that trip.
   - search_knowledge is prompted for official hazard guidance.
 - Tests cover great-circle maths, sampling, mode-specific hazard levels, span merging, rail A* and arrival-hour lookup.
+- Stops on the way (2026-09-30): up to 8 vias.
+  - Each via can be reordered or removed, and "Reverse trip" flips the whole route.
+  - Road and trek routes pass all waypoints to OSRM in one request.
+  - Trains are routed station to station leg by leg; vias that share a station are merged.
+  - Flights chain one flight per leg between the nearest airports, with a 75-minute stopover. Jet-stream wind is resolved along each leg's own heading.
+  - Weather is always sampled at every via.
+  - Each via shows its arrival time, km from the start, and the distance of the leg, marked on the risk strip, the map (numbered pins) and the checkpoint timeline.
+  - The chat's plan_trip tool accepts `via` too, e.g. "Vijayawada to Nellore via Guntur and Ongole".
 
 SMS and IVR for feature phones (Phase 3c, part 3, 2026-09-28):
 - The phone layer doesn't depend on one provider. It runs in simulator mode until a telecom account is connected, and a Twilio adapter is included:

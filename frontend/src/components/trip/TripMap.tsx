@@ -99,6 +99,14 @@ export default function TripMap({ trip, selected, onSelect, lite }: Props) {
         .bindTooltip(escape(end.label), { direction: 'top', permanent: false })
         .addTo(layer),
     )
+    ;(route.vias ?? []).forEach((via, k) =>
+      L.marker([via.lat, via.lon], {
+        icon: L.divIcon({ className: 'trip-via-pin', html: `<b>${k + 1}</b>`, iconSize: [22, 22], iconAnchor: [11, 11] }),
+        zIndexOffset: 500,
+      })
+        .bindTooltip(`<b>Stop ${k + 1}</b> · ${escape(via.name)}<br>${clock(via.eta)} · km ${Math.round(via.km)}`, { direction: 'top', className: 'trip-tip' })
+        .addTo(layer),
+    )
     const dots: Record<string, string> = { services: '#ffb45c', rest_area: '#ffb45c', fuel: '#6fe3ff', restaurant: '#ff8fb1', fast_food: '#ff8fb1', cafe: '#ff8fb1', hotel: '#c4b3ff', motel: '#c4b3ff', guest_house: '#c4b3ff' }
     const along = route.stops_along?.places ?? []
     along.forEach((place) =>
@@ -119,7 +127,7 @@ export default function TripMap({ trip, selected, onSelect, lite }: Props) {
         .bindTooltip(lines.join('<br>'), { direction: 'top', className: 'trip-tip' })
         .addTo(layer)
     })
-    const extras = [route.extra.from_airport, route.extra.to_airport, route.extra.from_station, route.extra.to_station].filter(Boolean)
+    const extras = [route.extra.from_airport, route.extra.to_airport, route.extra.from_station, route.extra.to_station, ...(route.extra.via_airports ?? []), ...(route.extra.via_stations ?? [])].filter(Boolean)
     extras.forEach((spot) => {
       if (!spot) return
       L.circleMarker([spot.lat, spot.lon], { radius: 6, color: '#6fb7ff', weight: 2, fillColor: '#0b0f16', fillOpacity: 1 }).bindTooltip(escape(spot.name)).addTo(layer)

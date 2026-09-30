@@ -23,7 +23,9 @@ log = logging.getLogger("weathergpt.trips")
 
 DATA = Path(__file__).resolve().parent.parent / "data"
 RAIL = Path(__file__).resolve().parent.parent.parent / "data" / "rail"
-OSRM = "https://routing.openstreetmap.de/routed-{profile}/route/v1/driving/{a};{b}"
+OSRM = "https://routing.openstreetmap.de/routed-{profile}/route/v1/driving/{points}"
+MAX_VIAS = 8
+LAYOVER_S = 75 * 60
 UA = {"User-Agent": "WeatherGPT/0.1"}
 HOURLY = "temperature_2m,apparent_temperature,precipitation,precipitation_probability,weather_code,wind_gusts_10m,visibility,is_day,cape,wind_speed_250hPa,wind_direction_250hPa"
 
@@ -54,6 +56,7 @@ class Route:
     summary: str
     source: str
     extra: dict[str, Any] = field(default_factory=dict)
+    stops: list[int] = field(default_factory=list)
 
     @property
     def meters(self) -> float:
@@ -85,9 +88,9 @@ def cumulative(coords: list[tuple[float, float]]) -> list[float]:
     return out
 
 
-async def _osrm(profile: str, a: tuple[float, float], b: tuple[float, float], factor: float, alternatives: bool) -> list[Route]:
-    url = OSRM.format(profile=profile, a=f"{a[1]:.5f},{a[0]:.5f}", b=f"{b[1]:.5f},{b[0]:.5f}")
-    params = {"overview": "full", "geometries": "geojson", "annotations": "duration,distance", "alternatives": "3" if alternatives else "false"}
+async def _osrm(profile: str, waypoints: list[tuple[float, float]], factor: float, alternatives: bool) -> list[Route]:
+    url = OSRM.format(profile=profile, points=";".join(f"{lon:.5f},{lat:.5f}" for lat, lon in waypoints))
+    params = {"overview": "full", "geometries": "geojson", "annotations": "duration,distance", "alternatives": "3" if alternatives and len(waypoints) == 2 else "false"}
     response = await get_retry(url, params=params, headers=UA, timeout=45)
     data = response.json() if response.status_code == 200 else {}
     if data.get("code") != "Ok" or not data.get("routes"):
@@ -102,8 +105,12 @@ async def _osrm(profile: str, a: tuple[float, float], b: tuple[float, float], fa
             cum_m.append(cum_m[-1] + d)
             cum_s.append(cum_s[-1] + s * factor)
         n = min(len(coords), len(cum_m))
-        summary = " · ".join(leg.get("summary", "") for leg in raw["legs"] if leg.get("summary")) or "Main route"
-        routes.append(Route(coords[:n], cum_m[:n], cum_s[:n], summary, ""))
+        bounds, total = [], 0
+        for leg in raw["legs"][:-1]:
+            total += len(leg["annotation"]["distance"])
+            bounds.append(min(total, n - 1))
+        summary = " · ".join(dict.fromkeys(leg.get("summary", "") for leg in raw["legs"] if leg.get("summary"))) or "Main route"
+        routes.append(Route(coords[:n], cum_m[:n], cum_s[:n], summary, "", stops=bounds))
     return routes
 
 
@@ -249,19 +256,77 @@ def _air_route(a: tuple[float, float], b: tuple[float, float]) -> Route:
     return Route(coords, cum_m, cum_s, f"{dep.get('iata') or dep['icao']} → {arr.get('iata') or arr['icao']}", "", extra)
 
 
-async def routes_for(mode: str, a: tuple[float, float], b: tuple[float, float]) -> list[Route]:
+def join_legs(legs: list[Route], pause_s: float = 0.0) -> Route:
+    coords, cum_m, cum_s, stops = [], [], [], []
+    for n, leg in enumerate(legs):
+        skip = 1 if coords else 0
+        base_m = cum_m[-1] if cum_m else 0.0
+        base_s = (cum_s[-1] + pause_s) if cum_s else 0.0
+        if coords:
+            stops.append(len(coords) - 1)
+            gap = haversine(coords[-1], leg.coords[0])
+            base_m += gap
+        coords.extend(leg.coords[skip:])
+        cum_m.extend(base_m + m for m in leg.cum_m[skip:])
+        cum_s.extend(base_s + t for t in leg.cum_s[skip:])
+    return Route(coords, cum_m, cum_s, "", "", {}, stops)
+
+
+def _rail_legs(waypoints: list[tuple[float, float]]) -> Route:
+    graph = _rail()
+    if graph is not None and len(waypoints) > 2:
+        kept, last = [], None
+        for n, point in enumerate(waypoints):
+            station = _station_for(graph, *point)[0]
+            if station != last or n == len(waypoints) - 1:
+                kept.append(point)
+            last = station
+        waypoints = kept
+    legs = [_rail_route(a, b) for a, b in zip(waypoints, waypoints[1:])]
+    if len(legs) == 1:
+        return legs[0]
+    route = join_legs(legs)
+    names = [legs[0].extra["from_station"]["name"]] + [leg.extra["to_station"]["name"] for leg in legs]
+    route.summary = " → ".join(names)
+    route.extra = {"from_station": legs[0].extra["from_station"], "to_station": legs[-1].extra["to_station"], "via_stations": [leg.extra["to_station"] for leg in legs[:-1]]}
+    return route
+
+
+def _air_legs(waypoints: list[tuple[float, float]]) -> Route:
+    legs: list[Route] = []
+    for a, b in zip(waypoints, waypoints[1:]):
+        try:
+            legs.append(_air_route(a, b))
+        except TripError:
+            if len(waypoints) == 2:
+                raise
+    if not legs:
+        raise TripError("All the stops are closest to the same airport; flying makes no sense for this trip")
+    if len(legs) == 1:
+        return legs[0]
+    route = join_legs(legs, LAYOVER_S)
+    codes = [legs[0].extra["from_airport"]] + [leg.extra["to_airport"] for leg in legs]
+    route.summary = " → ".join(c.get("iata") or c["icao"] for c in codes)
+    route.extra = {
+        "from_airport": legs[0].extra["from_airport"], "to_airport": legs[-1].extra["to_airport"], "via_airports": [leg.extra["to_airport"] for leg in legs[:-1]],
+        "great_circle_km": sum(leg.extra["great_circle_km"] for leg in legs), "legs": len(legs), "layover_min": LAYOVER_S // 60,
+    }
+    return route
+
+
+async def routes_for(mode: str, waypoints: list[tuple[float, float]]) -> list[Route]:
     spec = MODES[mode]
-    key = f"{mode}:{a[0]:.3f},{a[1]:.3f}:{b[0]:.3f},{b[1]:.3f}"
+    key = f"{mode}:" + ":".join(f"{lat:.3f},{lon:.3f}" for lat, lon in waypoints)
 
     async def load() -> list[Route]:
         if spec["router"] == "car":
-            found = await _osrm("car", a, b, spec["factor"], alternatives=True)
+            found = await _osrm("car", waypoints, spec["factor"], alternatives=True)
         elif spec["router"] == "foot":
-            found = await _osrm("foot", a, b, 1.0, alternatives=False)
+            found = await _osrm("foot", waypoints, 1.0, alternatives=False)
         elif spec["router"] == "rail":
-            found = [await asyncio.to_thread(_rail_route, a, b)]
+            found = [await asyncio.to_thread(_rail_legs, waypoints)]
         else:
-            found = [_air_route(a, b)]
+            found = [_air_legs(waypoints)]
         for route in found:
             route.source = spec["source"]
         return found
@@ -279,7 +344,7 @@ def sample(route: Route, max_points: int = 32) -> list[int]:
             next_at = m + step
     if picks[-1] != len(route.cum_m) - 1:
         picks.append(len(route.cum_m) - 1)
-    return picks
+    return sorted(set(picks) | set(route.stops))
 
 
 async def _weather_batch(points: list[tuple[float, float]], days: int) -> list[dict[str, Any]]:
@@ -398,7 +463,7 @@ def evaluate(route: Route, picks: list[int], series: list[dict[str, Any]], mode:
         w = _at(s, eta)
         phase = "ground"
         if mode == "flight":
-            phase = "cruise" if 0 < n < len(picks) - 1 else "airport"
+            phase = "cruise" if 0 < n < len(picks) - 1 and i not in route.stops else "airport"
         hazards = assess(w, mode, phase) if w else []
         level = max((h["level"] for h in hazards), default=0.0)
         worst_by_point.append(level)
@@ -794,11 +859,32 @@ async def rest_stops_for(route: Route, mode: str, depart: datetime, points: list
     return stops
 
 
-async def plan(origin: dict[str, Any], destination: dict[str, Any], mode: str, depart: datetime | None, rest_stops: bool = False) -> dict[str, Any]:
+def via_marks(route: Route, vias: list[dict[str, Any]], depart: datetime) -> list[dict[str, Any]]:
+    indices = list(route.stops)
+    if len(indices) != len(vias):
+        indices, start = [], 0
+        for via in vias:
+            nearest = min(range(start, len(route.coords)), key=lambda k: haversine(route.coords[k], (via["lat"], via["lon"])))
+            indices.append(nearest)
+            start = nearest
+    marks = []
+    for via, i in zip(vias, indices):
+        marks.append({"name": via.get("name"), "district": via.get("district"), "state": via.get("state"), "lat": route.coords[i][0], "lon": route.coords[i][1], "km": round(route.cum_m[i] / 1000, 1), "eta": (depart + timedelta(seconds=route.cum_s[i])).isoformat()})
+    return marks
+
+
+async def plan(origin: dict[str, Any], destination: dict[str, Any], mode: str, depart: datetime | None, rest_stops: bool = False, vias: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     if mode not in MODES:
         raise TripError(f"Unknown mode {mode}")
+    vias = list(vias or [])
+    if len(vias) > MAX_VIAS:
+        raise TripError(f"At most {MAX_VIAS} stops on the way")
     a, b = (origin["lat"], origin["lon"]), (destination["lat"], destination["lon"])
-    if haversine(a, b) < 2000:
+    waypoints = [a, *((v["lat"], v["lon"]) for v in vias), b]
+    for u, w in zip(waypoints, waypoints[1:]):
+        if haversine(u, w) < 1000:
+            raise TripError("Two stops in a row are the same place" if vias else "Start and destination are the same place")
+    if haversine(a, b) < 2000 and not vias:
         raise TripError("Start and destination are the same place")
     now = datetime.now(timezone.utc).replace(second=0, microsecond=0)
     depart = (depart or now).astimezone(timezone.utc)
@@ -806,10 +892,10 @@ async def plan(origin: dict[str, Any], destination: dict[str, Any], mode: str, d
         depart = now
     if depart > now + timedelta(days=6):
         raise TripError("Weather along the route is only reliable for trips starting in the next 6 days")
-    key = f"{mode}:{a}:{b}:{depart:%Y%m%d%H}:{rest_stops}"
+    key = f"{mode}:{waypoints}:{depart:%Y%m%d%H}:{rest_stops}"
 
     async def load() -> dict[str, Any]:
-        routes = await routes_for(mode, a, b)
+        routes = await routes_for(mode, waypoints)
         results = []
         for index, route in enumerate(routes):
             picks = sample(route)
@@ -846,17 +932,21 @@ async def plan(origin: dict[str, Any], destination: dict[str, Any], mode: str, d
                             active.append(alert | {"km": round(route.cum_m[i] / 1000), "near": place.get("name")})
             if mode == "flight":
                 await _airport_weather(route.extra)
-                track = bearing(route.coords[0], route.coords[-1])
                 components = []
                 for point, s in list(zip(chosen["points"], series))[1:-1]:
                     w = _at(s, datetime.fromisoformat(point["eta"]))
+                    k = point["i"]
+                    track = bearing(route.coords[max(0, k - 1)], route.coords[min(len(route.coords) - 1, k + 1)])
                     if w and w.get("wind_speed_250hPa") is not None and w.get("wind_direction_250hPa") is not None:
                         components.append(w["wind_speed_250hPa"] * math.cos(math.radians(w["wind_direction_250hPa"] + 180 - track)))
                 if components:
                     tail = sum(components) / len(components)
-                    adjusted = route.meters / 1000 / max(400, 780 + tail) * 60 + 40
+                    legs = route.extra.get("legs", 1)
+                    adjusted = route.meters / 1000 / max(400, 780 + tail) * 60 + 40 * legs + LAYOVER_S / 60 * (legs - 1)
                     route.extra["winds"] = {"tailwind_kmh": round(tail), "adjusted_minutes": round(adjusted), "samples": len(components)}
-            if route.summary in ("", "Main route"):
+            if route.summary in ("", "Main route") and vias:
+                route.summary = "via " + ", ".join(v["name"] for v in vias)
+            elif route.summary in ("", "Main route"):
                 try:
                     middle = await weather.reverse_geocode(*route.coords[len(route.coords) // 2])
                     route.summary = f"via {middle.get('name')}"
@@ -889,6 +979,7 @@ async def plan(origin: dict[str, Any], destination: dict[str, Any], mode: str, d
                 "arrive": (depart + timedelta(seconds=route.seconds)).isoformat(),
                 "geometry": _simplify(route.coords),
                 "points": chosen["points"],
+                "vias": via_marks(route, vias, depart),
                 "hazards": hazard_spans,
                 "rest_stops": stops,
                 "stops_along": along,
@@ -900,7 +991,7 @@ async def plan(origin: dict[str, Any], destination: dict[str, Any], mode: str, d
                 "extra": route.extra,
             })
         results.sort(key=lambda r: (round(r["risk"]["score"], 1), r["duration_min"]))
-        return {"mode": mode, "mode_label": MODES[mode]["label"], "origin": origin, "destination": destination, "generated_at": now.isoformat(), "routes": results}
+        return {"mode": mode, "mode_label": MODES[mode]["label"], "origin": origin, "destination": destination, "vias": vias, "generated_at": now.isoformat(), "routes": results}
 
     return await _plan_cache.get_or_set(key, load)
 
@@ -909,6 +1000,7 @@ def brief(trip: dict[str, Any], index: int = 0) -> dict[str, Any]:
     route = trip["routes"][index]
     return {
         "from": trip["origin"].get("name"), "to": trip["destination"].get("name"), "mode": trip["mode_label"],
+        "via": [{"name": v["name"], "km": v["km"], "eta": v["eta"]} for v in route.get("vias") or []],
         "distance_km": route["distance_km"], "duration_min": route["duration_min"], "depart": route["depart"], "arrive": route["arrive"],
         "risk": route["risk"]["label"], "night_share": route["night_share"],
         "hazards": [{k: h[k] for k in ("kind", "severity", "detail", "from_km", "to_km", "from_eta", "to_eta", "near")} for h in route["hazards"][:6]],
@@ -917,7 +1009,7 @@ def brief(trip: dict[str, Any], index: int = 0) -> dict[str, Any]:
             for s in (route.get("rest_stops") or [])
         ],
         "best_departure": route["best_departure"], "official_alerts": [{"event": a.get("event"), "severity": a.get("severity"), "near": a.get("near"), "headline": a.get("headline")} for a in route["alerts"][:5]],
-        "extra": {k: v for k, v in route["extra"].items() if k in ("from_airport", "to_airport", "from_station", "to_station", "winds")},
+        "extra": {k: v for k, v in route["extra"].items() if k in ("from_airport", "to_airport", "via_airports", "from_station", "to_station", "via_stations", "winds", "legs", "layover_min")},
         "route": route["summary"],
         "alternatives": [{"summary": r["summary"], "distance_km": r["distance_km"], "duration_min": r["duration_min"], "risk": r["risk"]["label"]} for i, r in enumerate(trip["routes"]) if i != index],
     }
