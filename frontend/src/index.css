@@ -5499,3 +5499,396 @@ button:disabled {
   color: var(--ink-3);
   font-size: 12px;
 }
+
+.farm-crops {
+  align-items: center;
+}
+
+.farm-crop {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(95, 211, 154, 0.14);
+  color: var(--calm);
+  font-size: 13px;
+  text-transform: capitalize;
+}
+
+.farm-today {
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 179, 92, 0.4);
+  background: linear-gradient(135deg, rgba(255, 179, 92, 0.12), rgba(10, 16, 28, 0.55));
+}
+
+.farm-today h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+
+.farm-today-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 8px;
+}
+
+.farm-task {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border-left: 3px solid var(--line-2);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.farm-task b {
+  display: block;
+  font-size: 14.5px;
+}
+
+.farm-task small {
+  color: var(--ink-2);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.farm-task.good {
+  border-left-color: var(--calm);
+}
+
+.farm-task.avoid {
+  border-left-color: var(--extreme);
+}
+
+.farm-plan {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.farm-plan li {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.9fr) 2fr;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+.farm-plan li:last-child {
+  border-bottom: 0;
+}
+
+.farm-day {
+  display: flex;
+  flex-direction: column;
+}
+
+.farm-day small {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+.farm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.farm-chips span {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--ink-2);
+}
+
+.farm-chips span.good {
+  background: rgba(95, 211, 154, 0.16);
+  color: var(--calm);
+}
+
+.farm-chips span.avoid {
+  background: rgba(255, 77, 109, 0.14);
+  color: #ff8fa3;
+}
+
+.farm-diseases {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 8px;
+}
+
+.farm-diseases article {
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+}
+
+.farm-diseases article.risk2 {
+  border-color: rgba(255, 77, 109, 0.5);
+}
+
+.farm-diseases article.risk1 {
+  border-color: rgba(255, 200, 87, 0.45);
+}
+
+.farm-diseases header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.farm-diseases header em {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.farm-diseases p {
+  margin: 8px 0 4px;
+  font-size: 13px;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+
+.farm-diseases p.dim,
+.farm-diseases small {
+  color: var(--ink-3);
+  font-size: 11.5px;
+}
+
+.farm-strip {
+  display: flex;
+  gap: 3px;
+  margin-top: 10px;
+}
+
+.farm-strip span {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.farm-strip i {
+  width: 100%;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.farm-strip span.past {
+  opacity: 0.5;
+}
+
+.farm-strip span.now small {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.farm-strip small {
+  font: 9px var(--mono);
+  color: var(--ink-3);
+}
+
+.farm-water {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.farm-water span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 2px;
+  border-radius: 10px;
+}
+
+.farm-water span.irrigate {
+  background: rgba(111, 183, 255, 0.12);
+  outline: 1px solid rgba(111, 183, 255, 0.4);
+}
+
+.farm-water div {
+  height: 70px;
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.farm-water i {
+  width: 10px;
+  min-height: 2px;
+  border-radius: 3px 3px 0 0;
+}
+
+.farm-water i.need {
+  background: #ff9f43;
+}
+
+.farm-water i.rain {
+  background: #6fb7ff;
+}
+
+.farm-water b {
+  font: 600 11px var(--mono);
+}
+
+.farm-water small,
+.farm-thi small,
+.farm-trend small {
+  font: 10px var(--mono);
+  color: var(--ink-3);
+}
+
+.farm-moisture {
+  display: grid;
+  gap: 6px;
+}
+
+.farm-moisture div {
+  display: grid;
+  grid-template-columns: 150px 1fr 44px;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.farm-moisture i {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.farm-moisture i b {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #c98a4b, #6fb7ff);
+}
+
+.farm-moisture em {
+  font: 600 12px var(--mono);
+  font-style: normal;
+  color: var(--ink);
+  text-align: right;
+}
+
+.farm-sowing {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.farm-sowing li {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 7px 10px;
+  border-radius: 10px;
+  border-left: 3px solid var(--line-2);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.farm-sowing b {
+  min-width: 84px;
+  text-transform: capitalize;
+  color: var(--ink);
+}
+
+.farm-sowing li.good {
+  border-left-color: var(--calm);
+}
+
+.farm-sowing li.caution {
+  border-left-color: var(--moderate);
+}
+
+.farm-sowing li.avoid {
+  border-left-color: var(--extreme);
+}
+
+.farm-trend {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 70px;
+  margin-top: 12px;
+}
+
+.farm-trend span {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 3px;
+}
+
+.farm-trend i {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  background: #6fb7ff;
+}
+
+.farm-trend span.past i {
+  opacity: 0.45;
+}
+
+.farm-trend span.now small {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.farm-thi {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.farm-thi span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.farm-thi i {
+  width: 100%;
+  height: 10px;
+  border-radius: 4px;
+}
+
+.farm-thi b {
+  font: 600 12px var(--mono);
+}
+
+@media (max-width: 560px) {
+  .farm-plan li {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .farm-moisture div {
+    grid-template-columns: 110px 1fr 40px;
+  }
+}

@@ -1,4 +1,4 @@
-import { CloudSun, Map as MapIcon, MapPin, MessageSquareText, RefreshCw, Route, Target, Tornado, UserRound, Zap } from 'lucide-react'
+import { CloudSun, Map as MapIcon, MapPin, MessageSquareText, RefreshCw, Route, Sprout, Target, Tornado, UserRound, Zap } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import AlertRibbon from './components/AlertRibbon'
 import Chat from './components/Chat'
@@ -15,6 +15,8 @@ import ErrorBoundary from './components/ErrorBoundary'
 import LightningView from './components/lightning/LightningView'
 import AccuracyView from './components/accuracy/AccuracyView'
 import MapsView from './components/maps/MapsView'
+import FarmView from './components/work/FarmView'
+import { WORK_TABS } from './lib/work'
 import ProfileSheet from './components/ProfileSheet'
 import RadarGate from './components/RadarGate'
 import SkyCanvas from './components/SkyCanvas'
@@ -36,7 +38,7 @@ import type { AlertsBundle, ChatEvent, Forecast, Insight, Message, Place, Profil
 const FALLBACK: Place = { name: 'Amaravati', district: 'Guntur', state: 'Andhra Pradesh', lat: 16.514, lon: 80.516 }
 const STORE = 'weathergpt:v1'
 
-type View = 'weather' | 'trip' | 'maps' | 'cyclones' | 'lightning' | 'accuracy'
+type View = 'weather' | 'work' | 'trip' | 'maps' | 'cyclones' | 'lightning' | 'accuracy'
 
 interface Saved {
   place?: Place
@@ -99,6 +101,7 @@ export default function App() {
   const connection = useConnection(dataMode)
   const [staleAt, setStaleAt] = useState<number | null>(null)
   const [view, setViewState] = useState<View>(saved.view ?? 'weather')
+  const workTab = WORK_TABS[profile.role]
   const [tripBrief, setTripBrief] = useState<Record<string, unknown> | null>(null)
   const [incomingTrip, setIncomingTrip] = useState<TripResult | null>(null)
   const setView = (next: View) => {
@@ -434,6 +437,11 @@ export default function App() {
             <button className={view === 'weather' ? 'on' : ''} onClick={() => setView('weather')} aria-pressed={view === 'weather'}>
               <CloudSun size={15} /> Weather
             </button>
+            {workTab && (
+              <button className={view === 'work' ? 'on' : ''} onClick={() => setView('work')} aria-pressed={view === 'work'}>
+                <Sprout size={15} /> {workTab.label}
+              </button>
+            )}
             <button className={view === 'trip' ? 'on' : ''} onClick={() => setView('trip')} aria-pressed={view === 'trip'}>
               <Route size={15} /> Trip planner
             </button>
@@ -453,7 +461,11 @@ export default function App() {
 
           <NetBanner connection={connection} staleAt={staleAt} onRetry={refresh} onLiteOff={() => setDataMode('off')} />
 
-          {view === 'maps' ? (
+          {view === 'work' && workTab ? (
+            <ErrorBoundary label={`The ${workTab.label} view`}>
+              <FarmView place={place && place.name !== 'Locating…' ? place : null} profile={profile} online={connection.online} onAsk={(text) => send(text)} onEditProfile={() => setProfileOpen(true)} />
+            </ErrorBoundary>
+          ) : view === 'maps' ? (
             <ErrorBoundary label="The weather map">
               <MapsView place={place && place.name !== 'Locating…' ? place : null} online={connection.online} lite={connection.lite} />
             </ErrorBoundary>
