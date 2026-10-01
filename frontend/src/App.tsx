@@ -1,4 +1,4 @@
-import { CloudSun, Map as MapIcon, MapPin, MessageSquareText, RefreshCw, Route, Sprout, Target, Tornado, UserRound, Zap } from 'lucide-react'
+import { BriefcaseBusiness, CloudSun, Map as MapIcon, MapPin, MessageSquareText, RefreshCw, Route, Target, Tornado, UserRound, Zap } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import AlertRibbon from './components/AlertRibbon'
 import Chat from './components/Chat'
@@ -15,7 +15,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 import LightningView from './components/lightning/LightningView'
 import AccuracyView from './components/accuracy/AccuracyView'
 import MapsView from './components/maps/MapsView'
-import FarmView from './components/work/FarmView'
+import WorkView, { WORK_ICONS } from './components/work/WorkView'
 import { WORK_TABS } from './lib/work'
 import ProfileSheet from './components/ProfileSheet'
 import RadarGate from './components/RadarGate'
@@ -102,6 +102,7 @@ export default function App() {
   const [staleAt, setStaleAt] = useState<number | null>(null)
   const [view, setViewState] = useState<View>(saved.view ?? 'weather')
   const workTab = WORK_TABS[profile.role]
+  const WorkIcon = WORK_ICONS[profile.role] ?? BriefcaseBusiness
   const [tripBrief, setTripBrief] = useState<Record<string, unknown> | null>(null)
   const [incomingTrip, setIncomingTrip] = useState<TripResult | null>(null)
   const setView = (next: View) => {
@@ -439,7 +440,7 @@ export default function App() {
             </button>
             {workTab && (
               <button className={view === 'work' ? 'on' : ''} onClick={() => setView('work')} aria-pressed={view === 'work'}>
-                <Sprout size={15} /> {workTab.label}
+                <WorkIcon size={15} /> {workTab.label}
               </button>
             )}
             <button className={view === 'trip' ? 'on' : ''} onClick={() => setView('trip')} aria-pressed={view === 'trip'}>
@@ -463,7 +464,7 @@ export default function App() {
 
           {view === 'work' && workTab ? (
             <ErrorBoundary label={`The ${workTab.label} view`}>
-              <FarmView place={place && place.name !== 'Locating…' ? place : null} profile={profile} online={connection.online} onAsk={(text) => send(text)} onEditProfile={() => setProfileOpen(true)} />
+              <WorkView place={place && place.name !== 'Locating…' ? place : null} profile={profile} online={connection.online} language={language} onAsk={(text) => send(text)} onEditProfile={() => setProfileOpen(true)} />
             </ErrorBoundary>
           ) : view === 'maps' ? (
             <ErrorBoundary label="The weather map">

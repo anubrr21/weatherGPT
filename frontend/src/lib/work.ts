@@ -74,13 +74,67 @@ async function get<T>(path: string, params: Record<string, string | number>): Pr
   return response.json() as Promise<T>
 }
 
+export type Boat = 'small' | 'motor' | 'trawler'
+export type SeaVerdict = 'GO' | 'CAUTION' | 'NO-GO'
+
+export interface SeaDay {
+  date: string
+  wave_max: number
+  swell_max: number
+  gust_max: number
+  wind_max: number
+  rain_mm: number
+  thunder: boolean
+  sunrise: string | null
+  sunset: string | null
+  tides: { type: 'high' | 'low'; time: string; height_m: number }[]
+  boats: Record<Boat, { verdict: SeaVerdict; go_hours: number; windows: { start: string; end: string; hours: number }[] }>
+}
+
+export interface SeaWorkspace {
+  available: boolean
+  reason?: string
+  generated: string
+  sea_point: { lat: number; lon: number }
+  boats: Record<Boat, { label: string; caution: [number, number]; nogo: [number, number] }>
+  now: {
+    time: string
+    wave: number | null
+    wave_dir: string | null
+    wave_period: number | null
+    wind_wave: number | null
+    swell: number | null
+    swell_dir: string | null
+    swell_period: number | null
+    current_kmh: number | null
+    current_dir: string | null
+    sst: number | null
+    wind: number | null
+    gust: number | null
+    wind_dir: string | null
+    visibility: number | null
+    thunder: boolean
+    verdicts: Record<Boat, SeaVerdict>
+    reasons: Record<Boat, string[]>
+  }
+  official: { event: string | null; severity: string | null; headline: string | null; expires: string | null; issuer: string | null }[]
+  hours: { time: string; wave: number | null; swell: number | null; wind: number | null; gust: number | null; wind_dir: string | null; tide: number | null; thunder: boolean; is_day: number; verdicts: Record<Boat, SeaVerdict> }[]
+  days: SeaDay[]
+  next_tides: { type: 'high' | 'low'; time: string; height_m: number }[]
+  moon: { age_days: number; illumination: number; phase: string; spring_tide: boolean }
+  rules: string
+  source: string
+}
+
 export const workApi = {
+  sea: (lat: number, lon: number) => get<SeaWorkspace>('/api/work/sea', { lat, lon }),
   farm: (lat: number, lon: number, crops: CropEntry[]) =>
     get<FarmWorkspace>('/api/work/farm', { lat, lon, crops: crops.map((c) => `${c.name}${c.stage ? `:${c.stage}` : ''}`).join(',') }),
 }
 
 export const WORK_TABS: Partial<Record<Role, { label: string }>> = {
   farmer: { label: 'Farm' },
+  fisher: { label: 'Sea' },
 }
 
 export const dayName = (date: string, today: string) => {

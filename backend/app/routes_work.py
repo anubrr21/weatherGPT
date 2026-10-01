@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
 
-from app.services import farm, weather
+from app.services import farm, sea, weather
 
 router = APIRouter()
 
@@ -18,3 +18,11 @@ async def work_farm(lat: float = Query(..., ge=-90, le=90), lon: float = Query(.
         return await farm.workspace(lat, lon, crops, await _place(lat, lon))
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Farm data unavailable: {exc}") from exc
+
+
+@router.get("/api/work/sea")
+async def work_sea(lat: float = Query(..., ge=-90, le=90), lon: float = Query(..., ge=-180, le=180)):
+    try:
+        return await sea.workspace(lat, lon, await _place(lat, lon))
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Sea data unavailable: {exc}") from exc
