@@ -189,7 +189,127 @@ export interface AviationWorkspace {
   source: string
 }
 
+export interface CityWorkspace {
+  generated: string
+  today: string
+  now: {
+    temp: number
+    heat_index: number
+    heat_band: string
+    uv: number | null
+    rain_in_min: number | null
+    rain_next_3h_mm: number
+    naqi: number | null
+    air_band: string | null
+    dominant: string | null
+    pm25: number | null
+    pm10: number | null
+    air_advice: string | null
+  }
+  commute: {
+    morning_hour: number
+    evening_hour: number
+    trips: { label: string; date: string; hour: number; rain_mm: number; rain_prob: number; heat_index: number; thunder: boolean; visibility_km: number | null; tips: string[]; better_time: string | null }[]
+  }
+  flooding: { date: string; max_1h_mm: number; max_3h_mm: number; total_mm: number; level: 'none' | 'low' | 'moderate' | 'high'; peak_time: string | null }[]
+  heat: { date: string; peak: number; peak_time: string; band: string; danger_from: string | null; danger_to: string | null; uv_max: number; tmax: number; tmin: number }[]
+  air: { date: string; pm25_mean: number; pm25_max: number; worst_time: string; cleanest_time: string; band: string | null }[]
+  outdoor: { start: string; end: string; hours: number; heat_index: number; pm25: number }[]
+  hours: { time: string; heat_index: number; rain: number; rain_prob: number; pm25: number | null; uv: number | null; thunder: boolean; is_day: number }[]
+  warnings?: { event: string | null; severity: string | null; headline: string | null; expires: string | null }[]
+  rules: string
+  source: string
+}
+
+export interface CommandTown {
+  name: string
+  kind: string
+  lat: number
+  lon: number
+  population: number | null
+  km: number
+  direction: string
+  rain_past_24h: number
+  rain_next_24h: number
+  rain_next_72h: number
+  rain_band: string
+  max_hourly_mm: number
+  max_hourly_time: string | null
+  gust_max: number
+  heat_index_max: number | null
+  thunder_hours: number
+  score: number
+  warnings: { event: string; severity: string | null }[]
+}
+
+export interface CommandWorkspace {
+  available: boolean
+  reason?: string
+  generated: string
+  radius_km: number
+  centre: { lat: number; lon: number; name: string }
+  summary: {
+    towns: number
+    flagged: number
+    population_flagged: number
+    population_scanned: number
+    heavy_towns: number
+    warned_towns: number
+    thunder_towns: number
+    wettest: CommandTown
+    wettest_past: CommandTown
+    windiest: CommandTown
+    hottest: CommandTown | null
+    area_rain_next_24h: number
+    area_rain_past_24h: number
+  }
+  towns: CommandTown[]
+  official: { id: string; event: string; severity: string | null; headline: string | null; issuer: string; expires: string | null; areas: string[]; towns: string[]; rings: [number, number][][] }[]
+  storms: { name: string | null; now: { grade: { label: string } | null }; impact: { distance_now_km: number; direction_now: string; closest: { km: number; time: string } | null } }[]
+  sitrep: string
+  rules: string
+  source: string
+}
+
+export interface ResearchWorkspace {
+  generated: string
+  exports: string[]
+  models: {
+    models: Record<string, string>
+    days: (Record<string, { tmax: number | null; tmin: number | null; rain: number | null; gust: number | null }> & { date: string; spread_tmax: number; spread_rain: number })[]
+    stats: { mean_tmax_spread?: number; max_tmax_spread?: number; max_tmax_spread_date?: string; max_rain_spread?: number; max_rain_spread_date?: string; rain_totals?: Record<string, number>; wettest_model?: string; driest_model?: string }
+  } | null
+  climate: {
+    period: string
+    source: string
+    annual: { year: number; mean_temp: number; hot_days_over_40: number; rain_total: number }[]
+    annual_temp_trend_c_per_decade: number | null
+    annual_rain_trend_mm_per_decade: number | null
+    month: number
+    month_normal_1991_2020: { mean_temp: number; rain_total: number } | null
+    stats: { first_decade?: string; last_decade?: string; temp_change_c?: number; rain_change_mm?: number; hot_days_first?: number; hot_days_last?: number; warmest_year?: number; wettest_year?: number; driest_year?: number }
+  } | null
+  stations: {
+    station: string
+    name: string | null
+    lat: number
+    lon: number
+    km: number
+    kind: string
+    count: number
+    latest: { time: string; temp_c: number | null; dewpoint_c: number | null; wind_kmh: number | null; pressure_hpa: number | null; weather: string | null; raw: string | null }
+    series: { time: string; temp_c: number | null }[]
+  }[]
+  source: string
+}
+
+export const exportUrl = (kind: string, lat: number, lon: number) => `${BASE}/api/work/data/export?kind=${kind}&lat=${lat}&lon=${lon}`
+export const apiDocsUrl = `${BASE}/docs`
+
 export const workApi = {
+  command: (lat: number, lon: number, radius: number) => get<CommandWorkspace>('/api/work/command', { lat, lon, radius_km: radius }),
+  research: (lat: number, lon: number) => get<ResearchWorkspace>('/api/work/data', { lat, lon }),
+  city: (lat: number, lon: number, am: number, pm: number) => get<CityWorkspace>('/api/work/city', { lat, lon, am, pm }),
   aviation: (lat: number, lon: number, icao?: string | null) => get<AviationWorkspace>('/api/work/aviation', icao ? { lat, lon, icao } : { lat, lon }),
   sea: (lat: number, lon: number) => get<SeaWorkspace>('/api/work/sea', { lat, lon }),
   farm: (lat: number, lon: number, crops: CropEntry[]) =>
@@ -200,6 +320,9 @@ export const WORK_TABS: Partial<Record<Role, { label: string }>> = {
   farmer: { label: 'Farm' },
   fisher: { label: 'Sea' },
   aviation: { label: 'Aviation' },
+  urban: { label: 'City' },
+  disaster_manager: { label: 'Command' },
+  researcher: { label: 'Data' },
 }
 
 export const dayName = (date: string, today: string) => {

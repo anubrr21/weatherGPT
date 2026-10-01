@@ -307,6 +307,6 @@ async def workspace(lat: float, lon: float, crops_spec: str | None, place: dict[
     raw = await _fetch(lat, lon)
     result = build(raw, parse_crops(crops_spec))
     if place:
-        official = alert_service.alerts_for_place(await alert_service.official_alerts(), place)
+        official = [a for a in alert_service.alerts_for_place(await alert_service.official_alerts(), place) if a.get("match") == "district"]
         result["warnings"] = [{"event": a.get("event"), "severity": a.get("severity"), "headline": a.get("headline"), "expires": a.get("expires")} for a in official[:5]]
     return result

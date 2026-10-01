@@ -272,6 +272,40 @@ Maps tab (done 2026-10-01, replaces the old Phase 5 "Maps and GIS" plan):
 - The national warnings map shows every live SACHET alert (IMD, CWC floods, state SDMAs) with its own polygon, coloured by severity, with counts by type and a list.
 - The old radar/satellite item was already covered by the RainViewer radar on the home screen. Cyclone tracks and the warning map are now done in their own tabs.
 
+Role workspaces (done 2026-10-02): one extra tab right after Weather that follows the role chosen in the profile. All other tabs stay for everyone, and a General user sees no extra tab. Each workspace is served from `/api/work/...` and cached for offline use.
+
+- **Farm** (farmer, `services/farm.py`):
+  - Seven-day field plan with do and avoid tasks per day: spray window, irrigate or hold, top-dress fertiliser, harvest and dry, hazards.
+  - Disease weather watch from leaf-wetness hours and temperature. Rules for rice blast, sheath blight and bacterial leaf blight follow the IRRI Rice Knowledge Bank; late blight uses the Hutton criteria; wheat rusts and the other crops use published ranges. It is labelled as weather favourability, not a diagnosis.
+  - FAO-56 water budget with irrigation days.
+  - Soil temperature at 0, 6 and 18 cm and moisture by layer, with a two-week trend and sowing suitability per crop.
+  - Cattle THI (temperature-humidity index).
+- **Sea** (fisher, `services/sea.py`):
+  - Go, caution or no-go per hour and per day for three boat types (country boat, motorised fibre boat, trawler), from waves, gusts, thunderstorms and visibility.
+  - Calm windows, swell, wind waves, currents and sea temperature.
+  - Tide highs and lows interpolated from the hourly sea level, with a tide curve, moon phase and spring-tide note.
+  - Official sea warnings force no-go. Safety checklist and the 1554 Coast Guard line.
+- **Aviation** (`services/aviation.py`):
+  - Decoded METAR and structured TAF periods with flight category (VFR, MVFR, IFR, LIFR).
+  - Head, tail and crosswind components for every runway, using 110 runways from OurAirports built by `scripts/build_runways.py`.
+  - Pressure and density altitude; winds and temperatures at 8 flight levels for now to +24 h; freezing level and CAPE.
+  - Live SIGMETs for the Mumbai, Delhi, Kolkata and Chennai FIRs, flagged when within 300 km. Nearby reporting airports and a hazard list.
+- **City** (city resident, `services/city.py`):
+  - Morning and evening commute at the user's own hours for three days, with tips and a drier departure time.
+  - Rain start from the 15-minute nowcast and waterlogging level from 1-hour, 3-hour and daily totals.
+  - 48-hour heat-index strip with danger hours.
+  - PM2.5 by hour with CPCB bands and health advice, and the best outdoor windows.
+- **Command** (disaster manager, `services/command.py`):
+  - Up to 40 towns within 50 to 250 km are scanned and ranked. The town list (4,658 cities and towns with populations) comes from OpenStreetMap via `scripts/build_towns.py`.
+  - Per town: IMD rainfall class for the next 24 h, last 24 h, gusts, heat index, thunder hours and official warning polygons covering it. Totals include the population in flagged towns.
+  - Map, sortable table, active cyclones, and a plain-text situation report with a copy button.
+- **Data** (researcher, `services/research.py`):
+  - GFS, ECMWF and ICON side by side with spread statistics.
+  - ERA5 climate since 1991 with decade-to-decade change and trend lines.
+  - Stored IMD synoptic and METAR observations within 200 km.
+  - CSV downloads (forecast, models, climate, observations) and the API catalogue.
+- Warnings shown inside a workspace are limited to the user's own district.
+
 ## Phase 5 — Evaluation
 
 - Accuracy: forecast verification against observations is done in the Accuracy tab; answer grounding checks remain
