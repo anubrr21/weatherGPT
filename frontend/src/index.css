@@ -6071,3 +6071,156 @@ button:disabled {
     display: none !important;
   }
 }
+
+.avi-hero {
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--line-2);
+  border-left-width: 5px;
+  background: rgba(10, 16, 28, 0.55);
+}
+
+.avi-hero > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avi-hero em,
+.avi-taf em {
+  flex: none;
+  min-width: 52px;
+  text-align: center;
+  padding: 5px 8px;
+  border-radius: 8px;
+  font: 700 12px var(--mono);
+  font-style: normal;
+  color: #0b0f16;
+}
+
+.avi-hero span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.avi-hero small {
+  color: var(--ink-3);
+  font-size: 12.5px;
+}
+
+.avi-hero code,
+.avi-raw,
+.avi-taf code {
+  display: block;
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.35);
+  font: 12px/1.5 var(--mono);
+  color: var(--accent-2);
+  overflow-wrap: anywhere;
+}
+
+.avi-taf code {
+  margin-top: 5px;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.avi-hero p {
+  margin: 10px 0 0;
+  font-size: 13.5px;
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+
+.avi-hazards {
+  display: grid;
+  gap: 6px;
+}
+
+.avi-hazards article {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 200, 87, 0.45);
+  background: rgba(255, 200, 87, 0.1);
+  color: var(--moderate);
+}
+
+.avi-hazards article.high {
+  border-color: rgba(255, 77, 109, 0.5);
+  background: rgba(255, 77, 109, 0.12);
+  color: var(--extreme);
+}
+
+.avi-hazards svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.avi-hazards span {
+  display: flex;
+  flex-direction: column;
+  color: var(--ink);
+}
+
+.avi-hazards small {
+  color: var(--ink-2);
+  font-size: 12.5px;
+}
+
+.avi-table {
+  min-width: 420px;
+}
+
+.avi-table td.bad {
+  color: var(--extreme);
+  font-weight: 600;
+}
+
+.avi-table td svg {
+  vertical-align: -2px;
+  color: var(--accent-2);
+}
+
+.avi-taf {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.avi-taf li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 9px 2px;
+  border-bottom: 1px solid var(--line);
+}
+
+.avi-taf li:last-child {
+  border-bottom: 0;
+}
+
+.avi-taf span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.avi-taf b i {
+  font-style: normal;
+  font-weight: 400;
+  color: var(--ink-3);
+  font-size: 12.5px;
+}
+
+.avi-taf small {
+  color: var(--ink-2);
+  font-size: 12.5px;
+}

@@ -1,5 +1,6 @@
-import { Anchor, Sprout, type LucideIcon } from 'lucide-react'
+import { Anchor, Plane, Sprout, type LucideIcon } from 'lucide-react'
 import type { Place, Profile, Role } from '../../lib/types'
+import AviationView from './AviationView'
 import FarmView from './FarmView'
 import SeaView from './SeaView'
 
@@ -15,10 +16,12 @@ interface Props {
 export const WORK_ICONS: Partial<Record<Role, LucideIcon>> = {
   farmer: Sprout,
   fisher: Anchor,
+  aviation: Plane,
 }
 
 export default function WorkView({ place, profile, online, onAsk, onEditProfile }: Props) {
   if (profile.role === 'farmer') return <FarmView place={place} profile={profile} online={online} onAsk={onAsk} onEditProfile={onEditProfile} />
   if (profile.role === 'fisher') return <SeaView place={place} online={online} onAsk={onAsk} />
+  if (profile.role === 'aviation') return <AviationView place={place} online={online} onAsk={onAsk} />
   return null
 }

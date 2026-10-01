@@ -126,7 +126,71 @@ export interface SeaWorkspace {
   source: string
 }
 
+export type FlightCategory = 'VFR' | 'MVFR' | 'IFR' | 'LIFR'
+
+export interface TafPeriod {
+  from: string
+  to: string
+  change: string | null
+  probability: number | null
+  wind_dir: number | string | null
+  wind_kt: number | null
+  gust_kt: number | null
+  visibility_km: number | null
+  ceiling_ft: number | null
+  weather: string
+  clouds: { cover: string | null; base_ft: number | null; type: string | null }[]
+  category: FlightCategory
+  thunder: boolean
+}
+
+export interface AirportWeather {
+  icao: string
+  iata: string | null
+  name: string
+  city: string | null
+  lat: number
+  lon: number
+  elevation_ft: number | null
+  metar: {
+    raw: string | null
+    observed: string | null
+    decoded: { wind?: string; visibility?: string; clouds?: string[]; weather?: string[]; temp_dew?: string; qnh?: string; trend?: string; hazards?: string[] }
+    wind_dir: number | string | null
+    wind_kt: number | null
+    gust_kt: number | null
+    temp_c: number | null
+    dewpoint_c: number | null
+    qnh_hpa: number | null
+    visibility_km: number | null
+    ceiling_ft: number | null
+    category: FlightCategory | null
+  } | null
+  taf: { raw: string | null; issued: string | null; periods: TafPeriod[] } | null
+  runways?: { runway: string; heading: number; length_ft: number | null; headwind_kt: number; crosswind_kt: number; gust_crosswind_kt: number; tailwind: boolean; favoured: boolean }[]
+  density?: { elevation_ft: number; pressure_altitude_ft: number; density_altitude_ft: number; isa_deviation_c: number } | null
+}
+
+export interface AviationWorkspace {
+  available: boolean
+  reason?: string
+  generated: string
+  airport: AirportWeather
+  distance_km: number | null
+  alternates: { icao: string; iata: string | null; name: string; city: string | null; km: number; category: FlightCategory | null; raw: string | null; wind: string | null; visibility_km: number | null; ceiling_ft: number | null }[]
+  aloft: {
+    frames: { time: string; levels: { level: string; hpa: number; altitude_ft: number | null; wind_dir: number | null; wind_kt: number | null; temp_c: number | null }[]; freezing_level_ft: number | null; cape: number | null }[]
+    strongest: { level: string; wind_kt: number | null } | null
+    max_cape: number
+  }
+  sigmets: { fir: string; fir_name: string; hazard: string; qualifier: string | null; from: string; to: string; top_ft: number | null; raw: string | null; near: boolean }[]
+  hazards: { level: 'high' | 'moderate'; title: string; detail: string }[]
+  choices: { icao: string; iata: string | null; name: string; km: number | null; reports: boolean }[]
+  source: string
+}
+
 export const workApi = {
+  aviation: (lat: number, lon: number, icao?: string | null) => get<AviationWorkspace>('/api/work/aviation', icao ? { lat, lon, icao } : { lat, lon }),
   sea: (lat: number, lon: number) => get<SeaWorkspace>('/api/work/sea', { lat, lon }),
   farm: (lat: number, lon: number, crops: CropEntry[]) =>
     get<FarmWorkspace>('/api/work/farm', { lat, lon, crops: crops.map((c) => `${c.name}${c.stage ? `:${c.stage}` : ''}`).join(',') }),
@@ -135,6 +199,7 @@ export const workApi = {
 export const WORK_TABS: Partial<Record<Role, { label: string }>> = {
   farmer: { label: 'Farm' },
   fisher: { label: 'Sea' },
+  aviation: { label: 'Aviation' },
 }
 
 export const dayName = (date: string, today: string) => {
