@@ -1,0 +1,174 @@
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  overflow: hidden;
+  background: #070b16;
+  touch-action: none;
+  user-select: none;
+  cursor: pointer;
+}
+
+.intro.leaving {
+  background: transparent;
+  pointer-events: none;
+}
+
+.intro-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  will-change: transform;
+}
+
+.intro-sky {
+  position: absolute;
+  inset: 0;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.intro-glow {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 90vmin;
+  height: 90vmin;
+  transform: translate(-50%, -50%) scale(0.6);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 179, 92, 0.34) 0%, rgba(143, 211, 255, 0.14) 38%, transparent 68%);
+  opacity: 0;
+  transition:
+    opacity 0.5s ease-out,
+    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.intro.struck .intro-glow,
+.intro.leaving .intro-glow {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.intro-mark {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  transform: translate(-50%, -50%) scale(1.16) rotate(-14deg);
+  opacity: 0;
+  filter: brightness(2.4) blur(5px);
+  transition:
+    opacity 0.28s ease-out,
+    transform 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.6s ease-out;
+  pointer-events: none;
+}
+
+.intro.struck .intro-mark {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1) rotate(0deg);
+  filter: brightness(1) blur(0);
+}
+
+.intro.leaving .intro-mark {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(1.5) rotate(0deg);
+  filter: brightness(1.4) blur(3px);
+  transition:
+    opacity 0.4s ease-in,
+    transform 0.6s ease-in,
+    filter 0.4s ease-in;
+}
+
+.intro-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.intro-title .wordmark {
+  opacity: 0;
+  clip-path: inset(0 100% 0 0);
+  transform: translateY(10px);
+  transition:
+    opacity 0.3s ease-out 0.08s,
+    clip-path 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.08s,
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.08s;
+}
+
+.intro.struck .intro-title .wordmark {
+  opacity: 1;
+  clip-path: inset(-20% -5% -20% -5%);
+  transform: translateY(0);
+}
+
+.intro-caption {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  max-width: 88vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 0.45s ease-out 0.3s,
+    transform 0.45s ease-out 0.3s;
+}
+
+.intro.struck .intro-caption {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.intro.leaving .intro-title {
+  opacity: 0;
+  transition: opacity 0.3s ease-in;
+}
+
+.intro-flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 42%, #ffffff 0%, #cfe6ff 45%, #8fb8ff 100%);
+  opacity: 0;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.intro.calm.leaving {
+  background: #070b16;
+  opacity: 0;
+  transition: opacity 0.35s ease-in;
+}
+
+.intro.calm .intro-mark,
+.intro.calm .intro-title .wordmark,
+.intro.calm .intro-caption {
+  transition-duration: 0.2s;
+  transition-delay: 0s;
+}
+
+.intro-caption span + span::before {
+  content: '·';
+  margin-right: 10px;
+  color: var(--ink-3);
+}
+
+.intro-degrees {
+  color: var(--accent);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}

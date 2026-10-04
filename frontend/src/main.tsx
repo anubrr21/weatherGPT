@@ -3,6 +3,7 @@ import { StrictMode, Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
+import Intro from './components/Intro.tsx'
 
 const PhoneSim = lazy(() => import('./phone/PhoneSim.tsx'))
 const simulator = window.location.pathname.replace(/\/+$/, '') === '/phone'
@@ -14,7 +15,10 @@ createRoot(document.getElementById('root')!).render(
         <PhoneSim />
       </Suspense>
     ) : (
-      <App />
+      <>
+        <App />
+        <Intro />
+      </>
     )}
   </StrictMode>,
 )
