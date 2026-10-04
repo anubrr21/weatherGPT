@@ -267,7 +267,7 @@ export interface Insight {
   tone: string
 }
 
-export type Role = 'general' | 'farmer' | 'fisher' | 'aviation' | 'urban' | 'disaster_manager' | 'researcher'
+export type Role = 'general' | 'farmer' | 'fisher' | 'aviation' | 'urban' | 'disaster_manager' | 'researcher' | 'logistics'
 
 export interface CropEntry {
   name: string
@@ -301,6 +301,7 @@ export type Card =
   | { kind: 'urban'; place: Place; data: UrbanData }
   | { kind: 'sources'; place: Place; data: SourcesData }
   | { kind: 'trip'; place: Place; data: TripResult }
+  | { kind: 'shipment'; place: Place; data: import('./logistics').ShipmentCardData }
 
 export type ChatEvent =
   | { type: 'status'; text: string; tool: string; args: Record<string, unknown> }

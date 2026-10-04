@@ -323,6 +323,7 @@ export const WORK_TABS: Partial<Record<Role, { label: string }>> = {
   urban: { label: 'City' },
   disaster_manager: { label: 'Command' },
   researcher: { label: 'Data' },
+  logistics: { label: 'Logistics' },
 }
 
 export const dayName = (date: string, today: string) => {

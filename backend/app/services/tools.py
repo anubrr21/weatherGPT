@@ -1,4 +1,6 @@
 import asyncio
+import base64
+import json
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -244,7 +246,7 @@ async def get_city_advisory(ctx: ChatContext, location: str | None = None) -> di
     return {"place": _label(place), **{k: v for k, v in data.items() if k != "heat_series"}}
 
 
-ROLES = ["general", "farmer", "fisher", "aviation", "urban", "disaster_manager", "researcher"]
+ROLES = ["general", "farmer", "fisher", "aviation", "urban", "disaster_manager", "researcher", "logistics"]
 
 
 async def search_knowledge(ctx: ChatContext, query: str) -> dict[str, Any]:
@@ -311,6 +313,65 @@ async def plan_trip(ctx: ChatContext, destination: str, origin: str | None = Non
     return trips.brief(trip)
 
 
+async def assess_shipment(
+    ctx: ChatContext, destination: str, origin: str | None = None, mode: str = "road", vehicle: str = "hcv", cargo: str = "general",
+    depart: str | None = None, via: list[str] | None = None, two_drivers: bool = False,
+) -> dict[str, Any]:
+    from app.services import logistics
+
+    start = await resolve_place(origin, ctx)
+    request = {
+        "origin": {"name": start.get("name"), "lat": start["lat"], "lon": start["lon"]}, "destination": {"name": destination},
+        "vias": [{"name": name} for name in (via or [])[:8] if name and name.strip()],
+        "mode": mode if mode in logistics.MODES else "road", "vehicle": vehicle if vehicle in logistics.VEHICLES else "hcv",
+        "cargo": cargo if cargo in logistics.CARGO else "general", "crew": 2 if two_drivers else 1, "depart": depart or None,
+    }
+    try:
+        result = await logistics.shipment(request)
+    except trips.TripError as exc:
+        raise ToolError(str(exc)) from exc
+    route = result["routes"][0]
+    packed = base64.urlsafe_b64encode(json.dumps(request | {"depart": route["depart"]}, ensure_ascii=False).encode()).decode().rstrip("=")
+    ctx.cards.append({"kind": "shipment", "place": result["destination"], "data": {
+        "origin": result["origin"]["name"], "destination": result["destination"]["name"], "mode": result["mode_label"], "vehicle": result["vehicle_label"], "cargo": result["cargo_label"],
+        "verdict": route["verdict"], "arrive": route["arrive"], "distance_km": route["distance_km"], "delay_min": route["delay_min"], "delay_worst_min": route["delay_worst_min"],
+        "risk": route["risk"]["label"], "confidence": route["confidence"]["label"], "report": f"/api/logistics/report.pdf?kind=shipment&q={packed}",
+    }})
+    return logistics.localise(logistics.brief(result)) | {"times": "All times are India Standard Time", "pdf": "A full PDF report can be downloaded from the card shown with this answer."}
+
+
+async def get_freight_network(ctx: ChatContext) -> dict[str, Any]:
+    from app.services import logistics
+
+    try:
+        board = await logistics.network()
+    except trips.TripError as exc:
+        raise ToolError(str(exc)) from exc
+    return {
+        "summary": board["summary"], "vehicle": board["vehicle"],
+        "lanes": [{k: lane[k] for k in ("name", "distance_km", "duration_min", "delay_min", "worst", "warning_count")} | {"risk": lane["risk"]["label"], "outlook": [{k: o[k] for k in ("hours", "delay_min", "risk")} for o in lane["outlook"]]} for lane in board["lanes"]],
+    }
+
+
+async def get_facility_outlook(ctx: ChatContext, kind: str = "all", name: str | None = None) -> dict[str, Any]:
+    from app.services import logistics
+
+    try:
+        board = await logistics.facilities(kind if kind in ("all", "port", "airport", "hub") else "all")
+    except trips.TripError as exc:
+        raise ToolError(str(exc)) from exc
+    sites = board["sites"]
+    if name:
+        needle = name.lower()
+        sites = [s for s in sites if needle in s["name"].lower() or needle in (s.get("area") or "").lower() or needle == (s.get("code") or "").lower()] or sites
+    else:
+        sites = [s for s in sites if s["level"] >= 1] or sites[:6]
+    return {
+        "summary": board["summary"], "rules": board["rules"],
+        "sites": [{k: s[k] for k in ("kind", "name", "area", "status", "now", "warnings", "cyclone")} | {"days": [{k: d[k] for k in ("date", "status", "lost_hours", "rain_mm", "gust_max", "vis_min", "wave_max", "reasons")} for d in s["days"]]} for s in sites[:10]],
+    }
+
+
 async def get_cyclones(ctx: ChatContext, location: str | None = None) -> dict[str, Any]:
     from app.services import cyclones
 
@@ -346,6 +407,9 @@ TOOL_FUNCTIONS = {
     "update_profile": update_profile,
     "search_knowledge": search_knowledge,
     "plan_trip": plan_trip,
+    "assess_shipment": assess_shipment,
+    "get_freight_network": get_freight_network,
+    "get_facility_outlook": get_facility_outlook,
     "get_cyclones": get_cyclones,
     "get_lightning": get_lightning,
     "get_forecast_accuracy": get_forecast_accuracy,
@@ -479,6 +543,40 @@ TOOL_DECLARATIONS = [
             "type": "OBJECT",
             "properties": {"query": {"type": "STRING", "description": "Specific English keyword query in the vocabulary of IMD/NDMA documents, e.g. 'criteria for heat wave plains departure from normal', 'colour coding hazardous conditions green yellow orange red level', 'lightning safety crouch shelter 30/30 rule', 'warnings for fisheries criteria wind speed'."}},
             "required": ["query"],
+        },
+    },
+    {
+        "name": "assess_shipment",
+        "description": "Freight and logistics: assess one shipment moving by road (truck), rail, air or coastal sea between two places. Returns a go, caution or hold verdict, the weather-adjusted arrival time and delay, hazards on each stretch at the time the load passes, official warnings and cyclones on the route, cargo exposure (cold chain, pharma, produce, moisture-sensitive, hazardous, livestock) and the best dispatch time in the next 48 hours. Use it for any truck, lorry, container, consignment, dispatch, delivery, fleet, cold chain or shipping question.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "destination": {"type": "STRING", "description": "Where the load is going: a city, port or hub, e.g. 'Mundra Port'."},
+                "origin": {"type": "STRING", "description": "Where the load starts. Omit to use the place on the user's screen."},
+                "via": {"type": "ARRAY", "items": {"type": "STRING"}, "description": "Places to pass through in order. Omit for a direct run."},
+                "mode": {"type": "STRING", "enum": ["road", "rail", "air", "sea"], "description": "road (truck), rail, air or sea (coastal shipping between Indian ports)."},
+                "vehicle": {"type": "STRING", "enum": ["lcv", "hcv", "container", "tanker", "reefer"], "description": "Road vehicle: lcv light truck, hcv heavy truck, container trailer, tanker or reefer (refrigerated)."},
+                "cargo": {"type": "STRING", "enum": ["general", "chilled", "frozen", "pharma", "produce", "moisture", "electronics", "hazmat", "livestock"], "description": "Cargo type. chilled covers vaccines, insulin, dairy and anything kept at 2 to 8 °C; frozen is -18 °C or below; pharma is medicine kept at room temperature (15 to 25 °C); produce is fruit and vegetables without cooling; moisture means cement, grain, paper or textiles."},
+                "depart": {"type": "STRING", "description": "Local dispatch date-time in ISO format, e.g. '2026-10-05T21:00'. Omit for now."},
+                "two_drivers": {"type": "BOOLEAN", "description": "True when two drivers share the driving, so there is no overnight halt."},
+            },
+            "required": ["destination"],
+        },
+    },
+    {
+        "name": "get_freight_network",
+        "description": "Live weather status of India's main road freight corridors (Delhi-Mumbai, Delhi-Kolkata, Mumbai-Chennai, Chennai-Kolkata and others): delay for a truck leaving now and in the next 48 hours, the worst hazard on each lane and official warnings crossing it. Use for questions about which lanes or corridors are disrupted or the overall freight picture.",
+        "parameters": {"type": "OBJECT", "properties": {}},
+    },
+    {
+        "name": "get_facility_outlook",
+        "description": "Five-day operations outlook for Indian ports, large cargo airports and logistics hubs: hours of work likely to stop each day from wind, lightning, fog, heavy rain or waves, plus official warnings and cyclone threats. Use for questions about whether a port, airport or warehouse will be disrupted.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "kind": {"type": "STRING", "enum": ["all", "port", "airport", "hub"], "description": "Which kind of facility."},
+                "name": {"type": "STRING", "description": "Name, city or airport code to look for, e.g. 'Mundra', 'Chennai' or 'BOM'. Omit to list the facilities with problems."},
+            },
         },
     },
     {

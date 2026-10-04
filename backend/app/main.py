@@ -18,6 +18,7 @@ from app.routes_cyclones import router as cyclones_router
 from app.routes_lightning import router as lightning_router
 from app.routes_verify import router as verify_router
 from app.routes_work import router as work_router
+from app.routes_logistics import router as logistics_router
 from app.routes_maps import router as maps_router
 from app.routes_phone import router as phone_router
 from app.services import advisory, agent, alerts, ingest, knowledge, lightning, local_stt, local_tts, providers, ratings, trips, voice, weather, wis2
@@ -55,6 +56,7 @@ app.include_router(lightning_router)
 app.include_router(verify_router)
 app.include_router(maps_router)
 app.include_router(work_router)
+app.include_router(logistics_router)
 app.add_middleware(GZipMiddleware, minimum_size=800, compresslevel=6, exclude_content_types=(*DEFAULT_EXCLUDED_CONTENT_TYPES, "audio/ogg", "audio/wav"))
 app.add_middleware(
     CORSMiddleware,
@@ -249,6 +251,16 @@ class ChatRequest(BaseModel):
     language: str = "en"
     profile: dict[str, Any] = {}
     trip: dict[str, Any] | None = None
+
+
+class TitleRequest(BaseModel):
+    question: str = Field(..., min_length=1, max_length=2000)
+    answer: str = Field("", max_length=8000)
+
+
+@app.post("/api/chat/title")
+async def chat_title(req: TitleRequest):
+    return {"title": await agent.title(req.question, req.answer)}
 
 
 @app.post("/api/chat")

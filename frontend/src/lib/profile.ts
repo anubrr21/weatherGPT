@@ -12,6 +12,7 @@ export const ROLES: { id: Role; label: string }[] = [
   { id: 'urban', label: 'City' },
   { id: 'disaster_manager', label: 'Disaster mgmt' },
   { id: 'researcher', label: 'Researcher' },
+  { id: 'logistics', label: 'Logistics' },
 ]
 
 export const CROPS = ['paddy', 'wheat', 'maize', 'cotton', 'sugarcane', 'groundnut', 'soybean', 'pulses', 'mustard', 'millets', 'vegetables', 'chilli', 'banana', 'mango']

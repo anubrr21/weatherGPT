@@ -1,6 +1,6 @@
 # WeatherGPT
 
-A weather assistant for India. It takes official warnings from IMD, NDMA and the state disaster authorities, forecasts from several global models and live station observations, and explains them in plain language for one place and one person: a farmer, a fisher, a pilot, a commuter, a district officer.
+A weather assistant for India. It takes official warnings from IMD, NDMA and the state disaster authorities, forecasts from several global models and live station observations, and explains them in plain language for one place and one person: a farmer, a fisher, a pilot, a commuter, a district officer, a transport planner.
 
 You can ask it questions by text or voice in 13 Indian languages, get warnings on your phone before the weather arrives, plan a journey around the weather, and reach it from a keypad phone by SMS or a voice call.
 
@@ -47,6 +47,18 @@ Set your role in the profile and an extra tab appears:
 | City | City | Commute, waterlogging, heat stress, air quality, best time outdoors |
 | Disaster management | Command | Towns ranked by risk, warning areas, population exposed, situation report |
 | Researcher | Data | Model comparison, climate trends, station observations, CSV downloads |
+| Logistics | Logistics | Shipment risk and weather-adjusted arrival by road, rail, air and sea, cargo exposure, best dispatch time, fleet board, freight corridors, ports and hubs |
+
+**Logistics**
+- A go, caution or hold verdict for a shipment, with the arrival time adjusted for the weather it meets at each point of the route and for driver rest.
+- Cargo exposure for cold chain, pharma, fresh produce, moisture-sensitive goods, hazardous loads and livestock.
+- The best hour to dispatch in the next 48 hours, a board for many shipments, live status of 22 freight corridors, and a five-day outlook for ports, cargo airports and logistics hubs.
+- Delay split by cause, a stage-by-stage route summary, agreement between weather models, and a written dispatch briefing.
+- Every logistics view can be downloaded as a formatted PDF report.
+- A JSON API so a transport management system can call the same engine. See [docs/LOGISTICS.md](docs/LOGISTICS.md).
+
+**Chat history**
+- Conversations are saved on the device, named automatically, and can be searched, pinned, renamed, shared and deleted.
 
 **Offline and low bandwidth**
 - The last forecast, warnings and notices for each place are kept on the device.
@@ -67,7 +79,7 @@ Keypad phone (SMS, IVR)  ┘          │
 |---|---|
 | Web app | React 19, TypeScript, Vite, Leaflet |
 | Android app | Capacitor 8, Firebase Cloud Messaging |
-| Server | Python 3.14, FastAPI, SQLAlchemy, httpx |
+| Server | Python 3.14, FastAPI, SQLAlchemy, httpx, ReportLab |
 | Database | PostgreSQL (SQLite for local development) |
 | Assistant | Tool-calling agent over Cerebras, Groq, Gemini, Mistral and OpenRouter with automatic fallback |
 | Speech | IndicConformer and Whisper for recognition, Piper voices for speech, both through ONNX Runtime |
@@ -157,14 +169,14 @@ cd backend
 
 ```
 backend/app/            FastAPI app, routes and services
-backend/app/services/   weather, alerts, agent, trips, cyclones, lightning, verify, farm, sea, aviation, city, command, research, phone, ivr
+backend/app/services/   weather, alerts, agent, trips, cyclones, lightning, verify, farm, sea, aviation, city, command, research, logistics, phone, ivr
 backend/knowledge/      indexed IMD and NDMA documents
 backend/scripts/        data builders
 backend/tests/          unit tests
 frontend/src/           React app
 frontend/android/       Capacitor Android project
 deploy/k8s/             Kubernetes manifests
-docs/                   deployment notes and roadmap
+docs/                   deployment notes, logistics guide and roadmap
 ```
 
 ## Notes
@@ -173,4 +185,5 @@ docs/                   deployment notes and roadmap
 - Disease risk in the Farm tab means the weather favours a disease. It is not a diagnosis.
 - Boat limits in the Sea tab are rule-of-thumb thresholds. An official fishermen warning always overrides them.
 - The Aviation tab is for planning support, not a substitute for an official briefing.
+- Arrival times in the Logistics tab are estimates from published speed-loss ranges. Traffic, loading time and road closures are not modelled.
 - Sending real SMS in India needs a provider account and DLT registration.

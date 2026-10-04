@@ -1,10 +1,11 @@
-import { Anchor, Building2, Database, Plane, Siren, Sprout, type LucideIcon } from 'lucide-react'
+import { Anchor, Building2, Database, Plane, Siren, Sprout, Truck, type LucideIcon } from 'lucide-react'
 import type { Place, Profile, Role } from '../../lib/types'
 import AviationView from './AviationView'
 import CityView from './CityView'
 import CommandView from './CommandView'
 import DataView from './DataView'
 import FarmView from './FarmView'
+import LogisticsView from './LogisticsView'
 import SeaView from './SeaView'
 
 interface Props {
@@ -23,6 +24,7 @@ export const WORK_ICONS: Partial<Record<Role, LucideIcon>> = {
   urban: Building2,
   disaster_manager: Siren,
   researcher: Database,
+  logistics: Truck,
 }
 
 export default function WorkView({ place, profile, online, onAsk, onEditProfile }: Props) {
@@ -32,5 +34,6 @@ export default function WorkView({ place, profile, online, onAsk, onEditProfile 
   if (profile.role === 'urban') return <CityView place={place} online={online} onAsk={onAsk} />
   if (profile.role === 'disaster_manager') return <CommandView place={place} online={online} onAsk={onAsk} />
   if (profile.role === 'researcher') return <DataView place={place} online={online} onAsk={onAsk} />
+  if (profile.role === 'logistics') return <LogisticsView place={place} online={online} onAsk={onAsk} />
   return null
 }

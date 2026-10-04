@@ -34,6 +34,13 @@ TOOL_STATUS = {
     "get_city_advisory": "Computing heat index & waterlogging",
     "update_profile": "Remembering that",
     "search_knowledge": "Searching IMD & NDMA documents",
+    "plan_trip": "Reading the weather along the route",
+    "assess_shipment": "Assessing the shipment along its route",
+    "get_freight_network": "Scanning freight corridors",
+    "get_facility_outlook": "Checking ports, airports and hubs",
+    "get_cyclones": "Tracking cyclones",
+    "get_lightning": "Checking lightning",
+    "get_forecast_accuracy": "Verifying forecast accuracy",
 }
 
 
@@ -85,7 +92,8 @@ Rules:
 - Always call tools for real data. Never invent numbers. If a tool fails, say so plainly.
 - Use search_knowledge whenever the answer depends on official definitions, criteria, thresholds, warning colour codes, procedures or safety advice, and base those parts only on the passages it returns. Write specific, keyword-rich English queries using the vocabulary an IMD/NDMA document would use (e.g. 'colour coding hazardous conditions green yellow orange red level', 'warnings for fisheries criteria wind speed'). If the returned passages do not actually contain the answer, search once more with different wording before answering. End such answers with a short "Sources:" line naming the documents (publisher + title, page if given). Never cite a document you did not retrieve. If the library has nothing relevant, say so instead of guessing.
 - Reply in {language} unless the user clearly writes in another language; then reply in that language. Use the native script. Keep place names recognisable.
-- Be concise and actionable: lead with the direct answer, then key numbers, then practical advice. Short paragraphs or tight bullet points; no tables (the app renders rich cards from tool data next to your reply).
+- Give a thorough, expert analysis, not a short reply. Open with one or two sentences in bold that answer the question directly. Then write a structured answer with '### ' headings chosen to fit the question, normally: the detailed picture (hour by hour for today and tomorrow, day by day beyond that, with the actual numbers for temperature, feels-like, rain amount and chance, wind and gusts, humidity, visibility or whatever the question turns on); why it is happening when the data shows it (for example model spread, a warning, a cyclone, a front, convective energy); what it means for this user and their work; what to do, as numbered specific steps with times; and how sure the forecast is and what would change it. Use every relevant figure the tools returned, compare with normal or with the other models where you have that data, and name the times and places. Call more than one tool when the question deserves it (for example forecast plus warnings plus air quality, or a sector tool plus the forecast). Use bullet points and short paragraphs; no tables (the app renders rich cards from tool data next to your reply). A typical answer is 250 to 500 words; go longer for planning, safety, logistics, farming and multi-day questions. Never pad: every sentence must carry a fact, a reason or an instruction. Only a simple factual follow-up (for example 'and the humidity?') or a message that explicitly asks for a short or SMS reply gets a brief answer.
+- For shipments and freight, call assess_shipment and report all of it: the verdict and reasons, dispatch and arrival times, expected and worst-case delay with causes, each stage of the route with its weather, hazards with place and time, driver rest stops, official warnings and cyclones, cargo exposure figures, the best dispatch times, the other crew option, model agreement and confidence, then numbered actions for the dispatcher and the driver.
 - Tailor advice to the user's role and crops. Use the sector tools: get_farm_advisory for farmers (give concrete spray windows with times, irrigate/hold with mm, harvest/drying days), get_fishing_advisory for fishermen (lead with GO / CAUTION / NO-GO), get_aviation for pilots (decoded briefing: flight category, wind, visibility, cloud, hazards, trend), get_city_advisory for urban users (heat index, waterlogging, commute), get_alerts for disaster managers (severity, timing, affected areas, actions).
 - When the user states a lasting fact about themselves (their job, crops and stage, village, boat), call update_profile as well, then answer. Do not announce that you saved it unless asked.
 - For "right now" questions, prefer observed_now_at_nearest_station (a real measurement) when it is recent, and say where and how long ago it was measured; use the model values for everything else. If observation and model disagree a lot, trust the observation for the present.
@@ -98,7 +106,7 @@ Rules:
 
 Reply format (strict):
 1. After you have the data, START the reply with a spoken version wrapped exactly as <speak>...</speak>. It is read aloud by a voice, so write it the way a friendly local weather presenter would talk to this person: 1 to 3 short sentences in the reply language, answering only what was asked, most important fact first, with one practical tip if useful. No markdown, bullets, symbols, units written as symbols, decimals, dates in digits or English words inside other languages. Round numbers and say units as spoken words in that language (for example "about 33 degrees", "around 20 kilometres an hour", "a light chance of rain"). Do not greet or repeat the question.
-2. Then the written answer for the screen, following the rules above."""
+2. Then the written answer for the screen, following the rules above. The spoken version stays short even though the written answer is detailed."""
 
 
 async def _run_tool(name: str, args: dict[str, Any], ctx: tools.ChatContext) -> dict[str, Any]:
@@ -389,6 +397,35 @@ async def chat(message: str, history: list[dict[str, str]], ctx: tools.ChatConte
         if len(_answers) > 300:
             _answers.pop(min(_answers, key=lambda k: _answers[k][0]))
         _answers[key] = (time.monotonic(), recorded)
+
+
+TITLE_PROMPT = (
+    "You name conversations in a weather assistant for India. Write a title of 3 to 6 words for the conversation below, "
+    "in the same language and script as the user's question. Name the topic, and the place if one is mentioned. "
+    "No quotes, no emoji, no full stop, no words like 'chat', 'question' or 'conversation'. Reply with the title only."
+)
+TITLE_REFUSAL = re.compile(r"\b(sorry|cannot|can't|unable|as an ai)\b", re.I)
+
+
+def clean_title(raw: str) -> str | None:
+    lines = [line.strip() for line in raw.splitlines() if line.strip()]
+    if not lines:
+        return None
+    text = re.sub(r"^(title|शीर्षक)\s*[:：-]\s*", "", lines[0], flags=re.I)
+    text = re.sub(r"\s+", " ", text.strip(" \t\"'`*#_“”‘’«»")).rstrip(".:;,!।")
+    if not text or len(text) > 60 or len(text.split()) > 9 or TITLE_REFUSAL.search(text):
+        return None
+    return text[0].upper() + text[1:]
+
+
+async def title(question: str, answer: str) -> str | None:
+    answer = re.sub(r"<speak>.*?</speak>", "", answer, flags=re.S).strip()
+    try:
+        raw, _ = await providers.complete(TITLE_PROMPT, f"User: {question[:600]}\n\nAssistant: {answer[:900]}")
+    except Exception as exc:
+        log.info("title failed: %s", str(exc)[:120])
+        return None
+    return clean_title(raw)
 
 
 async def _chat_live(message: str, history: list[dict[str, str]], ctx: tools.ChatContext) -> AsyncIterator[dict[str, Any]]:

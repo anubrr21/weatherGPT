@@ -13,6 +13,7 @@ paho-mqtt==2.1.0
 pybufrkit==0.2.25
 pydantic-settings==2.15.0
 pypdf==6.19.0
+reportlab==5.0.1
 python-dotenv==1.2.3
 python-multipart==0.0.32
 sherpa_onnx==1.13.8
