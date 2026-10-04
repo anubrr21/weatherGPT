@@ -28,6 +28,7 @@ import { addPlace, applyPatch, loadProfile, removePlace, saveProfile } from './l
 import { syncSubscriptions, useLiveAlerts, type LiveAlert } from './lib/live'
 import { initNative, notifyAlert, promptNotificationsOnce, type AlertTap } from './lib/native'
 import { loadPrefs, savePrefs, syncPrefs, useNotices, type Notice, type NotifyPrefs } from './lib/notices'
+import { RESUME_MS, loadChats, needsName, newChatId, storeChats, upsertChat, type Conversation } from './lib/chats'
 import { loadDataMode, saveDataMode, useConnection, type DataMode } from './lib/connection'
 import { offlineAnswer, withCache } from './lib/offline'
 import type { TripResult } from './lib/trip'
@@ -86,7 +87,14 @@ export default function App() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
   const [language, setLanguage] = useState(saved.language ?? 'en')
-  const [messages, setMessages] = useState<Message[]>([])
+  const [resumed] = useState(() => {
+    const list = loadChats()
+    const recent = list.length ? list.reduce((a, b) => (b.updatedAt > a.updatedAt ? b : a)) : null
+    return { list, chat: recent && Date.now() - recent.updatedAt < RESUME_MS ? recent : null }
+  })
+  const [chats, setChats] = useState<Conversation[]>(resumed.list)
+  const [chatId, setChatId] = useState(() => resumed.chat?.id ?? newChatId())
+  const [messages, setMessages] = useState<Message[]>(() => resumed.chat?.messages ?? [])
   const [busy, setBusy] = useState(false)
   const [llm, setLlm] = useState<Health | null>(null)
   const [profile, setProfileState] = useState<Profile>(loadProfile)
@@ -331,21 +339,22 @@ export default function App() {
     setMessages((all) => (all.length ? [...all.slice(0, -1), fn(all[all.length - 1])] : all))
 
   const send = useCallback(
-    async (text: string) => {
+    async (text: string, base?: Message[]) => {
       if (busy) return
+      const earlier = base ?? messages
       setChatOpen(true)
       if (!connection.online) {
         const answer = fc && place ? offlineAnswer(fc, place.name, staleAt ?? Date.now()) : "You're offline and I have nothing saved for this place yet. Connect once and I'll keep a copy for offline use."
-        setMessages((all) => [
-          ...all,
+        setMessages([
+          ...earlier,
           { id: uid(), role: 'user', text, cards: [], steps: [] },
           { id: uid(), role: 'assistant', text: answer, cards: [], steps: [] },
         ])
         return
       }
-      const history = messages.filter((m) => !m.pending && m.text).map((m) => ({ role: m.role, text: m.text }))
-      setMessages((all) => [
-        ...all,
+      const history = earlier.filter((m) => !m.pending && m.text).map((m) => ({ role: m.role, text: m.text }))
+      setMessages([
+        ...earlier,
         { id: uid(), role: 'user', text, cards: [], steps: [] },
         { id: uid(), role: 'assistant', text: '', cards: [], steps: [], pending: true },
       ])
@@ -353,6 +362,7 @@ export default function App() {
       const controller = new AbortController()
       abortRef.current = controller
       const onEvent = (e: ChatEvent) => {
+        if (e.type === 'status' && e.tool === 'fallback') return
         if (e.type === 'status') patchLast((m) => ({ ...m, steps: [...m.steps, e.text] }))
         else if (e.type === 'card') patchLast((m) => ({ ...m, cards: [...m.cards, e.card] }))
         else if (e.type === 'delta') patchLast((m) => ({ ...m, text: m.text + e.text }))
@@ -386,6 +396,59 @@ export default function App() {
     },
     [busy, messages, place, language, profile, connection.online, fc, staleAt, view, tripBrief],
   )
+
+  useEffect(() => {
+    if (!messages.length) return
+    setChats((all) => {
+      const next = upsertChat(all, chatId, messages, place?.name)
+      if (next !== all) storeChats(next)
+      return next
+    })
+  }, [busy, messages.length, chatId])
+
+  const changeChats = (fn: (all: Conversation[]) => Conversation[]) =>
+    setChats((all) => {
+      const next = fn(all)
+      storeChats(next)
+      return next
+    })
+
+  const naming = useRef(new Set<string>())
+  useEffect(() => {
+    if (busy || !connection.online) return
+    const chat = chats.find((c) => c.id === chatId)
+    const need = needsName(chat)
+    if (!chat || !need || naming.current.has(need.ask.id)) return
+    naming.current.add(need.ask.id)
+    api
+      .chatTitle(need.ask.text, need.reply.text)
+      .then((title) => {
+        if (title) changeChats((all) => all.map((c) => (c.id === chat.id && !c.renamed ? { ...c, title, namedFor: need.ask.id } : c)))
+      })
+      .catch(() => undefined)
+  }, [busy, chats, chatId, connection.online])
+
+  const openChat = (id: string | null) => {
+    abortRef.current?.abort()
+    setBusy(false)
+    setChatId(id ?? newChatId())
+    setMessages(id ? (chats.find((c) => c.id === id)?.messages ?? []) : [])
+  }
+
+  const deleteChat = (id: string) => {
+    changeChats((all) => all.filter((c) => c.id !== id))
+    if (id === chatId) openChat(null)
+  }
+
+  const regenerate = () => {
+    const at = messages.map((m) => m.role).lastIndexOf('user')
+    if (at >= 0) void send(messages[at].text, messages.slice(0, at))
+  }
+
+  const editMessage = (id: string, text: string) => {
+    const at = messages.findIndex((m) => m.id === id)
+    if (at >= 0) void send(text, messages.slice(0, at))
+  }
 
   const subtitle = place
     ? [place.district !== place.name ? place.district : null, place.state].filter(Boolean).join(', ') || (usingDevice ? 'Current location' : '')
@@ -541,6 +604,19 @@ export default function App() {
             onSend={(t) => send(t)}
             onStop={() => abortRef.current?.abort()}
             onCollapse={() => setChatOpen(false)}
+            chats={chats}
+            chatId={chatId}
+            onNewChat={() => openChat(null)}
+            onOpenChat={openChat}
+            onRenameChat={(id, title) => changeChats((all) => all.map((c) => (c.id === id ? { ...c, title, renamed: true } : c)))}
+            onPinChat={(id) => changeChats((all) => all.map((c) => (c.id === id ? { ...c, pinned: !c.pinned } : c)))}
+            onDeleteChat={deleteChat}
+            onClearChats={() => {
+              changeChats(() => [])
+              openChat(null)
+            }}
+            onRegenerate={regenerate}
+            onEdit={editMessage}
           />
         </aside>
 

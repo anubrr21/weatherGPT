@@ -1,12 +1,15 @@
-import { ArrowUp, ChevronDown, Loader2, Mic, Square, Volume2, VolumeX } from 'lucide-react'
+import { ArrowDown, ArrowUp, Check, ChevronDown, Copy, Loader2, Mic, PanelLeft, Pencil, RefreshCw, Square, SquarePen, Volume2, VolumeX } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { Health } from '../lib/api'
+import type { Conversation } from '../lib/chats'
 import { LANGUAGES, PROMPTS, languageByCode } from '../lib/languages'
 import type { Message } from '../lib/types'
 import { speak, speakableFromMarkdown, splitSpeak, stopSpeaking, useListen } from '../lib/voice'
 import DataCard from './cards'
+import ChatHistory from './ChatHistory'
 import Logo from './Logo'
 import Markdown from './Markdown'
+import './chat.css'
 
 interface Props {
   messages: Message[]
@@ -17,15 +20,50 @@ interface Props {
   onSend: (text: string, viaVoice: boolean) => void
   onStop: () => void
   onCollapse?: () => void
+  chats: Conversation[]
+  chatId: string
+  onNewChat: () => void
+  onOpenChat: (id: string) => void
+  onRenameChat: (id: string, title: string) => void
+  onPinChat: (id: string) => void
+  onDeleteChat: (id: string) => void
+  onClearChats: () => void
+  onRegenerate: () => void
+  onEdit: (id: string, text: string) => void
 }
 
 type Speaking = { id: string; phase: 'loading' | 'playing' } | null
 
-export default function Chat({ messages, busy, language, llm, onLanguage, onSend, onStop, onCollapse }: Props) {
+export default function Chat({
+  messages,
+  busy,
+  language,
+  llm,
+  onLanguage,
+  onSend,
+  onStop,
+  onCollapse,
+  chats,
+  chatId,
+  onNewChat,
+  onOpenChat,
+  onRenameChat,
+  onPinChat,
+  onDeleteChat,
+  onClearChats,
+  onRegenerate,
+  onEdit,
+}: Props) {
   const [draft, setDraft] = useState('')
   const [autoSpeak, setAutoSpeak] = useState(false)
   const [speaking, setSpeaking] = useState<Speaking>(null)
   const [voiceError, setVoiceError] = useState<{ id: string; text: string } | null>(null)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [copied, setCopied] = useState<string | null>(null)
+  const [editing, setEditing] = useState<{ id: string; text: string } | null>(null)
+  const [away, setAway] = useState(false)
+  const pinnedToEnd = useRef(true)
+  const title = chats.find((c) => c.id === chatId)?.title ?? 'New chat'
   const lang = languageByCode(language)
   const listRef = useRef<HTMLDivElement>(null)
   const voiceTurn = useRef(false)
@@ -36,9 +74,45 @@ export default function Chat({ messages, busy, language, llm, onLanguage, onSend
     onSend(text, true)
   })
 
+  const toEnd = (behavior: ScrollBehavior) => listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior })
+
   useEffect(() => {
-    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })
+    if (pinnedToEnd.current) toEnd('smooth')
   }, [messages])
+
+  useEffect(() => {
+    pinnedToEnd.current = true
+    setAway(false)
+    setEditing(null)
+    stopSpeaking()
+    setSpeaking(null)
+    toEnd('auto')
+  }, [chatId])
+
+  const onScroll = () => {
+    const list = listRef.current
+    if (!list) return
+    const gap = list.scrollHeight - list.scrollTop - list.clientHeight
+    pinnedToEnd.current = gap < 80
+    setAway(gap > 320)
+  }
+
+  const copy = async (id: string, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(id)
+      window.setTimeout(() => setCopied((c) => (c === id ? null : c)), 1500)
+    } catch {
+      return
+    }
+  }
+
+  const saveEdit = () => {
+    if (!editing || !editing.text.trim() || busy) return
+    pinnedToEnd.current = true
+    onEdit(editing.id, editing.text.trim())
+    setEditing(null)
+  }
 
   const say = (id: string, text: string) => {
     if (!text.trim()) return
@@ -75,6 +149,7 @@ export default function Chat({ messages, busy, language, llm, onLanguage, onSend
     const text = draft.trim()
     if (!text || busy) return
     setDraft('')
+    pinnedToEnd.current = true
     onSend(text, false)
   }
 
@@ -90,7 +165,13 @@ export default function Chat({ messages, busy, language, llm, onLanguage, onSend
               <ChevronDown size={20} />
             </button>
           )}
+          <button className="icon-btn" onClick={() => setHistoryOpen(true)} aria-label="Chat history" title="Chat history">
+            <PanelLeft size={19} />
+          </button>
           <Logo size={40} className="chat-logo" />
+          <button className="icon-btn" onClick={onNewChat} disabled={messages.length === 0} aria-label="New chat" title="New chat">
+            <SquarePen size={18} />
+          </button>
           <button
             className={`icon-btn chat-speak ${autoSpeak ? 'active' : ''}`}
             onClick={() => {
@@ -104,13 +185,9 @@ export default function Chat({ messages, busy, language, llm, onLanguage, onSend
           </button>
         </div>
         <div className="chat-head-row sub">
-          <small className="chat-status">
-            {llm === null
-              ? 'connecting…'
-              : llm.llm
-                ? `AI · ${new Set(llm.providers.map((p) => p.name)).size} providers · live data`
-                : 'offline intent mode'}
-          </small>
+          <button className="chat-current" onClick={() => setHistoryOpen(true)} title="Chat history">
+            <span key={title}>{title}</span>
+          </button>
           <label className="lang-select">
             <span className="sr-only">Language</span>
             <select value={language} onChange={(e) => onLanguage(e.target.value)}>
@@ -122,7 +199,7 @@ export default function Chat({ messages, busy, language, llm, onLanguage, onSend
         </div>
       </header>
 
-      <div className="chat-list" ref={listRef}>
+      <div className="chat-list" ref={listRef} onScroll={onScroll}>
         {messages.length === 0 && (
           <div className="empty">
             <h2>Ask the sky anything.</h2>
@@ -139,9 +216,42 @@ export default function Chat({ messages, busy, language, llm, onLanguage, onSend
         )}
         {messages.map((m) => {
           if (m.role === 'user') {
+            if (editing?.id === m.id) {
+              return (
+                <article key={m.id} className="msg user editing">
+                  <textarea
+                    autoFocus
+                    value={editing.text}
+                    onChange={(e) => setEditing({ id: m.id, text: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault()
+                        saveEdit()
+                      }
+                      if (e.key === 'Escape') setEditing(null)
+                    }}
+                    aria-label="Edit your message"
+                  />
+                  <div className="msg-edit-actions">
+                    <button onClick={() => setEditing(null)}>Cancel</button>
+                    <button className="primary" onClick={saveEdit} disabled={!editing.text.trim() || busy}>
+                      Send
+                    </button>
+                  </div>
+                </article>
+              )
+            }
             return (
               <article key={m.id} className="msg user">
                 <p>{m.text}</p>
+                <div className="msg-tools">
+                  <button onClick={() => void copy(m.id, m.text)} aria-label="Copy message" title="Copy">
+                    {copied === m.id ? <Check size={13} /> : <Copy size={13} />}
+                  </button>
+                  <button onClick={() => setEditing({ id: m.id, text: m.text })} disabled={busy} aria-label="Edit message" title="Edit and ask again">
+                    <Pencil size={13} />
+                  </button>
+                </div>
               </article>
             )
           }
@@ -162,7 +272,7 @@ export default function Chat({ messages, busy, language, llm, onLanguage, onSend
               {display && <Markdown text={display} />}
               {m.pending && !display && m.steps.length === 0 && <Loader2 className="spin" size={18} />}
               {m.error && <p className="msg-error">{m.error}</p>}
-              {!m.pending && m.provider?.fallback && <p className="msg-provider">Answered by backup: {m.provider.label}</p>}
+              <div className="msg-actions">
               {(!m.pending || mine) && m.text && (
                 <button
                   className={`speak-btn ${mine ? 'on' : ''}`}
@@ -179,11 +289,56 @@ export default function Chat({ messages, busy, language, llm, onLanguage, onSend
                   {mine?.phase === 'loading' ? 'Preparing voice…' : mine ? 'Stop' : 'Listen'}
                 </button>
               )}
+              {!m.pending && display && (
+                <button className="speak-btn" onClick={() => void copy(m.id, display)}>
+                  {copied === m.id ? <Check size={13} /> : <Copy size={13} />}
+                  {copied === m.id ? 'Copied' : 'Copy'}
+                </button>
+              )}
+              {!m.pending && !busy && m.id === last?.id && (
+                <button className="speak-btn" onClick={onRegenerate}>
+                  <RefreshCw size={13} />
+                  Try again
+                </button>
+              )}
+              </div>
               {voiceError?.id === m.id && <p className="voice-error inline">{voiceError.text}</p>}
             </article>
           )
         })}
       </div>
+
+      {away && (
+        <button
+          className="chat-to-end"
+          onClick={() => {
+            pinnedToEnd.current = true
+            toEnd('smooth')
+          }}
+          aria-label="Jump to latest message"
+        >
+          <ArrowDown size={16} />
+        </button>
+      )}
+
+      <ChatHistory
+        open={historyOpen}
+        chats={chats}
+        activeId={chatId}
+        onClose={() => setHistoryOpen(false)}
+        onNew={() => {
+          onNewChat()
+          setHistoryOpen(false)
+        }}
+        onOpen={(id) => {
+          onOpenChat(id)
+          setHistoryOpen(false)
+        }}
+        onRename={onRenameChat}
+        onPin={onPinChat}
+        onDelete={onDeleteChat}
+        onClear={onClearChats}
+      />
 
       <footer className="composer">
         {listen.error && <p className="voice-error">{listen.error}</p>}

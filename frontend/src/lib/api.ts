@@ -18,6 +18,10 @@ export interface Health {
 }
 
 export const api = {
+  chatTitle: (question: string, answer: string) =>
+    fetch(`${BASE}/api/chat/title`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question, answer }) })
+      .then((r) => (r.ok ? (r.json() as Promise<{ title: string | null }>) : { title: null }))
+      .then((r) => r.title),
   health: () => fetch(`${BASE}/api/health`).then((r) => r.json() as Promise<Health>),
   forecast: (lat: number, lon: number) => get<Forecast>('/api/weather', { lat, lon }),
   reverse: (lat: number, lon: number) => get<Place>('/api/reverse', { lat, lon }),
